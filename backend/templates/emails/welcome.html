@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to EstateMind</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #0B0F19 0%, #1A2332 100%);
+            padding: 40px 30px;
+            text-align: center;
+            border-bottom: 4px solid #FF6B35;
+        }
+        .logo {
+            font-size: 28px;
+            font-weight: 900;
+            color: #FF6B35;
+            margin-bottom: 10px;
+            letter-spacing: -0.5px;
+        }
+        .tagline {
+            font-size: 13px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .content {
+            padding: 45px 40px;
+        }
+        .greeting {
+            font-size: 22px;
+            color: #0B0F19;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+        .emoji {
+            font-size: 24px;
+            margin-right: 10px;
+        }
+        .message {
+            font-size: 15px;
+            color: #555;
+            margin-bottom: 25px;
+            line-height: 1.8;
+        }
+        .welcome-box {
+            background: linear-gradient(135deg, #fff9f5 0%, #fffbf8 100%);
+            border: 2px solid #FF6B35;
+            border-radius: 8px;
+            padding: 30px;
+            margin: 30px 0;
+            text-align: center;
+        }
+        .welcome-box h2 {
+            color: #FF6B35;
+            font-size: 20px;
+            margin-bottom: 15px;
+        }
+        .features {
+            margin: 30px 0;
+        }
+        .feature-item {
+            background: #f9f9f9;
+            border-left: 4px solid #FF6B35;
+            padding: 18px 20px;
+            margin: 12px 0;
+            border-radius: 4px;
+        }
+        .feature-icon {
+            font-size: 18px;
+            margin-right: 10px;
+        }
+        .feature-text {
+            font-size: 14px;
+            color: #555;
+        }
+        .feature-text strong {
+            color: #0B0F19;
+        }
+        .cta-button {
+            display: inline-block;
+            background: #FF6B35;
+            color: white;
+            padding: 15px 40px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 16px;
+            margin: 25px 0;
+            transition: background 0.3s ease;
+        }
+        .cta-button:hover {
+            background: #E55A1F;
+        }
+        .success-badge {
+            display: inline-block;
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        .divider {
+            border: none;
+            border-top: 1px solid #eee;
+            margin: 25px 0;
+        }
+        .footer {
+            background: #f5f5f5;
+            border-top: 1px solid #eee;
+            padding: 30px 40px;
+            text-align: center;
+            font-size: 12px;
+            color: #999;
+        }
+        .footer-links {
+            margin: 15px 0;
+        }
+        .footer-links a {
+            color: #FF6B35;
+            text-decoration: none;
+            margin: 0 12px;
+            font-size: 12px;
+        }
+        .footer-links a:hover {
+            text-decoration: underline;
+        }
+        @media (max-width: 600px) {
+            .content {
+                padding: 30px 20px;
+            }
+            .header {
+                padding: 30px 20px;
+            }
+            .footer {
+                padding: 20px 15px;
+            }
+            .greeting {
+                font-size: 20px;
+            }
+            .welcome-box h2 {
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">🏠 EstateMind</div>
+            <div class="tagline">Real Estate Intelligence</div>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <div class="success-badge">✓ Email Verified Successfully</div>
+            
+            <div class="greeting">
+                <span class="emoji">🎉</span>Welcome to EstateMind, {{ user_name }}!
+            </div>
+            
+            <div class="message">
+                Your email has been verified successfully! You now have full access to EstateMind's powerful real estate intelligence platform designed specifically for Tunisia's market.
+            </div>
+
+            <!-- Welcome Box -->
+            <div class="welcome-box">
+                <h2>Start Exploring Today</h2>
+                <p style="font-size: 14px; color: #666; margin-bottom: 15px;">
+                    Unlock AI-powered insights to make smarter real estate decisions.
+                </p>
+                <a href="{{ platform_url }}/explore/discovery" class="cta-button">Begin Exploring</a>
+            </div>
+
+            <!-- Features -->
+            <div class="features">
+                <div class="feature-item">
+                    <div class="feature-text">
+                        <span class="feature-icon">🗺️</span>
+                        <strong>Explore Market</strong><br>
+                        <span style="font-size: 13px; color: #888;">Discover properties and market opportunities</span>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-text">
+                        <span class="feature-icon">📊</span>
+                        <strong>AI Valuations</strong><br>
+                        <span style="font-size: 13px; color: #888;">Get accurate property valuations with AI</span>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-text">
+                        <span class="feature-icon">💰</span>
+                        <strong>Investment Scanner</strong><br>
+                        <span style="font-size: 13px; color: #888;">Identify high-potential investment opportunities</span>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-text">
+                        <span class="feature-icon">👥</span>
+                        <strong>Community</strong><br>
+                        <span style="font-size: 13px; color: #888;">Connect with other real estate enthusiasts</span>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="divider">
+
+            <div class="message">
+                <strong>Need help getting started?</strong><br>
+                Check out our guides and resources, or contact our support team. We're here to help you succeed.
+            </div>
+
+            <div class="message" style="margin-top: 30px;">
+                Best regards,<br>
+                <strong>The EstateMind Team</strong>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <div class="footer-links">
+                <a href="{{ platform_url }}">Visit EstateMind</a>
+                <a href="{{ platform_url }}/community">Contact Support</a>
+                <a href="{{ platform_url }}/legal">Privacy Policy</a>
+            </div>
+            <p style="margin-top: 15px;">
+                © 2026 EstateMind. All rights reserved.<br>
+                Building Tunisia's real estate future together.
+            </p>
+            <p style="margin-top: 10px; color: #ccc;">
+                Questions? Email us at {{ support_email }}
+            </p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,37 @@
+{
+  "version": 2,
+  "buildCommand": "cd frontend && npm run build",
+  "outputDirectory": "frontend/build",
+  "env": {
+    "REACT_APP_API_URL": {
+      "description": "API endpoint URL"
+    },
+    "REACT_APP_STRIPE_PUBLIC_KEY": {
+      "description": "Stripe public key"
+    }
+  },
+  "routes": [
+    {
+      "src": "^/(?!api/)[^.]*$",
+      "dest": "/index.html",
+      "methods": ["GET"]
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600"
+        }
+      ]
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://your-backend.onrender.com/api/:path*"
+    }
+  ]
+}
