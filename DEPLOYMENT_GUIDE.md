@@ -59,12 +59,13 @@ This guide covers deploying EstateMind to production on Render (backend) and Ver
    - **Runtime**: Python 3.11
    - **Build Command**: 
      ```bash
-     pip install -r requirements.txt
+       bash build.sh
      ```
    - **Start Command**:
      ```bash
-     gunicorn config.wsgi:application
+          gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --log-level debug --access-logfile - --error-logfile -
      ```
+    - **Health Check Path**: `/healthz`
 
 3. **Set Environment Variables** (Critical!)
    
@@ -80,9 +81,18 @@ This guide covers deploying EstateMind to production on Render (backend) and Ver
    DB_PASSWORD=<from-postgres-creation>
    DB_HOST=<postgres-hostname>
    DB_PORT=5432
+   DB_SSLMODE=require
    
    STRIPE_SECRET_KEY=sk_live_<your-stripe-secret>
    STRIPE_PUBLISHABLE_KEY=pk_live_<your-stripe-public>
+
+   CREATE_SUPERUSER=True
+   DJANGO_SUPERUSER_USERNAME=admin
+   DJANGO_SUPERUSER_EMAIL=admin@example.com
+   DJANGO_SUPERUSER_PASSWORD=Admin@12345
+
+   ENABLE_AUTO_SCRAPER=False
+   LEGAL_PRELOAD_MODEL=False
    
    CORS_ALLOWED_ORIGINS=https://yourdomain.vercel.app,https://yourdomain.com
    
@@ -95,24 +105,13 @@ This guide covers deploying EstateMind to production on Render (backend) and Ver
    - Wait for build to complete (5-10 minutes)
    - Copy your backend URL: `https://estatemind-backend.onrender.com`
 
-### Step 3: Run Database Migrations
+### Step 3: No-Shell Setup
 
-Once backend is deployed:
+On the free Render plan, Shell is not available. The `backend/build.sh` script runs migrations and collects static files during deploy, and it creates the initial superuser when the environment variables above are present.
 
-1. **Connect to Render Shell**
-   - In Render dashboard, go to your web service
-   - Click **"Shell"** tab at the top
+Keep `ENABLE_AUTO_SCRAPER=False` and `LEGAL_PRELOAD_MODEL=False` on the Render web service so the worker starts quickly and stays under the free-tier memory cap.
 
-2. **Run Migrations**
-   ```bash
-   python manage.py migrate
-   python manage.py createsuperuser
-   ```
-
-3. **Collect Static Files**
-   ```bash
-   python manage.py collectstatic --noinput
-   ```
+If you need to recreate the admin later, set `CREATE_SUPERUSER=True` again and redeploy.
 
 ### Step 4: Verify Backend
 

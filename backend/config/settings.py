@@ -73,18 +73,23 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 # Database
 _CONN_MAX_AGE = config('DB_CONN_MAX_AGE', default=0, cast=int)
+_db_host = config('DB_HOST', default='localhost')
+_db_sslmode = config(
+    'DB_SSLMODE',
+    default='require' if 'render.com' in _db_host else 'disable',
+)
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': config('DB_NAME', default='estatemind_db'),
         'USER': config('DB_USER', default='estatemind_user'),
         'PASSWORD': config('DB_PASSWORD', default=''),
-        'HOST': config('DB_HOST', default='localhost'),
+        'HOST': _db_host,
         'PORT': config('DB_PORT', default='5432'),
         'CONN_MAX_AGE': _CONN_MAX_AGE,
         # CONN_HEALTH_CHECKS requires CONN_MAX_AGE > 0 (persistent connections)
         'CONN_HEALTH_CHECKS': config('DB_CONN_HEALTH_CHECKS', default=False, cast=bool) and _CONN_MAX_AGE > 0,
-        'OPTIONS': {'sslmode': config('DB_SSLMODE', default='disable')},
+        'OPTIONS': {'sslmode': _db_sslmode},
     }
 }
 

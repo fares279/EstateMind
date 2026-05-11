@@ -1,5 +1,6 @@
 from django.apps import AppConfig
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -10,9 +11,12 @@ class LegalConfig(AppConfig):
     verbose_name = 'Legal AI Assistant'
 
     def ready(self):
-        # Pre-load sentence_transformers / torch in the main thread.
-        # On Windows, torch DLLs must be initialized from the main thread;
-        # lazy loading inside a request-handler thread raises WinError 1114.
+        # Loading SentenceTransformer at process start is too expensive for
+        # the Render free tier. Keep it opt-in so the web worker can bind a port
+        # quickly and only preload when explicitly requested.
+        if os.environ.get('LEGAL_PRELOAD_MODEL', '').lower() not in {'1', 'true', 'yes'}:
+            return
+
         import threading
         if threading.current_thread() is not threading.main_thread():
             return

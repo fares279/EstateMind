@@ -47,6 +47,12 @@ class ScraperConfig(AppConfig):
     verbose_name = 'Real-Time Scraping & Data Collection'
 
     def ready(self):
+        # Starting periodic scraping inside the web dyno is expensive on the
+        # Render free tier and can delay port binding. Keep it opt-in so the
+        # API process stays lightweight by default.
+        if os.environ.get('ENABLE_AUTO_SCRAPER', '').lower() not in {'1', 'true', 'yes'}:
+            return
+
         # Start the background scheduler only when the actual server process is
         # running — not during migrations, shell, or the Django reloader watcher.
         # RUN_MAIN=true is set by Django's reloader on the real server child process.
