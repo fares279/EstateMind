@@ -7,28 +7,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-import numpy as np
-import torch
-
-
-class _ResNet50Wrapper(torch.nn.Module):
-    def __init__(self, num_classes: int) -> None:
-        super().__init__()
-        from torchvision.models import resnet50
-
-        self.model = resnet50(weights=None)
-        self.model.fc = torch.nn.Sequential(
-            torch.nn.Dropout(p=0.2),
-            torch.nn.Linear(self.model.fc.in_features, num_classes),
-        )
-
-    def eval(self):
-        self.model.eval()
-        return self
-
-    def __call__(self, tensor):
-        return self.model(tensor)
-
 
 @dataclass
 class CVPrediction:
@@ -84,13 +62,20 @@ class CVModelService:
             return None
         
         try:
+            import torch
+            from torchvision.models import resnet50
+
             checkpoint = torch.load(self.model_path, map_location="cpu")
             state_dict = checkpoint.get("state_dict") if isinstance(checkpoint, dict) else None
             num_classes = int((checkpoint or {}).get("num_classes", 3)) if isinstance(checkpoint, dict) else 3
             if not state_dict:
                 return None
 
-            model = _ResNet50Wrapper(num_classes=num_classes)
+            model = resnet50(weights=None)
+            model.fc = torch.nn.Sequential(
+                torch.nn.Dropout(p=0.2),
+                torch.nn.Linear(model.fc.in_features, num_classes),
+            )
             model.load_state_dict(state_dict, strict=True)
             self._model = model.eval()
             return self._model
@@ -127,9 +112,11 @@ class CVModelService:
             )
         
         try:
+            import io
+
+            import numpy as np
             import torch
             from PIL import Image
-            import io
             
             # Process first image only for now
             img_file = image_files[0]
