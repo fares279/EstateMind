@@ -6,10 +6,13 @@ python manage.py collectstatic --no-input
 python manage.py migrate
 
 # Bootstrap superuser if CREATE_SUPERUSER=True
+echo "=== Bootstrap: Checking CREATE_SUPERUSER env var: $CREATE_SUPERUSER ==="
 if [ "$CREATE_SUPERUSER" = "True" ]; then
+  echo "=== Bootstrap: Starting superuser creation/update ==="
   python manage.py shell << END
 from django.contrib.auth import get_user_model
 User = get_user_model()
+print("DEBUG: Looking for user with email=$DJANGO_SUPERUSER_EMAIL")
 user, created = User.objects.get_or_create(
     email='$DJANGO_SUPERUSER_EMAIL',
     defaults={
@@ -18,10 +21,16 @@ user, created = User.objects.get_or_create(
         'is_email_verified': True,
     },
 )
+print(f"DEBUG: User found/created: {user.email}, created={created}")
 user.is_staff = True
 user.is_superuser = True
 user.role = 'admin'
 user.is_email_verified = True
 user.set_password('$DJANGO_SUPERUSER_PASSWORD')
 user.save()
-print('Superuser %s successfully.' % ('created' if created else 'updated'))
+print('SUCCESS: Superuser %s successfully.' % ('created' if created else 'updated'))
+END
+  echo "=== Bootstrap: Superuser creation completed ==="
+else
+  echo "=== Bootstrap: CREATE_SUPERUSER not True, skipping superuser setup ==="
+fi
