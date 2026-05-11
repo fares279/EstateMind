@@ -5,17 +5,6 @@ Scanner chain (listing analysis):  M1 → M3 → M2 → M4 → M5
 Portfolio chain (asset scoring):   M2 → M6 → M7
 """
 import logging
-import numpy as np
-import pandas as pd
-
-from .registry import REGISTRY
-from .zone_data import get_zone_stats, get_zone_forecast
-from .feature_builder import (
-    build_scanner_features_m1, build_scanner_features_m2,
-    build_scanner_features_m3, build_scanner_features_m4,
-    build_scanner_features_m5, build_portfolio_features_m2,
-    build_portfolio_features_m6, build_portfolio_features_m7,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +12,9 @@ _UNDERVAL_LABELS = {0: 'SEVERELY_UNDERVALUED', 1: 'UNDERVALUED', 2: 'FAIRLY_PRIC
 _GRADE_LABELS    = {0: 'D', 1: 'C', 2: 'B', 3: 'A'}
 
 
-def _to_df(features: dict, feature_names: list) -> pd.DataFrame:
+def _to_df(features: dict, feature_names: list):
+    """Convert features dict to pandas DataFrame (lazy pandas import)."""
+    import pandas as pd
     row = {}
     for f in feature_names:
         row[f] = features.get(f, 0.0)
@@ -33,7 +24,9 @@ def _to_df(features: dict, feature_names: list) -> pd.DataFrame:
     return df
 
 
-def _predict(model_name: str, features: dict) -> np.ndarray | None:
+def _predict(model_name: str, features: dict):
+    """Predict using model (lazy registry import)."""
+    from .registry import REGISTRY
     model = REGISTRY.model(model_name)
     if model is None:
         return None
@@ -46,7 +39,9 @@ def _predict(model_name: str, features: dict) -> np.ndarray | None:
         return None
 
 
-def _predict_proba(model_name: str, features: dict) -> np.ndarray | None:
+def _predict_proba(model_name: str, features: dict):
+    """Predict probabilities using model (lazy registry and numpy imports)."""
+    from .registry import REGISTRY
     model = REGISTRY.model(model_name)
     if model is None:
         return None
@@ -65,13 +60,22 @@ def _predict_proba(model_name: str, features: dict) -> np.ndarray | None:
 
 def score_listing(inp: dict) -> dict:
     """
-    Full scanner chain: M1 → M3 → M2 → M4 → M5.
+    Full scanner chain: M1 → M3 → M2 → M4 → M5 (lazy imports).
     inp keys: listing_price_tnd, surface_m2, property_type, governorate,
               delegation, room_count, floor_level, days_active,
               repost_count, price_reduction_count, seller_type,
               has_parking, has_garden, has_pool, sea_view, elevator,
               photo_quality, listing_quality
     """
+    import numpy as np
+    from .zone_data import get_zone_stats, get_zone_forecast
+    from .feature_builder import (
+        build_scanner_features_m1, build_scanner_features_m2,
+        build_scanner_features_m3, build_scanner_features_m4,
+        build_scanner_features_m5,
+    )
+    from .registry import REGISTRY
+    
     gov   = inp.get('governorate', 'Tunis')
     deleg = inp.get('delegation', '')
     ptype = inp.get('property_type', 'apartment')
@@ -200,9 +204,17 @@ def score_listing(inp: dict) -> dict:
 
 def score_asset(asset: dict) -> dict:
     """
-    Portfolio asset scoring chain: M2 → M6 → M7.
+    Portfolio asset scoring chain: M2 → M6 → M7 (lazy imports).
     asset keys: same as PortfolioAsset fields + holding_days, unrealized_gain_tnd, etc.
     """
+    import numpy as np
+    from .zone_data import get_zone_stats, get_zone_forecast
+    from .feature_builder import (
+        build_portfolio_features_m2,
+        build_portfolio_features_m6,
+        build_portfolio_features_m7,
+    )
+    
     gov   = asset.get('governorate', 'Tunis')
     deleg = asset.get('delegation', '')
     ptype = asset.get('property_type', 'apartment')
@@ -282,7 +294,9 @@ def score_asset(asset: dict) -> dict:
 
 
 def score_portfolio(assets: list) -> dict:
-    """Score all portfolio assets and compute portfolio-level metrics."""
+    """Score all portfolio assets and compute portfolio-level metrics (lazy imports)."""
+    import numpy as np
+    
     if not assets:
         return {'assets': [], 'summary': {}}
 

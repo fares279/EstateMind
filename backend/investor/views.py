@@ -5,9 +5,6 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from .models import PortfolioAsset, ScanResult
-from .services.scorer import score_listing, score_asset, score_portfolio
-from .services.zone_data import get_zone_stats, get_zone_forecast
-from .services.registry import REGISTRY
 
 
 # ── Portfolio CRUD ────────────────────────────────────────────────────────────
@@ -106,6 +103,8 @@ def portfolio_detail(request, pk):
 @permission_classes([IsAuthenticated])
 def portfolio_score(request):
     """Score all assets in the portfolio using Models 2→6→7."""
+    from .services.scorer import score_portfolio
+    
     assets = PortfolioAsset.objects.filter(user=request.user)
     if not assets:
         return Response({'assets': [], 'summary': {}})
@@ -119,6 +118,8 @@ def portfolio_score(request):
 @permission_classes([IsAuthenticated])
 def portfolio_score_asset(request, pk):
     """Score a single portfolio asset."""
+    from .services.scorer import score_asset
+    
     try:
         asset = PortfolioAsset.objects.get(pk=pk, user=request.user)
     except PortfolioAsset.DoesNotExist:
@@ -137,6 +138,8 @@ def scanner_score(request):
     Score a listing: chains Models 1→3→2→4→5.
     Required: listing_price_tnd, surface_m2, property_type, governorate, delegation
     """
+    from .services.scorer import score_listing
+    
     inp = request.data
     if not inp.get('listing_price_tnd') or not inp.get('surface_m2'):
         return Response({'error': 'listing_price_tnd and surface_m2 are required'},
