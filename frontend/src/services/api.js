@@ -1,9 +1,14 @@
 import axios from 'axios';
 
+const resolveBuildVar = (value) =>
+  typeof value === 'string' && value.trim() && !value.startsWith('%REACT_APP_')
+    ? value.trim()
+    : null;
+
 // Runtime global wins (set in public/index.html), then build-time env var, then default.
 const API_BASE =
-  (typeof window !== 'undefined' && window.__API_BASE__) ||
-  process.env.REACT_APP_API_URL ||
+  resolveBuildVar(typeof window !== 'undefined' ? window.__API_BASE__ : null) ||
+  resolveBuildVar(process.env.REACT_APP_API_URL) ||
   'http://localhost:8000/api';
 
 const api = axios.create({

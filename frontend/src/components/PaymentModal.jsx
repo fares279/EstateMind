@@ -5,8 +5,15 @@ import { X, AlertCircle, CheckCircle, Loader } from 'lucide-react';
 import axios from 'axios';
 import { devUpgradePlan } from '../services/api';
 
+const resolveBuildVar = (value) =>
+  typeof value === 'string' && value.trim() && !value.startsWith('%REACT_APP_')
+    ? value.trim()
+    : null;
+
 // Initialize Stripe (guard against missing publishable key to avoid runtime error)
-const PUBLISHABLE_KEY = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY;
+const PUBLISHABLE_KEY =
+  resolveBuildVar(typeof window !== 'undefined' ? window.__STRIPE_PUBLISHABLE_KEY__ : null) ||
+  resolveBuildVar(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
 let stripePromise = null;
 if (typeof PUBLISHABLE_KEY === 'string' && PUBLISHABLE_KEY.trim().length > 0) {
   stripePromise = loadStripe(PUBLISHABLE_KEY);

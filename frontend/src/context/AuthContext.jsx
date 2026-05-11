@@ -5,6 +5,11 @@ import { trackUserActivity, createCheckoutSession, devUpgradePlan } from '../ser
 
 const AuthContext = createContext();
 
+const resolveBuildVar = (value) =>
+  typeof value === 'string' && value.trim() && !value.startsWith('%REACT_APP_')
+    ? value.trim()
+    : null;
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -13,8 +18,8 @@ export const AuthProvider = ({ children }) => {
   const [, setRefreshToken] = useState(localStorage.getItem('refresh_token'));
 
   const API_BASE =
-    (typeof window !== 'undefined' && window.__API_BASE__) ||
-    process.env.REACT_APP_API_URL ||
+    resolveBuildVar(typeof window !== 'undefined' ? window.__API_BASE__ : null) ||
+    resolveBuildVar(process.env.REACT_APP_API_URL) ||
     'http://localhost:8000/api';
 
   const clearStoredAuth = useCallback(() => {

@@ -6,7 +6,10 @@
   <meta name="theme-color" content="#0B0F19" />
   <meta name="description" content="EstateMind - AI for Tunisian Real Estate Intelligence" />
   <title>EstateMind</title>
-  <script>window.__API_BASE__ = "http://localhost:8000/api";</script>
+  <script>
+    window.__API_BASE__ = "%REACT_APP_API_URL%";
+    window.__STRIPE_PUBLISHABLE_KEY__ = "%REACT_APP_STRIPE_PUBLISHABLE_KEY%";
+  </script>
 </head>
 <body>
   <noscript>You need to enable JavaScript to run this app.</noscript>
