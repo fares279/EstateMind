@@ -159,12 +159,11 @@ https://estatemind-backend.onrender.com/admin
    ```
    
    If you get validation errors, make sure there are NO extra spaces before/after the URLs.
-   If Vercel still rejects the env vars during import, deploy first without them and add them in Project Settings afterward.
 
 3. **Deploy**
    - Click **"Deploy"**
    - Wait for build (3-5 minutes)
-   - Copy your frontend URL: `https://estatemind.vercel.app`
+   - Copy your frontend URL: `https://estatemind-frontend.vercel.app`
 
 ### Step 3: Update Backend CORS
 
