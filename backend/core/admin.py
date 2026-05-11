@@ -86,21 +86,15 @@ class RegionAdmin(admin.ModelAdmin):
         ('Meta', {'fields': ('created_at',)}),
     )
 
-    def get_queryset(self, request):
-        return super().get_queryset(request).annotate(
-            _props=Count('property', filter=Q(property__is_active=True)),
-            _dels=Count('delegations', distinct=True),
-        )
-
     @admin.display(description='Active Listings', ordering='_props')
     def active_listings(self, obj):
-        n = getattr(obj, '_props', 0)
+        n = obj.property_set.filter(is_active=True).count()
         c = '#22c55e' if n > 100 else '#f59e0b' if n > 20 else '#6b7280'
         return format_html('<b style="color:{}">{}</b>', c, f'{n:,}')
 
     @admin.display(description='Delegations', ordering='_dels')
     def delegation_count(self, obj):
-        return getattr(obj, '_dels', '—')
+        return obj.delegations.count()
 
     @admin.display(description='Avg TND/m²')
     def avg_price_m2(self, obj):
@@ -166,11 +160,6 @@ class DelegationAdmin(admin.ModelAdmin):
         ('Timestamps', {'fields': ('created_at', 'updated_at'), 'classes': ('collapse',)}),
     )
 
-    def get_queryset(self, request):
-        return super().get_queryset(request).annotate(
-            _props=Count('property', filter=Q(property__is_active=True)),
-        )
-
     @admin.display(description='Coastal', boolean=True, ordering='is_coastal')
     def coastal_badge(self, obj):
         return obj.is_coastal
@@ -216,7 +205,7 @@ class DelegationAdmin(admin.ModelAdmin):
 
     @admin.display(description='Active Listings', ordering='_props')
     def active_listings(self, obj):
-        n = getattr(obj, '_props', 0)
+        n = obj.region.property_set.filter(is_active=True).count() if obj.region_id else 0
         return format_html('<b>{}</b>', f'{n:,}') if n else '—'
 
 
