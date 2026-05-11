@@ -4,6 +4,7 @@ Features: Full AI-powered real estate intelligence platform for Tunisia.
 """
 
 from pathlib import Path
+from copy import copy as _py_copy
 from decouple import config
 import os
 
@@ -196,6 +197,33 @@ LOGGING = {
         'scraper':        {'handlers': ['console'], 'level': 'INFO',  'propagate': False},
     },
 }
+
+# Django 4.2 + Python 3.14 compatibility shim:
+# BaseContext.__copy__ uses copy(super()), which breaks on the current runtime.
+# Admin changelist templates hit this path when rendering inclusion tags.
+from django.template.context import BaseContext, Context
+
+
+def _safe_base_context_copy(self):
+    duplicate = self.__class__.__new__(self.__class__)
+    duplicate.dicts = self.dicts[:]
+    return duplicate
+
+
+def _safe_context_copy(self):
+    duplicate = self.__class__.__new__(self.__class__)
+    duplicate.autoescape = self.autoescape
+    duplicate.use_l10n = self.use_l10n
+    duplicate.use_tz = self.use_tz
+    duplicate.template_name = self.template_name
+    duplicate.render_context = _py_copy(self.render_context)
+    duplicate.template = self.template
+    duplicate.dicts = self.dicts[:]
+    return duplicate
+
+
+BaseContext.__copy__ = _safe_base_context_copy
+Context.__copy__ = _safe_context_copy
 
 # Scraper configuration
 SCRAPER = {
