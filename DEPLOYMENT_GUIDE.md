@@ -141,6 +141,8 @@ https://estatemind-backend.onrender.com/admin
    - **Project Name**: `estatemind-frontend`
    - **Framework**: React
    - **Root Directory**: `frontend`
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `build`
    - Click **"Import"**
 
 ### Step 2: Set Environment Variables
@@ -149,27 +151,38 @@ https://estatemind-backend.onrender.com/admin
    - Click **"Settings"** → **"Environment Variables"**
 
 2. **Add Variables**
+   
+   During import, set these environment variables:
    ```
-   REACT_APP_API_URL=https://estatemind-backend.onrender.com/api
-   REACT_APP_API_BASE_URL=https://estatemind-backend.onrender.com
-   REACT_APP_STRIPE_PUBLIC_KEY=pk_live_<your-stripe-public>
+   REACT_APP_API_URL=https://estatemind.onrender.com/api
+   REACT_APP_STRIPE_PUBLIC_KEY=pk_test_51TT6qSRqB7vJnbZ4lBXfRBC5Qc2LLVFMEkSSsoRdGF3ct2gmdpSr2DIwBgAV3TX6gZvSQn8S6QTZQEnj7eZJNtNI00ruwYsC4j
    ```
+   
+   If you get validation errors, make sure there are NO extra spaces before/after the URLs.
+   If Vercel still rejects the env vars during import, deploy first without them and add them in Project Settings afterward.
 
 3. **Deploy**
    - Click **"Deploy"**
    - Wait for build (3-5 minutes)
-   - Copy your frontend URL: `https://estatemind-frontend.vercel.app`
+   - Copy your frontend URL: `https://estatemind.vercel.app`
 
 ### Step 3: Update Backend CORS
 
-1. **Go back to Render Backend**
-   - Update `CORS_ALLOWED_ORIGINS` with:
-   ```
-   https://estatemind-frontend.vercel.app,https://yourdomain.vercel.app
-   ```
+1. **Get your Vercel frontend URL**
+   - From Vercel dashboard after deployment
+   - Format: `https://estatemind.vercel.app`
 
-2. **Redeploy Backend**
-   - Render will auto-redeploy on environment variable changes
+2. **Go back to Render Backend Service**
+   - Dashboard → `estatemind-backend` service → **"Environment"** tab
+   - Find `CORS_ALLOWED_ORIGINS` variable
+   - Update it to:
+     ```
+     https://estatemind.vercel.app,localhost:3000
+     ```
+
+3. **Save and Redeploy**
+   - Click "Save Changes"
+   - Render auto-redeploys (~2 minutes)
 
 ### Step 4: Verify Frontend
 
