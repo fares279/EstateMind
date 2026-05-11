@@ -7,7 +7,6 @@ from rest_framework.response import Response
 
 from .models import ValuationRequest
 from .serializers import ValuationInputSerializer, ValuationHistorySerializer
-from .services import valuation_service
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +46,8 @@ def predict_valuation(request):
     data['image_count'] = len(image_files)
 
     try:
+        # Import lazily to avoid loading heavy ML dependencies during global URL resolution.
+        from .services import valuation_service
         result = valuation_service.estimate(data, image_files=image_files)
     except Exception as exc:
         logger.exception("Valuation pipeline error: %s", exc)
