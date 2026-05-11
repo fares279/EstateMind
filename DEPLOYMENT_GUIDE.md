@@ -87,7 +87,6 @@ This guide covers deploying EstateMind to production on Render (backend) and Ver
    STRIPE_PUBLISHABLE_KEY=pk_live_<your-stripe-public>
 
    CREATE_SUPERUSER=True
-   DJANGO_SUPERUSER_USERNAME=admin
    DJANGO_SUPERUSER_EMAIL=admin@example.com
    DJANGO_SUPERUSER_PASSWORD=Admin@12345
 
@@ -112,6 +111,8 @@ On the free Render plan, Shell is not available. The `backend/build.sh` script r
 Keep `ENABLE_AUTO_SCRAPER=False` and `LEGAL_PRELOAD_MODEL=False` on the Render web service so the worker starts quickly and stays under the free-tier memory cap.
 
 If you need to recreate the admin later, set `CREATE_SUPERUSER=True` again and redeploy.
+
+The admin login uses the email address `admin@example.com` and the password from `DJANGO_SUPERUSER_PASSWORD`.
 
 ### Step 4: Verify Backend
 
