@@ -1,0 +1,18 @@
+[
+  {
+    "model": "token_blacklist.blacklistedtoken",
+    "pk": 1,
+    "fields": {
+      "token": 30,
+      "blacklisted_at": "2026-05-10T20:13:38.080Z"
+    }
+  },
+  {
+    "model": "token_blacklist.blacklistedtoken",
+    "pk": 2,
+    "fields": {
+      "token": 35,
+      "blacklisted_at": "2026-05-10T21:34:19.395Z"
+    }
+  }
+]

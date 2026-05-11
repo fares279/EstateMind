@@ -6,6 +6,13 @@ python manage.py collectstatic --no-input
 python manage.py makemigrations
 python manage.py migrate
 
+# If a fixture export exists in the repo, attempt to load it to populate the DB.
+FIXTURE_PATH="$(pwd)/fixtures/fulldump.json"
+if [ -f "$FIXTURE_PATH" ]; then
+  echo "=== Fixture: Loading $FIXTURE_PATH into the database ==="
+  python manage.py loaddata "$FIXTURE_PATH" || echo "WARNING: loaddata reported errors; continuing deploy"
+fi
+
 # Bootstrap superuser if CREATE_SUPERUSER=True
 echo "=== Bootstrap: Checking CREATE_SUPERUSER env var: $CREATE_SUPERUSER ==="
 if [ "$CREATE_SUPERUSER" = "True" ]; then
