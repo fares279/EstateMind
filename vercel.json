@@ -1,15 +1,7 @@
 {
   "version": 2,
-  "buildCommand": "npm run build",
-  "outputDirectory": "build",
-  "env": {
-    "REACT_APP_API_URL": {
-      "description": "API endpoint URL"
-    },
-    "REACT_APP_STRIPE_PUBLIC_KEY": {
-      "description": "Stripe public key"
-    }
-  },
+  "buildCommand": "cd frontend && npm run build",
+  "outputDirectory": "frontend/build",
   "routes": [
     {
       "src": "^/(?!api/)[^.]*$",
