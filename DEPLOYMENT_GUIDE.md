@@ -141,7 +141,7 @@ https://estatemind-backend.onrender.com/admin
    - **Project Name**: `estatemind-frontend`
    - **Framework**: React
    - **Root Directory**: `frontend`
-   - **Build Command**: `npm run build`
+   - **Build Command**: `CI=false npm run build`
    - **Output Directory**: `build`
    - Click **"Import"**
 
