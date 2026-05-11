@@ -7,8 +7,16 @@ python manage.py makemigrations
 python manage.py migrate
 
 # If a fixture export exists in the repo, attempt to load it to populate the DB.
-FIXTURE_PATH="$(pwd)/fixtures/fulldump.json"
-if [ -f "$FIXTURE_PATH" ]; then
+# Try to load a fixture export from either the repo root or backend/fixtures
+if [ -f "$(pwd)/../fulldump.json" ]; then
+  FIXTURE_PATH="$(pwd)/../fulldump.json"
+elif [ -f "$(pwd)/fixtures/fulldump.json" ]; then
+  FIXTURE_PATH="$(pwd)/fixtures/fulldump.json"
+else
+  FIXTURE_PATH=""
+fi
+
+if [ -n "$FIXTURE_PATH" ]; then
   echo "=== Fixture: Loading $FIXTURE_PATH into the database ==="
   python manage.py loaddata "$FIXTURE_PATH" || echo "WARNING: loaddata reported errors; continuing deploy"
 fi
