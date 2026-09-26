@@ -1,0 +1,4 @@
+# Production image / Procfile deployments.
+-r base.txt
+
+gunicorn==26.2.0

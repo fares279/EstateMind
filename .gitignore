@@ -1,0 +1,48 @@
+# ── Secrets ───────────────────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# ── Django runtime ────────────────────────────────────────────────────────────
+*.sqlite3
+apps/api/staticfiles/
+apps/api/media/
+apps/api/emails/
+
+# ── Models, vector stores, external datasets (regenerate locally; see docs) ───
+apps/api/artifacts/
+chroma_data/
+*.joblib
+*.pt
+*.pth
+*.onnx
+*.pkl
+apps/api/data/external/
+catboost_info/
+
+# ── Node / frontend ───────────────────────────────────────────────────────────
+node_modules/
+build/
+dist/
+coverage/
+
+# ── Logs & OS/editor noise ────────────────────────────────────────────────────
+*.log
+build_output.txt
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/

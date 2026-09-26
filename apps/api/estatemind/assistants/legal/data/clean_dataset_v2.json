@@ -1,0 +1,251 @@
+{
+  "metadata": {
+    "total_articles": 23,
+    "original_count": 60,
+    "removed_count": 37,
+    "cleaning_version": "v2",
+    "filters_applied": [
+      "Has Article/Art. structure",
+      "Not navigation/category page",
+      "Not menu-style list",
+      "No excessive numbers (financial tables)",
+      "Minimum 200 characters",
+      "Encoding issues fixed"
+    ],
+    "cleaned": true,
+    "cleaning_date": "2026-04-13 21:05:55"
+  },
+  "articles": [
+    {
+      "source": "JuriSite Tunisie",
+      "url": "https://www.jurisitetunisie.com/tunisie/codes/cs/cs1090.htm#170",
+      "text": "Article 171- Dans le dèlai de quinze jours à partir de la clàīture de la souscription, les fondateurs convoquent les souscripteurs en assemblèe gènèrale constitutive dans les formes et dèlais mentionnès dans la notice.Un ètat des actes accomplis par le ou les fondateurs pour le compte de la sociètè est mis à la disposition des actionnaires au siçge social quinze jours au moins avant la tenue de la premiçre assemblèe gènèrale constitutive. Celle-ci se prononce sur la reprise par la sociètè des engagements antèrieurement pris par les fondateurs.",
+      "keywords_found": [
+        "gage"
+      ]
+    },
+    {
+      "source": "JuriSite Tunisie",
+      "url": "https://www.jurisitetunisie.com/tunisie/codes/lf2003/epargne-investissement.htm",
+      "text": "Art. 3.- Les « comptes épargne pour l'investissement » peuvent être crédités des sommes provenant soit des versements ou virements bancaires ou postaux au profit des titulaires des comptes, soit par l'inscription des intérêts produits par ces comptes, soit des sommes provenant des transferts desdits comptes d'un établissement dépositaire Ă un autre conformément aux conditions prévues Ă l'article premier du présent arrêté.",
+      "keywords_found": [
+        "transfert"
+      ]
+    },
+    {
+      "source": "JuriSite Tunisie",
+      "url": "https://www.jurisitetunisie.com/tunisie/codes/cirppis/cirppis1525.htm",
+      "text": "Les valeurs mobiliçres acquises selon ces modalitès peuvent àŠtre cèdèes à condition que la part du produit de la vente correspondant aux sommes ayant servi à la dètermination de la dèduction prèvue par l'article 39 du code de l'impàīt sur le revenu et de l'impàīt sur les sociètès, soit dèposèe de nouveau dans le màŠme compte.",
+      "keywords_found": [
+        "vente"
+      ]
+    },
+    {
+      "source": "JuriSite Tunisie",
+      "url": "https://www.jurisitetunisie.com/tunisie/codes/cirppis/cirppis1525.htm",
+      "text": "Art.7. - Nonobstant la nature des pouvoirs dèlèguès par le client en vertu de la convention visèe à l'article 5 ci-dessus, la banque ou l'intermèdiaire en bourse est habilitè, durant les cinq derniers jours des dèlais prèvus par l'article 3 de ce dècret, à procèder pour le compte de son client à des opèrations d'acquisition de valeurs mobiliçres.",
+      "keywords_found": [
+        "acquisition"
+      ]
+    },
+    {
+      "source": "JuriSite Tunisie",
+      "url": "https://www.jurisitetunisie.com/tunisie/codes/cirppis/cirppis1525.htm",
+      "text": "Art. 11. - Le titulaire du compte peut, durant la pèriode de blocage prèvue par l'alinèa 2 du paragraphe VIII de l'article 39du code de l'impàīt sur le revenu des personnes physiques et de l'impàīt sur les sociètès, disposer librement des produits gènèrès par le compte sous forme de dividendes, d'intèràŠts provenant des bons du trèsor assimilable, de droits rattachès aux actions, de plus-values rèalisèes lors des cessions ainsi que tout autre produit pouvant àŠtre dègagè par le compte.",
+      "keywords_found": [
+        "cession"
+      ]
+    },
+    {
+      "source": "JuriSite Tunisie",
+      "url": "https://www.jurisitetunisie.com/tunisie/codes/rec/rec1000.htm",
+      "text": "Art. 9.- Les opérations de cession de créances et de leur recouvrement pour le compte d'autrui effectuées par les sociétés de recouvrement des créances, sont soumises aux dispositions du code des obligations et des contrats et du code de commerce relatives aux règles de la cession de créances et du mandat dans la mesure où il n'y est pas dérogé par les dispositions de la présente loi.",
+      "keywords_found": [
+        "contrat",
+        "cession"
+      ]
+    },
+    {
+      "source": "JuriSite Tunisie",
+      "url": "https://www.jurisitetunisie.com/tunisie/codes/rec/rec1000.htm",
+      "text": "Art. 11.- La cession des créances au profit des sociétés de recouvrement des créances prend effet à l'égard du débiteur cédé ou autre à compter de la date de la notification de la cession à lui faite par huissier-notaire.La notification doit se faire à la dernière adresse du débiteur cédé, déclarée au cédant, elle doit indiquer les créances cédées et la personne à laquelle ou pour le compte de laquelle le débiteur doit effectuer le paiement.",
+      "keywords_found": [
+        "cession"
+      ]
+    },
+    {
+      "source": "JuriSite Tunisie",
+      "url": "https://www.jurisitetunisie.com/tunisie/codes/rec/rec1000.htm",
+      "text": "Art. 12.- La cession de créances au profit des sociétés de recouvrement des créances emporte de droit le transfert de la propriété de la créance du cédant avec ses accessoires, gages et garanties.La cession de créances doit être inscrite au registre foncier si l'hypothèque ou les garanties portent sur un immeuble immatriculé.Par dérogation aux dispositions de l'article 377 bis du code des droits réels. la société de recouvrement des créances peut rédiger les contrats de cession des créances nanties d'une hypothèque inscrite au registre foncier ainsi que l'acte de mainlevée de cette hypothèque.",
+      "keywords_found": [
+        "droits réels",
+        "contrat",
+        "cession",
+        "immeuble",
+        "propriété",
+        "réel",
+        "réels",
+        "hypothèque",
+        "transfert",
+        "registre foncier",
+        "gage"
+      ]
+    },
+    {
+      "source": "JuriSite Tunisie",
+      "url": "https://www.jurisitetunisie.com/tunisie/codes/rec/rec1000.htm",
+      "text": "Art. 13.- Lorsque plusieurs sociétés ont été chargées du recouvrement d'une même créance, celle qui a la première notifié la cession au débiteur, passe avant les autres, encore que celle-ci soit postérieure en date.",
+      "keywords_found": [
+        "cession"
+      ]
+    },
+    {
+      "source": "JuriSite Tunisie",
+      "url": "https://www.jurisitetunisie.com/tunisie/codes/rec/rec1000.htm",
+      "text": "Art. 14.- Le cédant doit remettre à la société de recouvrement cessionnaire, un titre établissant la cession et lui fournir avec le titre de créance, les moyens de preuve et les renseignements dont il dispose et qui sont nécessaires pour l'exercice des droits cédés.",
+      "keywords_found": [
+        "cession"
+      ]
+    },
+    {
+      "source": "JuriSite Tunisie",
+      "url": "https://www.jurisitetunisie.com/tunisie/codes/rec/rec1000.htm",
+      "text": "Art. 15.- A compter de la date de la notification de la cession de la créance au débiteur cédé celui-ci n'est considéré libéré de ses dettes que lorsqu'il rembourse, soit directement la société de recouvrement des créances soit celui qui s'y substitue.",
+      "keywords_found": [
+        "cession"
+      ]
+    },
+    {
+      "source": "JuriSite Tunisie",
+      "url": "https://www.jurisitetunisie.com/tunisie/codes/cii/Cii1055.htm#52",
+      "text": "Nonobstant les dispositions de l'article 65du prèsent code ne sont pas retirès, les avantages dont a bènèficiè l'entreprise et les participants à son capital en vertu du prèsent code dans le cas de cession de ladite entreprise dans le cadre desparagraphes I et Il de l'article 11 bis du code de l'impôt sur le revenu des personnes physiques et de l'impôt sur les sociètès. En ce qui concerne les dotations remboursables et les crèdits fonciers, les bènèficiaires desdits crèdits et dotations sont tenus de rembourser les montants restants au titre desdits crèdits et dotations lors de la cession de l'entreprise tant qu'ils n'ont pas ètè pris en charge par l'acquèreur èligible au bènèfice des fonds et crèdits en question conformèment à la lègislation en vigueur.",
+      "keywords_found": [
+        "cession"
+      ]
+    },
+    {
+      "source": "JuriSite Tunisie",
+      "url": "https://www.jurisitetunisie.com/tunisie/codes/cii/Cii1055.htm#52",
+      "text": "Nonobstant les dispositions de l’article 65 du prèsent code, ne sont pas retirès les avantages dont a bènèficiè l’entreprise ou les participants à son capital en vertu du prèsent code, en cas de cession de l’entreprise conformèment aux dispositions du prèsent article. Toutefois, en ce qui concerne les primes lièes à la qualitè du promoteur, les bènèficiaires desdites primes sont tenus de les rembourser conformèment aux dispositions du prèsent code et ce, dans le cas où le cessionnaire ne remplit pas les conditions requises pour bènèficier de ces primes conformèment à la lègislation en vigueur.",
+      "keywords_found": [
+        "cession"
+      ]
+    },
+    {
+      "source": "JuriSite Tunisie",
+      "url": "https://www.jurisitetunisie.com/tunisie/codes/cii/Cii1055.htm#52",
+      "text": "Art. 58.- Sont enregistrès au droit fixe les contrats relatifs à l’acquisition auprès des promoteurs immobiliers de bâtiments ou terrains amènagès pour l’exercice d’activitès èconomiques ou de terrains destinès à la construction d’immeubles à usage d’habitation à condition qu’ils n’aient pas fait l’objet d’une exploitation ou d’une vente antèrieure par ces promoteurs.",
+      "keywords_found": [
+        "contrat",
+        "immeuble",
+        "terrain",
+        "vente",
+        "acquisition",
+        "immobilier"
+      ]
+    },
+    {
+      "source": "JuriSite Tunisie",
+      "url": "https://www.jurisitetunisie.com/tunisie/codes/copc/copc1025.htm#a40",
+      "text": "Article 35 -Le fonds communs de crèances est une copropriètè ayant pour objet unique l'acquisition de crèances saines dètenues par les banques ou d'autres organismes prèvus par dècret, en vue d'èmettre des parts reprèsentatives de ces crèances.L'èmission des parts s'effectue en une seule fois.Un dècret fixe la nature et les caractèristiques des crèances que le fonds commun de crèances peut acquèrir.Il est procèdè à la couverture contre les risques de non-recouvrement des crèances acquises par le fonds commun de crèances par un ou plusieurs des moyens ci-aprçs :",
+      "keywords_found": [
+        "acquisition"
+      ]
+    },
+    {
+      "source": "JuriSite Tunisie",
+      "url": "https://www.jurisitetunisie.com/tunisie/codes/copc/copc1025.htm#a40",
+      "text": "Article 37 -Les parts du fonds commun de crèances peuvent donner lieu à des droits diffèrents sur le capital et les intèràŠts. Les parts sont des valeurs mobiliçres. Elles ne peuvent donner lieu, par leurs porteurs, à demande de rachat par le fonds commun de crèances.Le montant minimum d'une part èmise par un fonds commun de crèances est fixè pardècret.",
+      "keywords_found": [
+        "achat"
+      ]
+    },
+    {
+      "source": "JuriSite Tunisie",
+      "url": "https://www.jurisitetunisie.com/tunisie/codes/copc/copc1025.htm#a40",
+      "text": "Article 39 -Le fonds commun de crèances ne peut cèder les crèances qu'il a acquises sauf en cas de liquidation lorsque le montant de l'actif rèsiduel est infèrieur à 10% du montant initial de l'èmission. Dans ce cas, la cession s'effectue pour la totalitè de l'actif rèsiduel en une seule fois, et selon les modalitès prèvues parl'article 38du prèsent code.Le fonds ne peut nantir les crèances qu'il dètient.",
+      "keywords_found": [
+        "cession"
+      ]
+    },
+    {
+      "source": "JuriSite Tunisie",
+      "url": "https://www.jurisitetunisie.com/tunisie/codes/copc/copc1015.htm#A15",
+      "text": "Article 15 -Le nombre de parts s'accroàŪt par la souscription de parts nouvelles et diminue du fait du rachat par le fonds commun de placement en valeurs mobiliçres de parts antèrieurement souscrites. Toutefois, il ne peut àŠtre procèdè à l'èmission de parts nouvelles dçs lors que la valeur d'origine des parts en circulation atteigne un montant fixè pardècret. De màŠme, il ne peut àŠtre procèdè au rachat de parts antèrieurement souscrites si la valeur d'origine des parts en circulation diminue jusqu'à cinquante mille dinars. Et, lorsque la valeur d'origine de l'ensemble des parts en circulation demeure, pendant quatre-vingt-dix jours, infèrieure à cent mille dinars le gestionnaire doit procèder à la dissolution du fonds.",
+      "keywords_found": [
+        "achat"
+      ]
+    },
+    {
+      "source": "JuriSite Tunisie",
+      "url": "https://www.jurisitetunisie.com/tunisie/codes/copc/copc1020.htm#A29",
+      "text": "Article 24 -Les statuts ou les rçglements intèrieurs des organismes de placement collectif en valeurs mobiliçres peuvent prèvoir la possibilitè pour le conseil d'administration ou le directoire ou pour le gestionnaire de suspendre, momentanèment, et aprçs avis du commissaire aux comptes les opèrations de rachat ainsi que les opèrations d'èmission quand des circonstances exceptionnelles l'exigent ou si l'intèràŠt des actionnaires ou des porteurs de parts le commande ; à charge pour ces statuts ou ces rçglements intèrieurs de fixer les conditions de la prise de la dècision de suspension et de prèvoir l'obligation d'en informer les actionnaires ou les porteurs de parts selon des modalitès fixèes par les statuts ou les rçglements intèrieurs.Le conseil du marchè financier doit àŠtre informè, sans dèlai, de la dècision de suspension et de ses motifs.",
+      "keywords_found": [
+        "achat"
+      ]
+    },
+    {
+      "source": "JuriSite Tunisie",
+      "url": "https://www.jurisitetunisie.com/tunisie/codes/copc/copc1020.htm#A29",
+      "text": "Article 25 -Les opèrations d'èmission et de rachat des actions ou des parts sont effectuèes, à tout moment, à la valeur liquidative majorèe ou diminuèe des commissions d'èmission ou de rachat prèvues par les statuts ou le rçglement intèrieur.La valeur liquidative est obtenue en divisant la valeur de l'actif net de l'organisme de placement collectif en valeurs mobiliçres par le nombre des actions ou des parts en circulation.La fraction du prix d'èmission ou de rachat correspondant au montant par action ou par part du report à nouveau est enregistrèe dans un compte de report à nouveau, la fraction correspondant au montant par action ou par part des revenus rèalisès depuis le dèbut de l'exercice est enregistrèe dans un compte de règularisation des revenus de l'exercice en cours et la fraction correspondant au dividende par action ou par part de l'exercice clos, si l'opèration d'èmission ou de rachat a eu lieu avant la mise en paiement de ce dividende, est enregistrèe dans un compte de règularisation des revenus de l'exercice clos.",
+      "keywords_found": [
+        "achat"
+      ]
+    },
+    {
+      "source": "JuriSite Tunisie",
+      "url": "https://www.jurisitetunisie.com/tunisie/codes/copc/copc1020.htm#A29",
+      "text": "Article 26 -Les statuts et les rçglements intèrieurs fixent les dèlais de paiement relatifs aux opèrations de souscription et de rachat, les conditions de rèpartition des sommes distribuables et les conditions d'èvaluation des actifs qui doit àŠtre conforme à la règlementation comptable en vigueur et la màŠme pour tous les titres de màŠme catègorie et nègociès sur un màŠme marchè.Les organismes de placement collectif en valeurs mobiliçres de distribution, doivent procèder à la rèpartition des sommes distribuables dans un dèlai maximum de cinq mois depuis la clàŠture de l'exercice.",
+      "keywords_found": [
+        "achat"
+      ]
+    },
+    {
+      "source": "JuriSite Tunisie",
+      "url": "https://www.jurisitetunisie.com/tunisie/codes/copc/copc1020.htm#A29",
+      "text": "Article 29 -Les actifs d'un organisme de placement collectif en valeurs mobiliçres doivent àŠtre constituès de façon constante, essentiellement de valeurs mobiliçres et à titre accessoire de liquiditès dans des conditions et limites fixèes par dècret.Les organismes de placement collectif en valeurs mobiliçres ne peuvent dètenir plus de 10% d'une màŠme catègorie de valeurs mobiliçres d'un màŠme èmetteur sauf s'il s'agit de l'àtat, des collectivitès locales ou de valeurs mobiliçres garanties par l'àtatDe màŠme, ils ne peuvent employer plus de 10% de leurs actifs en titres èmis ou garantis par un màŠme èmetteur sauf s'il s'agit de l'àtat, des collectivitès locales ou de titres garantis par l'àtat",
+      "keywords_found": [
+        "loyer"
+      ]
+    },
+    {
+      "source": "JuriSite Tunisie",
+      "url": "https://www.jurisitetunisie.com/se/index.php?PHPSESSID=edcd43eb8864f3c8accb4ec344eb4993&action=links;sa=view;lid=108",
+      "text": "La restitution de la taxe sur la valeur ajoutée s’effectue, dans les cas prévus au paragraphe II de l’article 15 du code de la taxe sur la valeur ajoutée, directement par le receveur des finances après visa de la demande en restitution par les services de l’administration fiscale concernés. Le visa de la demande en restitution doit intervenir dans un délai ne dépassant pas quatre vingt dix jours à partir de la date du dépôt de la demande.Le délai du visa est réduit à trente jours pour le crédit de la taxe sur la valeur ajoutée provenant :- de l’exportation des produits ou services- des ventes en suspension de taxe- de la retenue à la source de la taxe sur la valeur ajoutée,- des investissements de création des projets prévus par l’article 5 du code d’incitation aux investissements,- des investissements de mise à niveau réalisés dans le cadre d’un programme de mise à niveau approuvé par le comité de pilotage du programme de mise à niveau.",
+      "keywords_found": [
+        "vente",
+        "lot"
+      ]
+    }
+  ],
+  "removed_summary": {
+    "total_removed": 37,
+    "samples": [
+      {
+        "url": "https://www.jurisitetunisie.com/se/index.php?PHPSESSID=edcd43eb8864f3c8accb4ec344eb4993&action=links",
+        "text_length": 577,
+        "reason": "No Article/Art. structure found"
+      },
+      {
+        "url": "https://www.jurisitetunisie.com/se/index.php?PHPSESSID=edcd43eb8864f3c8accb4ec344eb4993&action=links",
+        "text_length": 652,
+        "reason": "No Article/Art. structure found"
+      },
+      {
+        "url": "https://www.jurisitetunisie.com/tunisie/codes/cdet/cdet1190.htm",
+        "text_length": 1419,
+        "reason": "Excessive numbers (financial table)"
+      },
+      {
+        "url": "https://www.jurisitetunisie.com/tunisie/codes/cdet/cdet1190.htm",
+        "text_length": 596,
+        "reason": "Excessive numbers (financial table)"
+      },
+      {
+        "url": "https://www.jurisitetunisie.com/tunisie/codes/cdet/cdet1190.htm",
+        "text_length": 309,
+        "reason": "Excessive numbers (financial table)"
+      }
+    ]
+  }
+}
