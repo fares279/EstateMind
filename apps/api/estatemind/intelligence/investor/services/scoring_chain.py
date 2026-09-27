@@ -24,6 +24,8 @@ from estatemind.intelligence.investor.services import (
     InvestmentGraderService,
     IRRCalculatorService,
     PortfolioRiskAssessorService,
+    IRR_NO_GROWTH_NOTE,
+    IRR_SCENARIO_NOTE,
 )
 
 logger = logging.getLogger(__name__)
@@ -372,6 +374,7 @@ class PortfolioChain:
             yields = []
             irrs = []
             irrs_low, irrs_high = [], []
+            irr_details = []
             grades = []
             delegations = []
 
@@ -401,6 +404,7 @@ class PortfolioChain:
 
                 yields.append(yield_result['net_yield_pct'])
                 irrs.append(irr_result['irr_base_pct'])
+                irr_details.append(irr_result)
                 irrs_low.append(irr_result.get('irr_pessimistic_pct', irr_result['irr_base_pct']))
                 irrs_high.append(irr_result.get('irr_optimistic_pct', irr_result['irr_base_pct']))
                 grades.append('B')  # placeholder
@@ -445,6 +449,10 @@ class PortfolioChain:
                     'blended_irr_pct': round(blended_irr, 2),
                     'irr_pessimistic_pct': round(blended_irr_low, 2),
                     'irr_optimistic_pct': round(blended_irr_high, 2),
+                    # portfolio IRRs use delegation price momentum, currently a 0.0 placeholder
+                    'irr_scenarios_identical': all(a.get('scenarios_identical') for a in irr_details),
+                    'irr_scenario_note': (IRR_NO_GROWTH_NOTE if all(a.get('scenarios_identical') for a in irr_details)
+                                          else IRR_SCENARIO_NOTE),
                 },
                 'risk': {
                     'risk_score': risk_result['risk_score'],

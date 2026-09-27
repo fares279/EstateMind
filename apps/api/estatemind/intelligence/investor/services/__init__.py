@@ -458,6 +458,13 @@ class InvestmentGraderService(BaseScorerService):
 # Model 6: IRR Calculator
 # ════════════════════════════════════════════════════════════════════════════════
 
+IRR_SCENARIO_NOTE = ('Pessimistic assumes 0% price growth, base the estimated growth rate, '
+                     'optimistic 1.5x that rate.')
+IRR_NO_GROWTH_NOTE = ('Base, pessimistic and optimistic IRR are identical because no price-growth '
+                      'estimate is available (growth is a 0% placeholder), not because the '
+                      'scenarios agree.')
+
+
 class IRRCalculatorService(BaseScorerService):
     """
     Computes Internal Rate of Return for a buy-and-hold investment.
@@ -524,10 +531,15 @@ class IRRCalculatorService(BaseScorerService):
             irr_pessimistic = compute_irr_for_appreciation(0.0)
             irr_optimistic = compute_irr_for_appreciation(annual_appreciation_pct * 1.5 / 100)
 
+            # Pessimistic is always 0% growth, so with no growth estimate the three
+            # scenarios collapse into one number; say so rather than look broken.
+            scenarios_identical = not annual_appreciation_pct
             return {
                 'irr_base_pct': round(irr_base * 100, 2),
                 'irr_pessimistic_pct': round(irr_pessimistic * 100, 2),
                 'irr_optimistic_pct': round(irr_optimistic * 100, 2),
+                'scenarios_identical': scenarios_identical,
+                'scenario_note': IRR_NO_GROWTH_NOTE if scenarios_identical else IRR_SCENARIO_NOTE,
                 'holding_years': holding_years,
                 'confidence': 'medium',
                 'drivers': {
