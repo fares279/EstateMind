@@ -46,3 +46,6 @@ Thumbs.db
 desktop.ini
 .idea/
 .vscode/
+
+# Row archives written by data migrations (may contain production data)
+apps/api/data/archive/

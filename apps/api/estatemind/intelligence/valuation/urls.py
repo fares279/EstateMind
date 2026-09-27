@@ -8,6 +8,9 @@ from .views import (
     valuation_audit_log,
     promote_model_version,
     get_locations,
+)
+# Forecasts live in the forecast app; these legacy URLs serve the same data.
+from estatemind.intelligence.forecast.views import (
     get_forecasts,
     get_national_forecast,
     get_forecast_delegations,
@@ -23,7 +26,7 @@ urlpatterns = [
     path('audit/', valuation_audit_log, name='valuation-audit'),
     path('registry/<int:version_id>/promote/', promote_model_version, name='valuation-promote-model'),
 
-    # Price forecast endpoints (public, ML pre-computed)
+    # Legacy aliases of /api/forecast/ (apartment by default, ?property_type= supported)
     path('forecasts/',             get_forecasts,            name='valuation-forecasts'),
     path('forecasts/national/',    get_national_forecast,    name='valuation-forecasts-national'),
     path('forecasts/delegations/', get_forecast_delegations, name='valuation-forecast-delegations'),

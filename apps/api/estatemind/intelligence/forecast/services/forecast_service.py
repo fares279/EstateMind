@@ -403,10 +403,35 @@ def get_national_summary(property_type: str = 'apartment'):
             'growth_pct_12m': growth,
         })
     dels.sort(key=lambda x: x['growth_pct_12m'], reverse=True)
+
+    g1_qs  = (DelegationForecast.objects.filter(horizon_idx=1,  property_type=property_type)
+              .values('governorate').annotate(avg1=Avg('predicted_price_per_m2')))
+    g12_qs = (DelegationForecast.objects.filter(horizon_idx=12, property_type=property_type)
+              .values('governorate').annotate(avg12=Avg('predicted_price_per_m2')))
+    g12_map = {r['governorate']: r['avg12'] for r in g12_qs}
+
+    govs = []
+    for r in g1_qs:
+        gov, price1 = r['governorate'], r['avg1']
+        if not gov or not price1:
+            continue
+        price12 = g12_map.get(gov, price1)
+        growth  = round((price12 - price1) / price1 * 100, 2)
+        govs.append({
+            'governorate':    gov,
+            'price_jan_tnd':  _tnd(price1),
+            'price_dec_tnd':  _tnd(price12),
+            'growth_pct_12m': growth,
+            'trend':          _trend(growth),
+        })
+    govs.sort(key=lambda x: x['growth_pct_12m'], reverse=True)
+
     return {
-        'property_type':     property_type,
-        'top_delegations':   dels[:10],
-        'total_delegations': len(dels),
+        'property_type':      property_type,
+        'top_governorates':   govs[:10],
+        'top_delegations':    dels[:10],
+        'total_governorates': len(govs),
+        'total_delegations':  len(dels),
     }
 
 

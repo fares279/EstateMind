@@ -138,37 +138,3 @@ class ValuationPredictionLog(models.Model):
     def __str__(self):
         version = self.model_version_label or (self.model_version.version if self.model_version_id else 'unknown')
         return f"Prediction {self.request_id} [{version}]"
-
-
-class DelegationForecast(models.Model):
-    """
-    12-month ahead price-per-m2 forecast per Tunisian delegation.
-    Raw values stored in millimes (1 TND = 1000 millimes).
-    Always divide predicted_price_per_m2 by 1000 when displaying TND.
-    """
-    delegation_name        = models.CharField(max_length=255, db_index=True)
-    governorate            = models.CharField(max_length=100, db_index=True, blank=True)
-    delegation_fk          = models.ForeignKey(
-        'core.Delegation', null=True, blank=True,
-        on_delete=models.SET_NULL, related_name='forecasts',
-    )
-    forecast_origin        = models.DateField()
-    forecast_month         = models.DateField()
-    horizon_idx            = models.IntegerField()   # 1–12
-    predicted_price_per_m2 = models.FloatField()     # millimes; ÷1000 = TND/m²
-    model_mape_pct         = models.FloatField(default=2.92)
-    model_version          = models.CharField(max_length=50, default='h12_v1')
-    created_at             = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        unique_together = ('delegation_name', 'forecast_origin', 'horizon_idx')
-        ordering        = ['delegation_name', 'horizon_idx']
-        indexes = [
-            models.Index(fields=['delegation_name', 'forecast_origin']),
-            models.Index(fields=['governorate', 'horizon_idx']),
-            models.Index(fields=['governorate', 'forecast_origin']),
-        ]
-
-    def __str__(self):
-        tnd = self.predicted_price_per_m2 / 1000
-        return f"{self.delegation_name} {self.forecast_month}: {tnd:,.0f} TND/m2"
