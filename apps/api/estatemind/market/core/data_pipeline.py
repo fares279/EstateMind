@@ -10,6 +10,7 @@ from typing import Iterable
 from django.db import transaction
 from django.db.models import Sum
 from django.utils import timezone
+from datetime import timezone as dt_timezone
 from django.utils.dateparse import parse_datetime
 
 from estatemind.market.core.models import (
@@ -136,7 +137,7 @@ def parse_dt(value: str | None):
         return None
     parsed = parse_datetime(normalize_label(value))
     if parsed and timezone.is_naive(parsed):
-        parsed = timezone.make_aware(parsed, timezone.utc)
+        parsed = timezone.make_aware(parsed, dt_timezone.utc)
     return parsed
 
 

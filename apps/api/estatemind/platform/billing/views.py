@@ -10,7 +10,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone as dt_timezone
 
 from .models import Payment, Subscription, StripeCustomer
 from .serializers import (
@@ -374,11 +374,11 @@ def handle_checkout_session_completed(session):
             user.save(update_fields=['plan', 'plan_expires_at', 'updated_at'])
             
             # Create/update subscription record
-            period_start = timezone.datetime.fromtimestamp(
-                stripe_subscription['current_period_start'], tz=timezone.utc
+            period_start = datetime.fromtimestamp(
+                stripe_subscription['current_period_start'], tz=dt_timezone.utc
             )
-            period_end = timezone.datetime.fromtimestamp(
-                stripe_subscription['current_period_end'], tz=timezone.utc
+            period_end = datetime.fromtimestamp(
+                stripe_subscription['current_period_end'], tz=dt_timezone.utc
             )
             
             Subscription.objects.update_or_create(
@@ -414,11 +414,11 @@ def handle_subscription_updated(subscription):
         user = stripe_customer.user
         
         status_value = subscription.get('status')
-        period_start = timezone.datetime.fromtimestamp(
-            subscription['current_period_start'], tz=timezone.utc
+        period_start = datetime.fromtimestamp(
+            subscription['current_period_start'], tz=dt_timezone.utc
         )
-        period_end = timezone.datetime.fromtimestamp(
-            subscription['current_period_end'], tz=timezone.utc
+        period_end = datetime.fromtimestamp(
+            subscription['current_period_end'], tz=dt_timezone.utc
         )
         
         # Map Stripe status to our status
