@@ -185,6 +185,7 @@ class CalibrationAuditRecord(models.Model):
         ('PASS', 'Calibration OK'),
         ('WARN', 'Calibration Warning'),
         ('FAIL', 'Calibration Failed'),
+        ('INSUFFICIENT_DATA', 'Not enough scored properties with a measurable return'),
     ]
 
     audit_date              = models.DateField()
@@ -208,7 +209,7 @@ class CalibrationAuditRecord(models.Model):
     grade_d_std_return      = models.FloatField(default=0.0)
 
     # Calibration status
-    is_monotonic            = models.BooleanField(default=False)
+    is_monotonic            = models.BooleanField(null=True, default=None)  # None: not determinable
     calibration_status      = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PASS')
     inversions_detected     = models.JSONField(default=list)  # e.g., ['B>A', 'C>B']
 

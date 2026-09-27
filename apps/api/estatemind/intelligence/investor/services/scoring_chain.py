@@ -15,6 +15,7 @@ from datetime import datetime
 from typing import Dict, Any, List, Optional
 
 from estatemind.intelligence.investor.models import InvestmentScore, PortfolioAnalysis, InvestorScorerVersion
+from estatemind.intelligence.investor.services.scoring_method import describe
 from estatemind.intelligence.investor.services import (
     UndervaluationDetectorService,
     YieldEstimatorService,
@@ -285,6 +286,8 @@ class ScannerChain:
                 ],
                 'appreciation_source': appreciation['source'],
                 'appreciation_confidence': appreciation.get('confidence', 'unknown'),
+                # Module 7 services are rule-based thresholds (see services/__init__.py)
+                **describe(None),
             }
             
             # Apply hard verdict overrides for impossible pricing
@@ -368,6 +371,7 @@ class PortfolioChain:
 
             yields = []
             irrs = []
+            irrs_low, irrs_high = [], []
             grades = []
             delegations = []
 
@@ -397,6 +401,8 @@ class PortfolioChain:
 
                 yields.append(yield_result['net_yield_pct'])
                 irrs.append(irr_result['irr_base_pct'])
+                irrs_low.append(irr_result.get('irr_pessimistic_pct', irr_result['irr_base_pct']))
+                irrs_high.append(irr_result.get('irr_optimistic_pct', irr_result['irr_base_pct']))
                 grades.append('B')  # placeholder
                 delegations.append(delegation)
 
@@ -415,6 +421,8 @@ class PortfolioChain:
             blended_gross_yield = sum(y * w for y, w in zip(yields, weights))  # Simplified
             blended_net_yield = blended_gross_yield * 0.75  # Rough approximation
             blended_irr = sum(i * w for i, w in zip(irrs, weights))
+            blended_irr_low = sum(i * w for i, w in zip(irrs_low, weights))
+            blended_irr_high = sum(i * w for i, w in zip(irrs_high, weights))
 
             # M7: Portfolio Risk
             risk_result = self.m7.score(
@@ -435,6 +443,8 @@ class PortfolioChain:
                     'blended_gross_yield_pct': round(blended_gross_yield, 2),
                     'blended_net_yield_pct': round(blended_net_yield, 2),
                     'blended_irr_pct': round(blended_irr, 2),
+                    'irr_pessimistic_pct': round(blended_irr_low, 2),
+                    'irr_optimistic_pct': round(blended_irr_high, 2),
                 },
                 'risk': {
                     'risk_score': risk_result['risk_score'],
@@ -456,14 +466,16 @@ class PortfolioChain:
                         blended_gross_yield_pct=blended_gross_yield,
                         blended_net_yield_pct=blended_net_yield,
                         blended_irr_pct=blended_irr,
+                        irr_pessimistic_pct=blended_irr_low,
+                        irr_optimistic_pct=blended_irr_high,
                         portfolio_volatility_pct=0.0,  # Will be computed by hardening
                         diversification_ratio=1.0,  # Will be computed by hardening
                         concentration_pct=risk_result['concentration_pct'],
                         climate_risk_score=0.5,
                         full_analysis=result,
                     )
-                except Exception as e:
-                    logger.error(f'Failed to save PortfolioAnalysis: {e}')
+                except Exception:
+                    logger.exception('Failed to save PortfolioAnalysis')
 
             return result
 

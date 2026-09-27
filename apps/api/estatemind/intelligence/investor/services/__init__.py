@@ -255,7 +255,7 @@ class BuyWaitClassifierService(BaseScorerService):
             if buy_signals >= 4:
                 signal = 'BUY'
                 confidence = 0.6 + (buy_signals - 4) * 0.1
-            elif climate_risk_score > 0.75 or estimated_net_yield < 0.02:
+            elif climate_risk_score > 0.75 or estimated_net_yield < 2.0:  # yield is in percent
                 signal = 'AVOID'
                 confidence = 0.7
             else:

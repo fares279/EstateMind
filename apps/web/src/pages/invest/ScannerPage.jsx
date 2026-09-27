@@ -116,6 +116,12 @@ function Result({ result }) {
         </div>
       </div>
 
+      {result.scoring_note && (
+        <p className="text-[11px] text-gray-500">
+          {result.scoring_method === 'rule_based' ? 'Rule-based score. ' : ''}{result.scoring_note}
+        </p>
+      )}
+
       {/* ── Key metrics strip ──────────────────────── */}
       <div className="grid grid-cols-4 gap-3">
         {[

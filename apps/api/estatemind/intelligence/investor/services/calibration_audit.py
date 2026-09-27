@@ -24,6 +24,9 @@ logger = logging.getLogger(__name__)
 
 class CalibrationAuditService:
     """Quarterly calibration audit of investment grades."""
+    MIN_GRADE_SAMPLES = 10     # measured returns per grade before it is compared
+    MIN_SCORE_AGE_DAYS = 90    # a score's return is measured once it is this old
+
 
     LOOKBACK_MONTHS = 6
     MIN_SAMPLE_PER_GRADE = 30  # Minimum properties per grade for reliable testing
@@ -36,10 +39,11 @@ class CalibrationAuditService:
             audit_date = timezone.now().date()
             lookback_date = audit_date - timedelta(days=self.LOOKBACK_MONTHS * 30)
 
-            # Collect all scored properties from lookback period
+            # Scored properties from the lookback period, old enough for a
+            # price change to mean something.
             scores = InvestmentScore.objects.filter(
                 score_date__gte=lookback_date,
-                score_date__lte=audit_date,
+                score_date__lte=audit_date - timedelta(days=self.MIN_SCORE_AGE_DAYS),
             ).select_related('user')
 
             grade_buckets = self._group_by_grade(scores)
@@ -47,7 +51,13 @@ class CalibrationAuditService:
             is_monotonic, inversions = self._test_monotonicity(grade_returns)
 
             # Determine calibration status
-            if is_monotonic:
+            if is_monotonic is None:
+                calibration_status = 'INSUFFICIENT_DATA'
+                recommended_action = (
+                    f'Not enough data to test grade calibration: fewer than two grades have '
+                    f'{self.MIN_GRADE_SAMPLES}+ scored properties at least {self.MIN_SCORE_AGE_DAYS} days old. '
+                    f'No weight changes suggested.')
+            elif is_monotonic:
                 calibration_status = 'PASS'
                 recommended_action = 'Grades are well-calibrated. No changes needed.'
             else:
@@ -61,7 +71,7 @@ class CalibrationAuditService:
 
             # Check sample size reliability
             reliability = self._assess_calibration_reliability(grade_returns)
-            if not reliability['reliable']:
+            if is_monotonic is not None and not reliability['reliable']:
                 calibration_status = 'WARN'
                 if recommended_action:
                     recommended_action += f"\n{reliability['warning']}"
@@ -89,7 +99,8 @@ class CalibrationAuditService:
                 inversions_detected=inversions,
                 recommended_action=recommended_action,
                 weights_before=self._get_current_weights(),
-                weights_suggested=self._get_suggested_weights(grade_returns, inversions),
+                weights_suggested=(self._get_suggested_weights(grade_returns, inversions)
+                                   if is_monotonic is not None else {}),
             )
 
             return {
@@ -132,7 +143,8 @@ class CalibrationAuditService:
 
                         if latest_snapshot and latest_snapshot.median_price_per_sqm:
                             # Convert per sqm to total price estimate
-                            current_price = latest_snapshot.median_price_per_sqm * score.surface_m2 / 1000
+                            # median_price_per_sqm is TND per m2
+                            current_price = latest_snapshot.median_price_per_sqm * score.surface_m2
                         else:
                             current_price = score.property_price_tnd
 
@@ -162,20 +174,16 @@ class CalibrationAuditService:
         Returns: (is_monotonic, list of inversions)
         """
         inversions = []
-
-        grades = ['A', 'B', 'C', 'D']
-        for i in range(len(grades) - 1):
-            higher_grade = grades[i]
-            lower_grade = grades[i + 1]
-
-            higher_return = grade_returns[higher_grade]['mean_return']
-            lower_return = grade_returns[lower_grade]['mean_return']
-
-            if higher_return <= lower_return:
+        # Only grades with enough measured returns are compared; with fewer
+        # than two such grades nothing can be concluded (None).
+        grades = [g for g in ('A', 'B', 'C', 'D')
+                  if grade_returns.get(g, {}).get('count', 0) >= self.MIN_GRADE_SAMPLES]
+        if len(grades) < 2:
+            return None, []
+        for higher_grade, lower_grade in zip(grades, grades[1:]):
+            if grade_returns[higher_grade]['mean_return'] < grade_returns[lower_grade]['mean_return']:
                 inversions.append(f'{lower_grade}>{higher_grade}')
-
-        is_monotonic = len(inversions) == 0
-        return is_monotonic, inversions
+        return len(inversions) == 0, inversions
 
     def _suggest_recalibration(self, grade_returns: Dict, inversions: List[str]) -> str:
         """Suggest which opportunity score weights should be adjusted."""

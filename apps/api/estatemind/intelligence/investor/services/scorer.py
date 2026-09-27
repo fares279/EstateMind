@@ -10,6 +10,7 @@ import pandas as pd
 
 from .registry import REGISTRY
 from .zone_data import get_zone_stats, get_zone_forecast
+from .scoring_method import describe
 from .feature_builder import (
     build_scanner_features_m1, build_scanner_features_m2,
     build_scanner_features_m3, build_scanner_features_m4,
@@ -192,7 +193,7 @@ def score_listing(inp: dict) -> dict:
             'vacancy_rate_pct':    round(zone.get('vacancy_rate_pct', 7.0), 1),
             'median_dom':          round(zone.get('median_days_on_market', 45.0), 0),
         },
-        'models_used': REGISTRY.available(),
+        **describe(REGISTRY.available()),
     }
 
 

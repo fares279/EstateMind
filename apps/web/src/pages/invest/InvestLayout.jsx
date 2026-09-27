@@ -21,7 +21,7 @@ export default function InvestLayout() {
         <section>
           <h1 className="text-4xl font-black text-white">Invest</h1>
           <p className="mt-2 text-gray-400 text-lg max-w-2xl">
-            AI-powered investment intelligence — portfolio tracking, deal scanning and market opportunities across Tunisia.
+            Rule-based investment scoring from zone market data — portfolio tracking, deal scanning and market opportunities across Tunisia.
           </p>
         </section>
 
