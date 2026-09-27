@@ -55,7 +55,10 @@ class Command(BaseCommand):
                 avg_value = getattr(delegation, fields['avg'])
                 min_value = getattr(delegation, fields['min'])
                 max_value = getattr(delegation, fields['max'])
+                # Delegation.*_trend_pct is stored as a fraction (-0.08 == -8%);
+                # every *_pct column below is in percent.
                 trend_value = getattr(delegation, fields['trend'])
+                trend_pct = (trend_value or 0.0) * 100
 
                 if avg_value is None:
                     continue
@@ -73,16 +76,16 @@ class Command(BaseCommand):
                     'avg_proximity_hospital_km': 3.0,
                     'avg_proximity_transport_km': 1.0,
                     'price_change_mom_pct': 0.5,
-                    'price_change_yoy_pct': trend_value or 0.0,
+                    'price_change_yoy_pct': round(trend_pct, 2),
                     'zone_population': delegation.population or 0,
                     'transaction_velocity_score': 50.0,
                     'avg_price_per_m2_tnd': float(avg_value),
                     'median_price_per_m2_tnd': float(avg_value),
                 })
 
-                forecast_3m = float(avg_value) * (1 + (trend_value or 0.0) / 100 * 0.25)
-                forecast_6m = float(avg_value) * (1 + (trend_value or 0.0) / 100 * 0.50)
-                forecast_12m = float(avg_value) * (1 + (trend_value or 0.0) / 100)
+                forecast_3m = float(avg_value) * (1 + trend_pct / 100 * 0.25)
+                forecast_6m = float(avg_value) * (1 + trend_pct / 100 * 0.50)
+                forecast_12m = float(avg_value) * (1 + trend_pct / 100)
 
                 forecast_rows.append({
                     'delegation': delegation.name,
@@ -92,7 +95,7 @@ class Command(BaseCommand):
                     'forecast_3m_pct': round((forecast_3m / float(avg_value) - 1) * 100, 2),
                     'forecast_6m_pct': round((forecast_6m / float(avg_value) - 1) * 100, 2),
                     'forecast_12m_pct': round((forecast_12m / float(avg_value) - 1) * 100, 2),
-                    'forecast_direction': 'UP' if (trend_value or 0.0) >= 0 else 'DOWN',
+                    'forecast_direction': 'UP' if trend_pct >= 0 else 'DOWN',
                     'forecast_confidence': 'medium',
                     'trend_volatility_score': 25.0,
                     'forecast_reliability': 0.6,
