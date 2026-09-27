@@ -67,10 +67,15 @@ def start_view(request):
         return _err("Invalid JSON body")
 
     scenario_name    = str(body.get("scenario_name") or body.get("scenario") or "baseline")
-    num_months       = max(6, min(60, int(body.get("num_months", 12))))
     agent_scale      = str(body.get("agent_scale", "tiny"))
-    seed             = int(body.get("seed", 2026))
     policy_overrides = body.get("policy_overrides") or {}
+    try:
+        num_months = max(6, min(60, int(body.get("num_months", 12))))
+        seed       = int(body.get("seed", 2026))
+    except (TypeError, ValueError):
+        return _err("num_months and seed must be integers")  # was an unhandled 500
+    if not isinstance(policy_overrides, dict):
+        return _err("policy_overrides must be an object")
 
     if scenario_name not in SCENARIOS:
         return _err(f"Unknown scenario '{scenario_name}'. Valid: {list(SCENARIOS.keys())}")
