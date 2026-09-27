@@ -4,6 +4,7 @@ All views are CSRF-exempt function-based views returning JSON with CORS headers.
 """
 from __future__ import annotations
 
+import ast
 import json
 import logging
 import threading
@@ -360,7 +361,7 @@ def zones_view(request, run_id):
     for key_str, price in zone_prices.items():
         # Key stored as "('Delegation Name', 'apartment')"
         try:
-            key = eval(key_str)  # safe: values from our own code
+            key = ast.literal_eval(key_str)
             delegation, ptype = key
             if ptype != "apartment":
                 continue

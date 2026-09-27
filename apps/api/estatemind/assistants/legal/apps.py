@@ -1,5 +1,4 @@
 from django.apps import AppConfig
-import os
 import logging
 
 logger = logging.getLogger(__name__)
@@ -14,8 +13,10 @@ class LegalConfig(AppConfig):
     def ready(self):
         # Keep model preload opt-in so local startup does not download or load
         # large ML assets unless the deployment explicitly asks for it.
-        # Set PRELOAD_LEGAL_EMBEDDING_MODEL=true when eager loading is desired.
-        if os.environ.get('PRELOAD_LEGAL_EMBEDDING_MODEL', '').lower() != 'true':
+        # Set PRELOAD_LEGAL_EMBEDDING_MODEL=True (env var or .env) for eager loading.
+        from decouple import config
+
+        if not config('PRELOAD_LEGAL_EMBEDDING_MODEL', default=False, cast=bool):
             return
 
         # Pre-load sentence_transformers / torch in the main thread.
