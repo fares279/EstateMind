@@ -1,13 +1,12 @@
 """
-LLM service using Token Factory (OpenAI-compatible API).
-Calls /chat/completions with a Bearer token — no local Ollama needed.
+LLM client for an OpenAI-compatible /chat/completions endpoint (Token Factory
+by default; Ollama, vLLM and others expose the same API).
 """
-import requests
 import logging
-import urllib3
+import time
 
-# Token Factory uses a self-signed cert; suppress the noise
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+import requests
+import urllib3
 
 logger = logging.getLogger(__name__)
 
@@ -19,93 +18,97 @@ _MODEL_FALLBACKS = (
     'mistralai/Mistral-7B-Instruct-v0.3',
 )
 
+_AVAILABILITY_TTL = 60  # seconds
+_availability_cache: dict = {}
+
+
+class LLMUnavailable(RuntimeError):
+    """The endpoint could not be reached (network, DNS, timeout)."""
+
 
 def _cfg() -> dict:
     from django.conf import settings
     return getattr(settings, 'LEGAL_RAG', {})
 
 
-def generate(system_prompt: str, user_prompt: str, max_tokens: int = 750) -> str:
+def _verify():
+    # Token Factory serves a self-signed certificate. LLM_VERIFY_SSL may be
+    # True/False or a path to a CA bundle that trusts it.
+    verify = _cfg().get('LLM_VERIFY_SSL', False)
+    if verify is False:
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    return verify
+
+
+def model_name() -> str:
+    return _cfg().get('LLM_MODEL', 'hosted_vllm/Llama-3.1-70B-Instruct')
+
+
+def chat(messages: list[dict], max_tokens: int = 750, temperature: float = 0.1) -> str:
+    """Send a chat conversation; returns the assistant's text."""
     cfg = _cfg()
     base = cfg.get('LLM_API_URL', 'https://tokenfactory.esprit.tn/api').rstrip('/')
     url = f"{base}/chat/completions"
-    api_key = cfg.get('LLM_API_KEY', '')
-    configured_model = cfg.get('LLM_MODEL', 'hosted_vllm/Llama-3.1-70B-Instruct')
-    model_candidates = [configured_model, *_MODEL_FALLBACKS]
-    # Keep order stable while removing duplicates.
-    model_candidates = list(dict.fromkeys(m for m in model_candidates if m))
-
-    headers = {
-        'Authorization': f'Bearer {api_key}',
-        'Content-Type': 'application/json',
-    }
-    payload_base = {
-        'messages': [
-            {'role': 'system', 'content': system_prompt},
-            {'role': 'user',   'content': user_prompt},
-        ],
-        'temperature': 0.2,
-        'max_tokens': max_tokens,
-        'top_p': 0.9,
-        'frequency_penalty': 0.0,
-        'presence_penalty': 0.0,
-    }
+    headers = {'Authorization': f"Bearer {cfg.get('LLM_API_KEY', '')}", 'Content-Type': 'application/json'}
+    candidates = list(dict.fromkeys(m for m in (model_name(), *_MODEL_FALLBACKS) if m))
+    payload_base = {'messages': messages, 'temperature': temperature, 'max_tokens': max_tokens, 'top_p': 0.9}
+    timeout = cfg.get('LLM_TIMEOUT', 90)
 
     last_error: str | None = None
-    for model in model_candidates:
-        payload = dict(payload_base)
-        payload['model'] = model
+    for model in candidates:
         try:
-            resp = requests.post(url, json=payload, headers=headers, timeout=90, verify=False)
+            resp = requests.post(url, json={**payload_base, 'model': model}, headers=headers,
+                                 timeout=timeout, verify=_verify())
             resp.raise_for_status()
-            data = resp.json()
-            content = data['choices'][0]['message']['content']
+            content = resp.json()['choices'][0]['message']['content']
+            _availability_cache['value'] = (True, time.monotonic())
             return content.strip()
         except requests.exceptions.Timeout:
-            raise RuntimeError("The AI service took too long to respond. Please try again.")
+            raise LLMUnavailable("The AI service took too long to respond. Please try again.")
         except requests.exceptions.HTTPError as exc:
             status_code = getattr(exc.response, 'status_code', None)
             body = (getattr(exc.response, 'text', '') or '')[:200]
-            message = f"AI service HTTP error {status_code}: {body}"
-            last_error = message
+            last_error = f"AI service HTTP error {status_code}: {body}"
             if status_code == 404 and 'model' in body.lower():
                 logger.warning("Legal LLM model not found: %s", model)
                 continue
-            raise RuntimeError(message)
+            raise RuntimeError(last_error)
         except (KeyError, IndexError, ValueError) as exc:
             raise RuntimeError(f"Unexpected response from AI service: {exc}")
         except requests.exceptions.RequestException as exc:
-            raise RuntimeError(f"Could not reach the AI service: {exc}")
+            _availability_cache['value'] = (False, time.monotonic())
+            raise LLMUnavailable(f"Could not reach the AI service: {exc}")
 
-    if last_error:
-        raise RuntimeError(last_error)
-    raise RuntimeError("AI service model not available.")
+    raise RuntimeError(last_error or "AI service model not available.")
 
 
-def check_availability() -> bool:
+def generate(system_prompt: str, user_prompt: str, max_tokens: int = 750) -> str:
+    return chat([{'role': 'system', 'content': system_prompt}, {'role': 'user', 'content': user_prompt}],
+                max_tokens=max_tokens)
+
+
+def check_availability(force: bool = False) -> bool:
+    """True when the endpoint answered recently (any HTTP status below 500).
+
+    Unreachable hosts (DNS failure, refused connection, timeout) are reported
+    as unavailable; results are cached for a minute.
     """
-    Verify Token Factory API is reachable.
-    Returns False only when definitively offline (no API key, or connection refused).
-    Timeouts are treated as "available" because the server may be campus-only and
-    slow to respond from off-network, but functional when reached.
-    """
+    cached = _availability_cache.get('value')
+    if cached and not force and time.monotonic() - cached[1] < _AVAILABILITY_TTL:
+        return cached[0]
+
     cfg = _cfg()
-    api_key = cfg.get('LLM_API_KEY', '')
-    if not api_key:
-        return False
-    base = cfg.get('LLM_API_URL', 'https://tokenfactory.esprit.tn/api').rstrip('/')
-    headers = {'Authorization': f'Bearer {api_key}'}
-    for path in ['/models', '/v1/models', '']:
-        try:
-            resp = requests.get(f"{base}{path}", headers=headers, timeout=5, verify=False)
-            if resp.status_code < 500:
-                return True
-        except requests.exceptions.Timeout:
-            # Timeout ≠ offline — treat as available (campus server may be slow off-network)
-            return True
-        except requests.exceptions.ConnectionError:
-            # Connection refused or DNS failure — definitive offline signal
-            continue
-        except Exception:
-            continue
-    return True  # Give benefit of the doubt if no definitive failure
+    available = False
+    if cfg.get('LLM_API_KEY'):
+        base = cfg.get('LLM_API_URL', 'https://tokenfactory.esprit.tn/api').rstrip('/')
+        headers = {'Authorization': f"Bearer {cfg['LLM_API_KEY']}"}
+        for path in ('/models', '/v1/models'):
+            try:
+                resp = requests.get(f"{base}{path}", headers=headers, timeout=5, verify=_verify())
+                if resp.status_code < 500:
+                    available = True
+                    break
+            except requests.exceptions.RequestException:
+                continue
+    _availability_cache['value'] = (available, time.monotonic())
+    return available

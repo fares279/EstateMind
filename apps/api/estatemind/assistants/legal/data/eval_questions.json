@@ -1,0 +1,362 @@
+{
+ "description": "Evaluation set for the legal assistant. 'gold' lists article indexes in clean_dataset_v2.json whose text answers the question. 'answerable' questions have a gold article; 'unanswerable' are legal questions the corpus does not cover (correct behaviour: say so); 'out_of_scope' are not legal questions (correct behaviour: redirect).",
+ "corpus": "clean_dataset_v2.json",
+ "questions": [
+  {
+   "id": "A01-en",
+   "category": "answerable",
+   "lang": "en",
+   "gold": [
+    13
+   ],
+   "question": "Which property acquisition contracts are registered at the fixed registration duty?"
+  },
+  {
+   "id": "A01-fr",
+   "category": "answerable",
+   "lang": "fr",
+   "gold": [
+    13
+   ],
+   "question": "Quels contrats d'acquisition immobilière sont enregistrés au droit fixe ?"
+  },
+  {
+   "id": "A01-ar",
+   "category": "answerable",
+   "lang": "ar",
+   "gold": [
+    13
+   ],
+   "question": "ما هي عقود اقتناء العقارات التي تسجل بالمعلوم القار؟"
+  },
+  {
+   "id": "A02-en",
+   "category": "answerable",
+   "lang": "en",
+   "gold": [
+    7
+   ],
+   "question": "Must an assignment of a mortgage-backed debt to a debt recovery company be recorded in the land register?"
+  },
+  {
+   "id": "A02-fr",
+   "category": "answerable",
+   "lang": "fr",
+   "gold": [
+    7
+   ],
+   "question": "La cession d'une créance garantie par une hypothèque doit-elle être inscrite au registre foncier ?"
+  },
+  {
+   "id": "A02-ar",
+   "category": "answerable",
+   "lang": "ar",
+   "gold": [
+    7
+   ],
+   "question": "هل يجب ترسيم إحالة دين مضمون برهن عقاري بالسجل العقاري؟"
+  },
+  {
+   "id": "A03-en",
+   "category": "answerable",
+   "lang": "en",
+   "gold": [
+    6
+   ],
+   "question": "When does an assignment of receivables to a debt recovery company take effect against the debtor?"
+  },
+  {
+   "id": "A03-fr",
+   "category": "answerable",
+   "lang": "fr",
+   "gold": [
+    6
+   ],
+   "question": "À partir de quand la cession de créances prend-elle effet à l'égard du débiteur cédé ?"
+  },
+  {
+   "id": "A04-en",
+   "category": "answerable",
+   "lang": "en",
+   "gold": [
+    10
+   ],
+   "question": "After being notified of the assignment, whom must the debtor pay to be released from the debt?"
+  },
+  {
+   "id": "A05-en",
+   "category": "answerable",
+   "lang": "en",
+   "gold": [
+    8
+   ],
+   "question": "If several recovery companies are assigned the same debt, which one takes priority?"
+  },
+  {
+   "id": "A06-en",
+   "category": "answerable",
+   "lang": "en",
+   "gold": [
+    0
+   ],
+   "question": "Within what time limit must the founders convene the constitutive general meeting after the subscription closes?"
+  },
+  {
+   "id": "A06-fr",
+   "category": "answerable",
+   "lang": "fr",
+   "gold": [
+    0
+   ],
+   "question": "Dans quel délai les fondateurs convoquent-ils l'assemblée générale constitutive ?"
+  },
+  {
+   "id": "A07-en",
+   "category": "answerable",
+   "lang": "en",
+   "gold": [
+    22
+   ],
+   "question": "How long does the tax administration have to approve a VAT refund request?"
+  },
+  {
+   "id": "A07-fr",
+   "category": "answerable",
+   "lang": "fr",
+   "gold": [
+    22
+   ],
+   "question": "Quel est le délai de visa d'une demande de restitution de TVA ?"
+  },
+  {
+   "id": "A08-en",
+   "category": "answerable",
+   "lang": "en",
+   "gold": [
+    17
+   ],
+   "question": "Below what total value can units of a securities investment fund no longer be redeemed?"
+  },
+  {
+   "id": "A09-en",
+   "category": "answerable",
+   "lang": "en",
+   "gold": [
+    16
+   ],
+   "question": "When is a debt securitisation fund allowed to sell the receivables it acquired?"
+  },
+  {
+   "id": "A10-en",
+   "category": "answerable",
+   "lang": "en",
+   "gold": [
+    21
+   ],
+   "question": "What is the maximum share of one issuer's securities that a collective investment scheme may hold?"
+  },
+  {
+   "id": "A10-fr",
+   "category": "answerable",
+   "lang": "fr",
+   "gold": [
+    21
+   ],
+   "question": "Quelle part maximale des valeurs mobilières d'un même émetteur un OPCVM peut-il détenir ?"
+  },
+  {
+   "id": "A11-en",
+   "category": "answerable",
+   "lang": "en",
+   "gold": [
+    19
+   ],
+   "question": "How is the net asset value of a collective investment scheme calculated?"
+  },
+  {
+   "id": "A12-fr",
+   "category": "answerable",
+   "lang": "fr",
+   "gold": [
+    1
+   ],
+   "question": "Quelles sommes peuvent créditer un compte épargne pour l'investissement ?"
+  },
+  {
+   "id": "A13-en",
+   "category": "answerable",
+   "lang": "en",
+   "gold": [
+    4
+   ],
+   "question": "During the lock-up period, what income can the holder of a savings-for-investment account freely use?"
+  },
+  {
+   "id": "A14-en",
+   "category": "answerable",
+   "lang": "en",
+   "gold": [
+    20
+   ],
+   "question": "Within what deadline must distribution investment funds distribute their distributable sums?"
+  },
+  {
+   "id": "A15-en",
+   "category": "answerable",
+   "lang": "en",
+   "gold": [
+    11,
+    12
+   ],
+   "question": "Are investment incentive benefits withdrawn when the company is sold?"
+  },
+  {
+   "id": "A16-en",
+   "category": "answerable",
+   "lang": "en",
+   "gold": [
+    3
+   ],
+   "question": "Can a bank buy securities on behalf of its client during the last five days of the deadline?"
+  },
+  {
+   "id": "A17-en",
+   "category": "answerable",
+   "lang": "en",
+   "gold": [
+    14
+   ],
+   "question": "What is a debt securitisation fund and what is its purpose?"
+  },
+  {
+   "id": "A18-en",
+   "category": "answerable",
+   "lang": "en",
+   "gold": [
+    5
+   ],
+   "question": "Which legal rules govern the assignment of receivables by debt recovery companies?"
+  },
+  {
+   "id": "A19-en",
+   "category": "answerable",
+   "lang": "en",
+   "gold": [
+    9
+   ],
+   "question": "What documents must the assignor hand over to the debt recovery company?"
+  },
+  {
+   "id": "U01-en",
+   "category": "unanswerable",
+   "lang": "en",
+   "gold": [],
+   "question": "Can a foreigner buy an apartment in Tunisia, and is the governor's authorization required?"
+  },
+  {
+   "id": "U01-fr",
+   "category": "unanswerable",
+   "lang": "fr",
+   "gold": [],
+   "question": "Un étranger peut-il acheter un appartement en Tunisie sans autorisation du gouverneur ?"
+  },
+  {
+   "id": "U02-en",
+   "category": "unanswerable",
+   "lang": "en",
+   "gold": [],
+   "question": "How is an inherited house divided between the heirs under Tunisian law?"
+  },
+  {
+   "id": "U02-ar",
+   "category": "unanswerable",
+   "lang": "ar",
+   "gold": [],
+   "question": "كيف يتم تقسيم منزل موروث بين الورثة حسب القانون التونسي؟"
+  },
+  {
+   "id": "U03-en",
+   "category": "unanswerable",
+   "lang": "en",
+   "gold": [],
+   "question": "What is the capital gains tax rate when selling a house in Tunisia?"
+  },
+  {
+   "id": "U04-en",
+   "category": "unanswerable",
+   "lang": "en",
+   "gold": [],
+   "question": "How much are notary fees for a property purchase in Tunisia?"
+  },
+  {
+   "id": "U05-en",
+   "category": "unanswerable",
+   "lang": "en",
+   "gold": [],
+   "question": "What permits are needed to build a house in Tunisia?"
+  },
+  {
+   "id": "U06-fr",
+   "category": "unanswerable",
+   "lang": "fr",
+   "gold": [],
+   "question": "Quelles sont les règles de résiliation d'un bail d'habitation en Tunisie ?"
+  },
+  {
+   "id": "O01-en",
+   "category": "out_of_scope",
+   "lang": "en",
+   "gold": [],
+   "question": "What is the average price per square metre in La Marsa?"
+  },
+  {
+   "id": "O02-en",
+   "category": "out_of_scope",
+   "lang": "en",
+   "gold": [],
+   "question": "Hello, who are you?"
+  },
+  {
+   "id": "O03-en",
+   "category": "out_of_scope",
+   "lang": "en",
+   "gold": [],
+   "question": "Will apartment prices in Sousse rise next year?"
+  },
+  {
+   "id": "O04-fr",
+   "category": "out_of_scope",
+   "lang": "fr",
+   "gold": [],
+   "question": "Quel temps fera-t-il demain à Tunis ?"
+  },
+  {
+   "id": "O05-en",
+   "category": "out_of_scope",
+   "lang": "en",
+   "gold": [],
+   "question": "Which neighbourhood in Tunis is the best investment right now?"
+  },
+  {
+   "id": "O06-en",
+   "category": "out_of_scope",
+   "lang": "en",
+   "gold": [],
+   "question": "How much is my 3-bedroom apartment in Ariana worth?"
+  },
+  {
+   "id": "O07-ar",
+   "category": "out_of_scope",
+   "lang": "ar",
+   "gold": [],
+   "question": "مرحبا، كيف حالك؟"
+  },
+  {
+   "id": "O08-fr",
+   "category": "out_of_scope",
+   "lang": "fr",
+   "gold": [],
+   "question": "Merci beaucoup pour votre aide !"
+  }
+ ]
+}

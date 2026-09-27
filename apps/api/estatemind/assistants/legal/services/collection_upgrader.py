@@ -1,68 +1,83 @@
+"""Builds a new versioned ChromaDB collection and activates it only if it retrieves well.
+
+Collections are never overwritten: each build gets a new name, is validated
+with RetrievalQualityValidator on data/eval_questions.json, and replaces the
+active collection only when it meets the recall targets. The previous
+collection stays on disk (status 'retired') for rollback.
+"""
+from importlib.metadata import PackageNotFoundError, version
+
 from django.utils import timezone
+
 from estatemind.assistants.legal.models import EmbeddingCollectionVersion
+
+from . import chromadb_service, embedding_service
+from .dataset_service import load_domain_corpus
 from .retrieval_quality import RetrievalQualityValidator
-from .chroma_router import ChromaRouter
+
+CORPUS_DOMAIN = 'all'
 
 
 class CollectionUpgrader:
-    def __init__(self, chroma, embedder_factory):
-        self.chroma = chroma
-        self.embedder_factory = embedder_factory
-        self.router = ChromaRouter()
+    def _next_name(self, domain: str) -> str:
+        n = EmbeddingCollectionVersion.objects.filter(domain=domain).count() + 1
+        existing = set(chromadb_service.list_collection_names())
+        name = f"legal_tunisia_{domain}_v{n}"
+        while EmbeddingCollectionVersion.objects.filter(collection_name=name).exists() or name in existing:
+            n += 1
+            name = f"legal_tunisia_{domain}_v{n}"
+        return name
 
-    def _next_version(self, domain: str) -> int:
-        base = EmbeddingCollectionVersion.objects.filter(domain=domain).count()
-        return base + 1
+    @staticmethod
+    def _library_version() -> str:
+        try:
+            return version('sentence-transformers')
+        except PackageNotFoundError:
+            return 'unknown'
 
-    def _get_model_version(self, model_name: str) -> str:
-        # Simplified: return a placeholder; in real setups query the model package metadata
-        return '1.0.0'
-
-    def upgrade_domain(self, domain: str, new_embedding_model: str) -> dict:
-        current_active = EmbeddingCollectionVersion.objects.filter(domain=domain, is_active=True).first()
-        new_version_number = self._next_version(domain)
-        new_collection_name = f"legal_tunisia_{domain}_v{new_version_number}"
-
-        new_version_record = EmbeddingCollectionVersion.objects.create(
-            collection_name=new_collection_name,
-            domain=domain,
-            embedding_model=new_embedding_model,
-            embedding_version=self._get_model_version(new_embedding_model),
-            total_passages=0,
-            indexed_date=timezone.now().date(),
-            status='indexing',
-            is_active=False,
+    def upgrade(self, domain: str = CORPUS_DOMAIN, activate: bool = True) -> dict:
+        model = embedding_service.model_name()
+        name = self._next_name(domain)
+        record = EmbeddingCollectionVersion.objects.create(
+            collection_name=name, domain=domain, embedding_model=model,
+            embedding_version=self._library_version(), total_passages=0,
+            indexed_date=timezone.now().date(), status='indexing', is_active=False,
         )
 
-        passages = self._load_domain_corpus(domain)
-        # Indexing is delegated to chroma service (assumed to exist)
-        self.chroma.index_passages(collection_name=new_collection_name, passages=passages, embedder=new_embedding_model)
+        chunks = load_domain_corpus(domain)
+        texts = [c['text'] for c in chunks]
+        count = chromadb_service.index_collection(
+            name, ids=[c['id'] for c in chunks], metadatas=[c['metadata'] for c in chunks],
+            documents=texts, embeddings=embedding_service.embed_texts(texts),
+        )
+        record.total_passages = count
+        record.status = 'validating'
+        record.save(update_fields=['total_passages', 'status'])
 
-        new_version_record.total_passages = len(passages)
-        new_version_record.status = 'validating'
-        new_version_record.save()
-
-        validator = RetrievalQualityValidator(chroma_service=self.chroma, embedding_service=self.embedder_factory(new_embedding_model))
-        report = validator.run_full_evaluation(new_collection_name)
-        new_version_record.recall_at_5 = report['recall_at_5']
+        report = RetrievalQualityValidator(chromadb_service, embedding_service).run_full_evaluation(name)
+        record.recall_at_5 = report['recall_at_5']
+        record.notes = (f"recall@1={report['recall_at_1']} recall@3={report['recall_at_3']} "
+                        f"by_lang={report['recall_at_3_by_language']} "
+                        f"gate: answerable_pass={report['gate_answerable_pass_rate']} "
+                        f"negative_block={report['gate_negative_block_rate']}")
 
         if not report['passed']:
-            new_version_record.status = 'failed'
-            new_version_record.save()
-            return {'status': 'upgrade_rejected', 'reason': f"Recall@5 = {report['recall_at_5']:.1%} below target", 'report': report}
+            record.status = 'failed'
+            record.save(update_fields=['recall_at_5', 'notes', 'status'])
+            return {'status': 'upgrade_rejected', 'collection': name, 'report': report}
 
-        if current_active:
-            current_active.is_active = False
-            current_active.status = 'retired'
-            current_active.save()
+        if not activate:
+            record.status = 'validated'
+            record.save(update_fields=['recall_at_5', 'notes', 'status'])
+            return {'status': 'validated_not_activated', 'collection': name, 'report': report}
 
-        new_version_record.is_active = True
-        new_version_record.status = 'active'
-        new_version_record.save()
-
-        return {'status': 'upgrade_complete', 'new_collection': new_collection_name, 'recall_at_5': report['recall_at_5'], 'passages': len(passages)}
-
-    def _load_domain_corpus(self, domain: str) -> list:
-        # Hook: load canonical domain corpus from storage. For now, raise if empty.
-        from estatemind.assistants.legal.services.dataset_service import load_domain_corpus
-        return load_domain_corpus(domain)
+        previous = list(EmbeddingCollectionVersion.objects.filter(is_active=True).exclude(pk=record.pk))
+        for old in previous:
+            old.is_active = False
+            old.status = 'retired'
+            old.save(update_fields=['is_active', 'status'])
+        record.is_active = True
+        record.status = 'active'
+        record.save(update_fields=['recall_at_5', 'notes', 'status', 'is_active'])
+        return {'status': 'upgrade_complete', 'collection': name, 'passages': count,
+                'retired': [o.collection_name for o in previous], 'report': report}

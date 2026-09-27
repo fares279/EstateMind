@@ -1,142 +1,80 @@
-from dataclasses import dataclass
-from typing import List
+"""Retrieval quality of a legal collection, measured on data/eval_questions.json.
 
-@dataclass
-class LegalTestCase:
-    question: str
-    domain: str
-    correct_source_id: str
-    correct_law: str
-    difficulty: str
+Answerable questions list the corpus articles that answer them; a chunk
+matches when its `article_index` metadata is one of those. The legal
+questions the corpus does not cover, and non-legal questions, measure whether
+the retrieval gate (best similarity below RETRIEVAL_MIN_SIMILARITY) correctly
+reports "no source".
+"""
+import json
+from pathlib import Path
+
+EVAL_PATH = Path(__file__).resolve().parent.parent / 'data' / 'eval_questions.json'
 
 
-# Curated test set using real Chroma document IDs from the current corpus.
-LEGAL_TEST_SET: List[LegalTestCase] = [
-    LegalTestCase(
-        question="What are the conditions for investment savings account deposits?",
-        domain="investment",
-        correct_source_id="d28d1c0fdab3a82c",
-        correct_law="Loi sur l'Épargne-Investissement, Art. 3",
-        difficulty="easy",
-    ),
-    LegalTestCase(
-        question="What does article 7 say about bank and client delegation powers?",
-        domain="taxation",
-        correct_source_id="6b202861c0c91e61",
-        correct_law="Code de l'Impôt sur le Revenu, Art.7",
-        difficulty="easy",
-    ),
-    LegalTestCase(
-        question="What operations do debt collection companies perform under article 9?",
-        domain="debt_recovery",
-        correct_source_id="d3a715c2268af4d1",
-        correct_law="Code du Recouvrement des Créances, Art. 9",
-        difficulty="easy",
-    ),
-    LegalTestCase(
-        question="When does debt assignment take effect against the debtor under article 11?",
-        domain="debt_recovery",
-        correct_source_id="b3c91566ffb2caaa",
-        correct_law="Code du Recouvrement des Créances, Art. 11",
-        difficulty="medium",
-    ),
-    LegalTestCase(
-        question="Which company notifies the debtor first when several firms are assigned the same claim?",
-        domain="debt_recovery",
-        correct_source_id="0c1eeec3c7e254a7",
-        correct_law="Code du Recouvrement des Créances, Art. 13",
-        difficulty="medium",
-    ),
-    LegalTestCase(
-        question="What does Article 58 say about contracts for acquisition from property developers of buildings or serviced land?",
-        domain="transactions",
-        correct_source_id="5f68aee0ddbd255a",
-        correct_law="Code d'Incitation aux Investissements, Art. 58",
-        difficulty="easy",
-    ),
-    LegalTestCase(
-        question="Within fifteen days from the close of subscription, what must the founders do according to Article 171?",
-        domain="corporate",
-        correct_source_id="8d263ddddcf4cf5f",
-        correct_law="Code des Sociétés, Article 171",
-        difficulty="medium",
-    ),
-    LegalTestCase(
-        question="When is VAT restitution performed under Article 15 of the VAT code?",
-        domain="taxation",
-        correct_source_id="712aa145a5801adc",
-        correct_law="Législation Tunisienne, article 15 du code de la TVA",
-        difficulty="easy",
-    ),
-    LegalTestCase(
-        question="What benefits are not withdrawn under Article 65 of the investment incentive code?",
-        domain="investment",
-        correct_source_id="d089c11374608d33",
-        correct_law="Code d'Incitation aux Investissements, article 65du",
-        difficulty="medium",
-    ),
-    LegalTestCase(
-        question="What happens to benefits under Article 65 of the investment incentive code when conditions change?",
-        domain="investment",
-        correct_source_id="39230b046761024d",
-        correct_law="Code d'Incitation aux Investissements, article 65 du",
-        difficulty="medium",
-    ),
-]
+def load_eval_questions() -> list[dict]:
+    return json.loads(EVAL_PATH.read_text(encoding='utf-8'))['questions']
 
 
 class RetrievalQualityValidator:
-    TARGET_RECALL = 0.90
+    TARGET_RECALL = 0.90       # recall@5 over answerable questions
+    TARGET_RECALL_AT_3 = 0.85
     K = 5
 
-    def __init__(self, chroma_service, embedding_service):
+    def __init__(self, chroma_service, embedding_service, min_similarity: float | None = None):
+        from django.conf import settings
         self.chroma = chroma_service
         self.embedder = embedding_service
+        self.min_similarity = (min_similarity if min_similarity is not None
+                               else getattr(settings, 'LEGAL_RAG', {}).get('RETRIEVAL_MIN_SIMILARITY', 0.52))
 
     def run_full_evaluation(self, collection_name: str) -> dict:
-        results = []
-        failures = []
+        hits = {1: 0, 3: 0, 5: 0}
+        by_lang: dict[str, list[int]] = {}
+        failures, gate = [], {'answerable_passed': 0, 'answerable': 0, 'negative_blocked': 0, 'negative': 0}
 
-        for tc in LEGAL_TEST_SET:
-            res = self._evaluate_single(tc, collection_name)
-            results.append(res)
-            if not res['found']:
-                failures.append({
-                    'question': tc.question,
-                    'domain': tc.domain,
-                    'correct_law': tc.correct_law,
-                    'difficulty': tc.difficulty,
-                    'top_retrieved': res['top_retrieved_ids'],
-                })
+        for q in load_eval_questions():
+            res = self.chroma.query(self.embedder.embed_text(q['question']), n_results=self.K,
+                                    collection_name=collection_name)
+            metas = res.get('metadatas', [[]])[0]
+            dists = res.get('distances', [[]])[0]
+            ranked = [m.get('article_index') for m in metas]
+            top_sim = 1.0 - float(dists[0]) if dists else 0.0
+            passes_gate = top_sim >= self.min_similarity
 
-        recall_at_k = sum(r['found'] for r in results) / max(1, len(results))
-        passed = recall_at_k >= self.TARGET_RECALL
+            if q['category'] == 'answerable':
+                gold = set(q['gold'])
+                rank = next((i + 1 for i, a in enumerate(ranked) if a in gold), None)
+                for k in hits:
+                    hits[k] += bool(rank and rank <= k)
+                stats = by_lang.setdefault(q['lang'], [0, 0])
+                stats[0] += bool(rank and rank <= 3)
+                stats[1] += 1
+                gate['answerable'] += 1
+                gate['answerable_passed'] += passes_gate
+                if not rank or rank > 3:
+                    failures.append({'id': q['id'], 'question': q['question'], 'gold': q['gold'],
+                                     'retrieved_articles': ranked, 'top_similarity': round(top_sim, 3)})
+            else:
+                gate['negative'] += 1
+                gate['negative_blocked'] += not passes_gate
 
+        n = max(gate['answerable'], 1)
+        recall = {k: hits[k] / n for k in hits}
+        passed = recall[5] >= self.TARGET_RECALL and recall[3] >= self.TARGET_RECALL_AT_3
         return {
             'collection': collection_name,
-            'recall_at_5': round(recall_at_k, 3),
+            'recall_at_1': round(recall[1], 3),
+            'recall_at_3': round(recall[3], 3),
+            'recall_at_5': round(recall[5], 3),
+            'recall_at_3_by_language': {k: f'{v[0]}/{v[1]}' for k, v in by_lang.items()},
+            'gate_threshold': self.min_similarity,
+            'gate_answerable_pass_rate': round(gate['answerable_passed'] / n, 3),
+            'gate_negative_block_rate': round(gate['negative_blocked'] / max(gate['negative'], 1), 3),
             'target': self.TARGET_RECALL,
             'passed': passed,
-            'total_questions': len(results),
-            'found': sum(r['found'] for r in results),
-            'missed': len(failures),
+            'total_questions': gate['answerable'],
+            'found': hits[5],
+            'missed': gate['answerable'] - hits[5],
             'failures': failures,
-        }
-
-    def _evaluate_single(self, test_case: LegalTestCase, collection_name: str) -> dict:
-        # embed the question
-        qvec = self.embedder.embed_text(test_case.question)
-        # query the specific collection
-        retrieved = self.chroma.query(qvec, n_results=self.K, collection_name=collection_name)
-        retrieved_ids = retrieved.get('ids', [[]])[0] if retrieved.get('ids') else []
-        # normalize ids
-        retrieved_ids = [str(i) for i in retrieved_ids]
-        found = test_case.correct_source_id in retrieved_ids
-        return {
-            'question_id': test_case.correct_source_id,
-            'domain': test_case.domain,
-            'difficulty': test_case.difficulty,
-            'found': bool(found),
-            'top_retrieved_ids': retrieved_ids,
-            'rank': (retrieved_ids.index(test_case.correct_source_id) + 1) if found else None,
         }

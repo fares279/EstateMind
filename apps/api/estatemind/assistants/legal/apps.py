@@ -1,7 +1,55 @@
-from django.apps import AppConfig
 import logging
 
+from django.apps import AppConfig
+
 logger = logging.getLogger(__name__)
+
+# Service singletons, created once per process (same pattern as chatbot.apps).
+_domain_classifier = None
+_retriever = None
+_hallucination_detector = None
+_quality_monitor = None
+_reward_model = None
+
+
+def get_domain_classifier():
+    global _domain_classifier
+    if _domain_classifier is None:
+        from .services.domain_classifier import LegalDomainClassifier
+        _domain_classifier = LegalDomainClassifier()
+    return _domain_classifier
+
+
+def get_retriever():
+    global _retriever
+    if _retriever is None:
+        from .services.retriever import LegalRetriever
+        _retriever = LegalRetriever()
+    return _retriever
+
+
+def get_hallucination_detector():
+    global _hallucination_detector
+    if _hallucination_detector is None:
+        from .services.hallucination_detector import HallucinationDetector
+        _hallucination_detector = HallucinationDetector()
+    return _hallucination_detector
+
+
+def get_quality_monitor():
+    global _quality_monitor
+    if _quality_monitor is None:
+        from .services.quality_monitor import LegalResponseQualityMonitor
+        _quality_monitor = LegalResponseQualityMonitor()
+    return _quality_monitor
+
+
+def get_reward_model():
+    global _reward_model
+    if _reward_model is None:
+        from .services.reward_model import LegalRewardModel
+        _reward_model = LegalRewardModel()
+    return _reward_model
 
 
 class LegalConfig(AppConfig):
@@ -11,23 +59,31 @@ class LegalConfig(AppConfig):
     verbose_name = 'Legal AI Assistant'
 
     def ready(self):
-        # Keep model preload opt-in so local startup does not download or load
-        # large ML assets unless the deployment explicitly asks for it.
-        # Set PRELOAD_LEGAL_EMBEDDING_MODEL=True (env var or .env) for eager loading.
+        """Load the legal models at startup so the first question does not pay for it.
+
+        On by default, like the chatbot; set PRELOAD_LEGAL_EMBEDDING_MODEL=False
+        (environment or .env) to load lazily instead.
+        """
         from decouple import config
 
-        if not config('PRELOAD_LEGAL_EMBEDDING_MODEL', default=False, cast=bool):
+        if not config('PRELOAD_LEGAL_EMBEDDING_MODEL', default=True, cast=bool):
             return
-
-        # Pre-load sentence_transformers / torch in the main thread.
-        # On Windows, torch DLLs must be initialized from the main thread;
-        # lazy loading inside a request-handler thread raises WinError 1114.
+        # On Windows, torch DLLs must be initialised from the main thread;
+        # loading inside a request thread raises WinError 1114.
         import threading
         if threading.current_thread() is not threading.main_thread():
             return
-        try:
-            from .services import embedding_service
-            embedding_service._get_model()
-            logger.info("[Legal] Embedding model pre-loaded in main thread.")
-        except Exception as exc:
-            logger.warning("[Legal] Could not pre-load embedding model: %s", exc)
+
+        steps = (
+            ('LegalDomainClassifier', get_domain_classifier),
+            ('LegalRetriever', lambda: get_retriever().warm_up()),
+            ('HallucinationDetector', get_hallucination_detector),
+            ('LegalResponseQualityMonitor', get_quality_monitor),
+            ('LegalRewardModel', get_reward_model),
+        )
+        for name, load in steps:
+            try:
+                load()
+                logger.info('[Legal] %s ready', name)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning('[Legal] Could not pre-load %s: %s', name, exc)

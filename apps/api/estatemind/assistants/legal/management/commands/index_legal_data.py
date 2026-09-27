@@ -1,48 +1,26 @@
+import json
+
 from django.core.management.base import BaseCommand
-from estatemind.assistants.legal.services.dataset_service import load_and_prepare
-from estatemind.assistants.legal.services import embedding_service, chromadb_service
+
+from estatemind.assistants.legal.services.collection_upgrader import CollectionUpgrader
 
 
 class Command(BaseCommand):
-    help = 'Index the Tunisian legal dataset into ChromaDB'
+    help = ('Index the Tunisian legal dataset into a new versioned ChromaDB collection with the '
+            'configured embedding model, validate retrieval, and activate it if it passes.')
 
     def add_arguments(self, parser):
-        parser.add_argument(
-            '--force',
-            action='store_true',
-            help='Re-index even if data already exists',
-        )
+        parser.add_argument('--no-activate', action='store_true',
+                            help='Build and validate, but keep the current collection active.')
 
     def handle(self, *args, **options):
-        count = chromadb_service.get_document_count()
-
-        if count > 0 and not options['force']:
-            self.stdout.write(
-                self.style.WARNING(
-                    f'ChromaDB already contains {count} documents. '
-                    'Pass --force to re-index.'
-                )
-            )
-            return
-
-        if options['force'] and count > 0:
-            self.stdout.write('Resetting collection…')
-            chromadb_service.reset_collection()
-
-        self.stdout.write('Loading and chunking dataset…')
-        chunks = load_and_prepare()
-        self.stdout.write(f'  {len(chunks)} chunks prepared.')
-
-        self.stdout.write('Generating embeddings (may take a few minutes on first run)…')
-        texts = [c['text'] for c in chunks]
-        embeddings = embedding_service.embed_texts(texts)
-
-        self.stdout.write('Storing in ChromaDB…')
-        added = chromadb_service.add_documents(
-            ids=[c['id'] for c in chunks],
-            metadatas=[c['metadata'] for c in chunks],
-            documents=texts,
-            embeddings=embeddings,
-        )
-
-        self.stdout.write(self.style.SUCCESS(f'Done — {added} chunks indexed.'))
+        self.stdout.write('Building a new legal collection (the active one is not modified)…')
+        result = CollectionUpgrader().upgrade(activate=not options['no_activate'])
+        report = result['report']
+        style = self.style.SUCCESS if report['passed'] else self.style.ERROR
+        self.stdout.write(style(f"{result['status']}: {result['collection']}"))
+        self.stdout.write(json.dumps({k: v for k, v in report.items() if k != 'failures'}, indent=1,
+                                     ensure_ascii=False))
+        for f in report['failures']:
+            self.stdout.write(f"  missed {f['id']}: gold {f['gold']} got {f['retrieved_articles']} "
+                              f"(top sim {f['top_similarity']})")

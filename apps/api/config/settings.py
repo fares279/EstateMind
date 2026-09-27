@@ -280,6 +280,17 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': crontab(hour=7, minute=0),  # Every day @ 07:00
         'options': {'expires': 3600},
     },
+    # Legal assistant (same cadence as the chatbot)
+    'daily-legal-quality-report': {
+        'task': 'legal.generate_quality_report',
+        'schedule': crontab(hour=7, minute=10),
+        'options': {'expires': 3600},
+    },
+    'monthly-legal-reward-model-retrain': {
+        'task': 'legal.retrain_reward_model',
+        'schedule': crontab(hour=4, minute=10, day_of_month='1'),
+        'options': {'expires': 3600},
+    },
     'weekly-intent-classifier-accuracy-check': {
         'task': 'estatemind.assistants.chatbot.tasks.evaluate_intent_accuracy',
         'schedule': crontab(hour=3, minute=0, day_of_week='monday'),  # Mondays @ 03:00
@@ -332,8 +343,24 @@ LEGAL_RAG = {
     'LLM_API_URL':       config('LEGAL_LLM_API_URL',  default='https://tokenfactory.esprit.tn/api'),
     'LLM_API_KEY':       config('LEGAL_LLM_API_KEY',  default=''),
     'LLM_MODEL':         config('LEGAL_LLM_MODEL',    default='hosted_vllm/Llama-3.1-70B-Instruct'),
-    # Local embedding model (sentence-transformers, runs on CPU)
-    'EMBEDDING_MODEL':   config('EMBEDDING_MODEL',    default='all-MiniLM-L6-v2'),
+    'LLM_VERIFY_SSL':    config('LEGAL_LLM_VERIFY_SSL', default=False, cast=bool),
+    'LLM_TIMEOUT':       config('LEGAL_LLM_TIMEOUT', default=90, cast=int),
+    # Local embedding model (sentence-transformers, runs on CPU). Multilingual:
+    # the corpus is French, questions arrive in French, English and Arabic.
+    # Changing it requires `manage.py index_legal_data` (new collection).
+    'EMBEDDING_MODEL':   config('EMBEDDING_MODEL', default='sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2'),
+    'EMBEDDING_QUERY_PREFIX':   config('LEGAL_EMBEDDING_QUERY_PREFIX', default=''),
+    'EMBEDDING_PASSAGE_PREFIX': config('LEGAL_EMBEDDING_PASSAGE_PREFIX', default=''),
+    'CHUNK_WORDS':         80,
+    'CHUNK_OVERLAP_WORDS': 20,
+    # Grounding check (multilingual NLI)
+    'NLI_MODEL':         config('LEGAL_NLI_MODEL', default='MoritzLaurer/multilingual-MiniLMv2-L6-mnli-xnli'),
+    # Retrieval gate: below this best-passage similarity the corpus is treated
+    # as not covering the question (calibrated on data/eval_questions.json).
+    'RETRIEVAL_MIN_SIMILARITY': config('LEGAL_RETRIEVAL_MIN_SIMILARITY', default=0.52, cast=float),
+    'RETRIEVAL_TOP_K':          5,
+    'RETRIEVAL_MAX_CONTEXT':    4,
+    'RETRIEVAL_CONTEXT_MARGIN': 0.10,
     # ChromaDB vector store
     'CHROMA_PERSIST_DIR': str(CHROMA_DIR / 'legal'),
     'CHROMA_COLLECTION': config('LEGAL_CHROMA_COLLECTION', default='estate_legal'),

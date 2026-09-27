@@ -41,9 +41,10 @@ def _get_collection():
     return _collection
 
 
-def get_document_count() -> int:
+def get_document_count(collection_name: str | None = None) -> int:
     try:
-        return _get_collection().count()
+        col = _get_collection_by_name(collection_name) if collection_name else _get_collection()
+        return col.count()
     except Exception as exc:
         logger.warning("ChromaDB count failed: %s", exc)
         return 0
@@ -141,3 +142,31 @@ def query(embedding: List[float], n_results: int = 5, collection_name: str | Non
 
     n = min(n_results, count)
     return col.query(query_embeddings=[embedding], n_results=n)
+
+
+def _client_instance():
+    global _client
+    if _client is None:
+        import chromadb
+        persist_dir = _cfg().get('CHROMA_PERSIST_DIR', './legal_chroma')
+        os.makedirs(persist_dir, exist_ok=True)
+        _client = chromadb.PersistentClient(path=persist_dir, settings=chromadb.Settings(anonymized_telemetry=False))
+    return _client
+
+
+def list_collection_names() -> List[str]:
+    return [getattr(c, 'name', c) for c in _client_instance().list_collections()]
+
+
+def index_collection(name: str, ids: List[str], metadatas: List[Dict[str, Any]],
+                     documents: List[str], embeddings: List[List[float]]) -> int:
+    """Create collection `name` (it must not exist yet) and fill it."""
+    if name in list_collection_names():
+        raise ValueError(f"Collection '{name}' already exists; collections are never overwritten.")
+    col = _client_instance().create_collection(name=name, metadata={"hnsw:space": "cosine"})
+    for start in range(0, len(ids), 500):
+        end = start + 500
+        col.add(ids=ids[start:end], metadatas=metadatas[start:end],
+                documents=documents[start:end], embeddings=embeddings[start:end])
+    logger.info("Indexed %d passages into new collection '%s'", len(ids), name)
+    return col.count()

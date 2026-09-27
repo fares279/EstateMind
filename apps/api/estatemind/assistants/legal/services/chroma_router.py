@@ -1,35 +1,54 @@
 import logging
-from typing import Optional
+from dataclasses import dataclass
 
 from estatemind.assistants.legal.models import EmbeddingCollectionVersion
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_EMBEDDING_MODEL = 'sentence-transformers/paraphrase-multilingual-mpnet-base-v2'
+
+@dataclass
+class Route:
+    collection: str
+    embedding_model: str
+    source: str  # 'registry' | 'settings_fallback'
 
 
 class ChromaRouter:
     """All ChromaDB queries MUST go through this router.
     Never hardcode a collection name in the RAG engine.
+
+    Resolution order: the active collection registered for the domain, then
+    any active collection, then the collection named in settings (used when
+    the registry is empty, e.g. a fresh database with an existing index).
     """
 
-    def get_active_collection(self, domain: str) -> str:
-        record = EmbeddingCollectionVersion.objects.filter(
-            domain=domain, is_active=True
-        ).first()
+    def _settings(self) -> dict:
+        from django.conf import settings
+        return getattr(settings, 'LEGAL_RAG', {})
 
-        if not record:
-            fallback = EmbeddingCollectionVersion.objects.filter(is_active=True).first()
-            if fallback:
-                logger.warning(
-                    "No active collection for domain '%s'. Using fallback '%s'.",
-                    domain, fallback.collection_name
+    def route(self, domain: str) -> Route:
+        record = (
+            EmbeddingCollectionVersion.objects.filter(domain=domain, is_active=True).first()
+            or EmbeddingCollectionVersion.objects.filter(is_active=True).first()
+        )
+        cfg = self._settings()
+        configured_model = cfg.get('EMBEDDING_MODEL', '')
+        if record:
+            if configured_model and record.embedding_model != configured_model:
+                logger.error(
+                    "Collection '%s' was indexed with %s but EMBEDDING_MODEL is %s; "
+                    "retrieval will be unreliable until the index is rebuilt.",
+                    record.collection_name, record.embedding_model, configured_model,
                 )
-                return fallback.collection_name
-            raise RuntimeError(f"No active ChromaDB collection for domain: {domain}")
+            return Route(record.collection_name, record.embedding_model, 'registry')
 
-        return record.collection_name
+        name = cfg.get('CHROMA_COLLECTION', 'estate_legal')
+        logger.warning("No active collection registered; using '%s' from settings.", name)
+        return Route(name, configured_model, 'settings_fallback')
+
+    # Kept for callers of the original API.
+    def get_active_collection(self, domain: str) -> str:
+        return self.route(domain).collection
 
     def get_embedding_model_for_query(self, domain: str) -> str:
-        record = EmbeddingCollectionVersion.objects.filter(domain=domain, is_active=True).first()
-        return record.embedding_model if record else DEFAULT_EMBEDDING_MODEL
+        return self.route(domain).embedding_model
