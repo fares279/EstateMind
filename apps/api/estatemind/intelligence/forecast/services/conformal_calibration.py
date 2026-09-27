@@ -86,7 +86,10 @@ class ConformalCalibratorOrchestrator:
 
         # Calibrate predictor on residuals
         predictor = ConformalPredictor(coverage=self.coverage)
-        calibration_metadata = predictor.calibrate(model_version.conformal_residuals)
+        # The backtester emits one residual per test month, 12 per window, in order.
+        residuals = model_version.conformal_residuals
+        horizons = [i % 12 + 1 for i in range(len(residuals))]
+        calibration_metadata = predictor.calibrate(residuals, horizons=horizons)
 
         # Cache result
         result = (predictor, calibration_metadata)
@@ -103,7 +106,7 @@ class ConformalCalibratorOrchestrator:
         return result
 
     def predict_with_intervals(
-        self, delegation_name: str, property_type: str, point_forecast: float
+        self, delegation_name: str, property_type: str, point_forecast: float, horizon: int | None = None
     ) -> Optional[Dict]:
         """
         Wraps a point forecast with calibrated conformal prediction intervals.
@@ -122,7 +125,7 @@ class ConformalCalibratorOrchestrator:
             return None
 
         predictor, metadata = result
-        return predictor.predict_interval(point_forecast)
+        return predictor.predict_interval(point_forecast, horizon=horizon)
 
     def predict_quantile_fan(
         self,

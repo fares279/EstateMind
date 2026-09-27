@@ -38,15 +38,28 @@ class ConformalPredictor:
             coverage: desired coverage level (e.g. 0.90 for 90%)
         """
         self.coverage = coverage
-        self._quantile = None  # learned from calibration set
+        self._quantile = None  # learned from calibration set (all horizons pooled)
         self._n_calibration = 0
+        # Error grows with the forecast horizon: one pooled width over-covers
+        # month 1 and under-covers month 12, so each horizon gets its own.
+        self._horizon_quantiles: dict[int, float] = {}
 
-    def calibrate(self, calibration_residuals: list) -> dict:
+    MIN_PER_HORIZON = 20
+
+    def _quantile_of(self, abs_residuals: np.ndarray) -> float:
+        # Split-conformal: the k-th smallest residual, k = ceil((n+1) * coverage) (1-based).
+        n = len(abs_residuals)
+        k = int(np.ceil((n + 1) * self.coverage))
+        return float(np.sort(abs_residuals)[min(k, n) - 1])
+
+    def calibrate(self, calibration_residuals: list, horizons: list | None = None) -> dict:
         """
         Fits the conformal predictor on historical residuals from backtesting.
 
         Args:
             calibration_residuals: list of (actual - predicted) values
+            horizons: forecast horizon (1..12) of each residual, if known; horizons
+                with at least MIN_PER_HORIZON residuals get their own quantile
 
         Returns a dict with calibration metadata.
         """
@@ -58,13 +71,16 @@ class ConformalPredictor:
                 len(residuals),
             )
 
-        # Conformal quantile: ceil((n+1)(1-α)) / n
         n = len(residuals)
-        quantile_idx = int(np.ceil((n + 1) * self.coverage))
-        quantile_idx = min(quantile_idx, n - 1)  # safety clamp
-
-        self._quantile = float(np.sort(residuals)[quantile_idx])
+        self._quantile = self._quantile_of(residuals)
         self._n_calibration = n
+        self._horizon_quantiles = {}
+        if horizons is not None:
+            hz = np.asarray(horizons)
+            for h in np.unique(hz):
+                part = residuals[hz == h]
+                if len(part) >= self.MIN_PER_HORIZON:
+                    self._horizon_quantiles[int(h)] = self._quantile_of(part)
 
         return {
             "quantile": round(self._quantile, 2),
@@ -73,14 +89,19 @@ class ConformalPredictor:
             "residual_p50": round(float(np.median(residuals)), 2),
             "residual_p90": round(float(np.percentile(residuals, 90)), 2),
             "valid": n >= 30,  # need at least 30 for strong reliability
+            "per_horizon": bool(self._horizon_quantiles),
         }
 
-    def predict_interval(self, point_forecast: float) -> dict:
+    def quantile_for(self, horizon: int | None = None) -> float:
+        return self._horizon_quantiles.get(horizon, self._quantile) if horizon else self._quantile
+
+    def predict_interval(self, point_forecast: float, horizon: int | None = None) -> dict:
         """
         Wraps a point forecast with a coverage-guaranteed interval.
 
         Args:
             point_forecast: the model's point estimate
+            horizon: months ahead (1..12); uses that horizon's width when calibrated
 
         Returns a dict with [low, high] interval and metadata.
         """
@@ -89,15 +110,17 @@ class ConformalPredictor:
                 "Conformal predictor must be calibrated before predicting."
             )
 
-        low = point_forecast - self._quantile
-        high = point_forecast + self._quantile
-        width_pct = (self._quantile * 2) / point_forecast * 100 if point_forecast > 0 else 0
+        q = self.quantile_for(horizon)
+        low = point_forecast - q
+        high = point_forecast + q
+        width_pct = (q * 2) / point_forecast * 100 if point_forecast > 0 else 0
 
         return {
             "point": round(point_forecast, 2),
             "low": round(max(low, 0), 2),  # price cannot be negative
             "high": round(high, 2),
-            "quantile": round(self._quantile, 2),
+            "quantile": round(q, 2),
+            "horizon": horizon,
             "coverage": self.coverage,
             "width_pct": round(width_pct, 1),
             "label": f"{int(self.coverage * 100)}% prediction interval",

@@ -59,7 +59,7 @@ def get_delegation_forecast(delegation_name: str, property_type: str = 'apartmen
         
         # Try to get conformal prediction interval
         conformal_interval = conformal.predict_with_intervals(
-            delegation_name, property_type, price
+            delegation_name, property_type, price, horizon=r.horizon_idx
         )
         
         month_dict = {
@@ -90,6 +90,11 @@ def get_delegation_forecast(delegation_name: str, property_type: str = 'apartmen
             month_dict['interval_metadata'] = {
                 'mape_pct': MAPE * 100,
                 'reason': 'fallback',
+                # No price history exists to measure this forecast's error, so
+                # this band is a fixed assumption, not a calibrated interval.
+                'measured': False,
+                'note': 'Illustrative +/-2.5% band. The forecast extrapolates delegation price '
+                        'trends; its accuracy has not been measured (no historical price series).',
             }
         
         # Phase 5: Add quantile fan data for frontend visualization
