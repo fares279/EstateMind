@@ -10,7 +10,7 @@ listings, and its sha256 is recorded in each model's data card.
 ## What gets dropped, in order
 
 | # | Rule | Rows removed | Why |
-|---|------|-------------:|-----|
+| --- | --- | ---: | --- |
 | 1 | Keep sale listings only | 2,621 | These are rentals. A monthly rent is a different target from a sale price. All 10,055 rows are apartment, house or land, so no other property types are dropped. |
 | 2 | Price between 20,000 and 5,000,000 TND | 1,551 | 1,355 are under 20k: their median is 1,500 TND, and 1,244 of them price at 3–60 TND/m², which is what monthly rents look like. So these are almost certainly rentals labelled as sales. 196 are over 5M, with a median of 39M and a maximum of 236M TND: these are data errors, probably prices entered in millimes. |
 | 3 | Plausible surface for the type | 73 | Apartments must be 20–600 m² (48 were larger, 2 smaller). Houses must be at least 40 m² (1 was smaller). Land must be 50–100,000 m² (22 were smaller). |
@@ -62,6 +62,24 @@ rather than a governorate name, use it as the town. Treat "Autres villes" ("othe
 unknown town. Then retrain v2 and compare it again with the champions on the same test set. I expect
 this to be the largest single accuracy improvement available from this data, but that is untested.
 
+## Issue found while writing tests: some values look generated, not scraped
+
+- **920 of the 5,513 kept rows (17%) have a surface with decimals**: 603 apartments, 315 land plots
+  and 2 houses. Scraped surfaces are normally whole numbers. Examples include a 2-room apartment
+  at 217.4 m² (713 TND/m², far below its area) and an apartment at 76.233109 m².
+- **8 rows in 8 different towns have exactly the same price and surface** (1,361,916.03 TND and
+  232.870099 m²), in Le Kram, La Manouba, Grombalia, Radès and others. That looks like a filled-in
+  average, not 8 real listings.
+- The current scraper does fill in missing prices, surfaces and bedroom counts with fixed benchmark
+  values, and it doesn't flag them as filled in. But few rows in this file match those benchmarks
+  exactly (18 kept rows on both price and surface). So the decimals above probably come from an
+  earlier process that is no longer in the code.
+
+These rows are kept by the current rules. **Proposed (not applied):** drop groups where the same
+price and surface appear in more than one town, then measure how the models change with and without
+the non-integer-surface rows before deciding on them. Separately, the scraper should mark
+filled-in values so that future training data can exclude them.
+
 ## Other things to know
 
 - `location_raw` holds numbers ("100", "550", "999"), not locations, so it is not used.
@@ -75,3 +93,5 @@ this to be the largest single accuracy improvement available from this data, but
 2. Are the surface and price-per-m² ranges in rules 3–4 acceptable?
 3. Should rooms be derived from bedrooms (it matches the API), or should the API be extended to accept a room count?
 4. Should the town-column fix be applied before any promotion decision? I recommend yes.
+5. Should cross-town duplicate values be dropped, and should the non-integer-surface rows be tested
+   for exclusion? I recommend yes to both, with the effect measured before anything is promoted.
