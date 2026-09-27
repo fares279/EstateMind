@@ -397,42 +397,34 @@ class MarketDataRetriever:
         """Get top 10 fastest growing delegations by 12-month forecast growth."""
         try:
             from estatemind.intelligence.forecast.models import DelegationForecast, DelegationPriceData
-            from django.db.models import F, FloatField, Case, When
-            from django.db.models.functions import Coalesce
             
-            # Get latest forecast per delegation
-            forecasts = (
-                DelegationForecast.objects
-                .filter(property_type=property_type)
-                .order_by('delegation_name', '-forecast_month')
-                .distinct('delegation_name')
+            # Furthest-ahead month of the latest forecast per delegation. Built in
+            # Python: .distinct('field') (DISTINCT ON) is Postgres-only, and slicing
+            # before ranking used to rank only the first 20 delegations alphabetically.
+            latest = {}
+            for f in (DelegationForecast.objects
+                      .filter(property_type=property_type)
+                      .order_by('delegation_name', 'forecast_origin', 'forecast_month')):
+                latest[f.delegation_name] = f
+            current_prices = dict(
+                DelegationPriceData.objects
+                .filter(property_type=property_type, delegation_name__in=list(latest))
+                .values_list('delegation_name', 'price_avg')
             )
-            
-            # Calculate growth rates
+
             rankings = []
-            for f in forecasts[:20]:  # Check top 20, filter to top 10
-                if f.predicted_price_per_m2 > 0:
-                    # Get initial price from DelegationPriceData
-                    initial_price = (
-                        DelegationPriceData.objects
-                        .filter(
-                            delegation_name=f.delegation_name,
-                            property_type=property_type
-                        )
-                        .values_list('price_avg', flat=True)
-                        .first()
-                    )
-                    
-                    if initial_price and initial_price > 0:
-                        predicted_tnd = f.predicted_price_per_m2 / 1000  # Convert from millimes
-                        growth_pct = ((predicted_tnd - initial_price) / initial_price) * 100
-                        rankings.append({
-                            'delegation': f.delegation_name,
-                            'growth_pct_12m': round(growth_pct, 2),
-                            'current_price': round(initial_price, 2),
-                            'forecast_price': round(predicted_tnd, 2)
-                        })
-            
+            for name, f in latest.items():
+                initial_price = current_prices.get(name)
+                if f.predicted_price_per_m2 > 0 and initial_price and initial_price > 0:
+                    predicted_tnd = f.predicted_price_per_m2 / 1000  # Convert from millimes
+                    growth_pct = ((predicted_tnd - initial_price) / initial_price) * 100
+                    rankings.append({
+                        'delegation': name,
+                        'growth_pct_12m': round(growth_pct, 2),
+                        'current_price': round(initial_price, 2),
+                        'forecast_price': round(predicted_tnd, 2)
+                    })
+
             if not rankings:
                 return {
                     'available': False,
@@ -465,15 +457,14 @@ class MarketDataRetriever:
     def _get_investment_rankings(self) -> Dict:
         """Get top 10 investment opportunities nationwide."""
         try:
-            from estatemind.intelligence.investor.services.zone_data import ZoneAnalyzer
-            
-            analyzer = ZoneAnalyzer()
-            top_zones = analyzer.get_top_investment_zones(limit=10)
-            
+            # No zone-level investment ranking exists (the ZoneAnalyzer this called
+            # was never written); say so instead of failing on the import.
+            top_zones = None
+
             if not top_zones:
                 return {
                     'available': False,
-                    'reason': 'No investment ranking data available'
+                    'reason': 'Investment ranking by zone is not implemented yet'
                 }
             
             return {
