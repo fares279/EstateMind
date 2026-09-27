@@ -3,6 +3,8 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from django.http import Http404
+from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from estatemind.market.core.models import Delegation, DelegationClimateScore
 from estatemind.intelligence.climate.services import KrigingClimateService
@@ -80,6 +82,8 @@ def delegation_climate_detail(request, delegation_name):
             'computation_method': score.computation_method,
         })
     
+    except Http404:
+        raise  # unknown delegation or no score yet: 404, not 500
     except Exception as e:
         logger.error(f'Error fetching climate details for {delegation_name}: {e}')
         return Response(
@@ -157,7 +161,7 @@ def climate_heatmap(request):
             'type': 'FeatureCollection',
             'features': features,
             'count': len(features),
-            'timestamp': '2026-05-19T00:00:00Z',
+            'timestamp': timezone.now().isoformat(),  # was a hard-coded date
         })
     
     except Exception as e:
@@ -223,7 +227,7 @@ def climate_summary(request):
             'freshness': freshness_counts,
             'highest_risk': highest_risk,
             'lowest_risk': lowest_risk,
-            'timestamp': '2026-05-19T00:00:00Z',
+            'timestamp': timezone.now().isoformat(),  # was a hard-coded date
         })
     
     except Exception as e:
