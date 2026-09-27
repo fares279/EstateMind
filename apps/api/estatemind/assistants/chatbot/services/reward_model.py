@@ -96,23 +96,7 @@ class RLHFRewardModel:
         Returns training metadata including success/failure status.
         """
         
-        try:
-            from estatemind.assistants.chatbot.models import ChatbotResponseLog
-        except ImportError:
-            logger.warning('ChatbotResponseLog not available')
-            return {
-                'status': 'skipped',
-                'reason': 'ChatbotResponseLog not available'
-            }
-        
-        # Get all labeled examples
-        labeled_qs = ChatbotResponseLog.objects.filter(
-            user_feedback__isnull=False
-        )
-        
-        labeled_list = list(labeled_qs.values(
-            'query', 'response', 'user_feedback'
-        ))
+        labeled_list = self._labeled_examples()
         
         thumbs_up_count = sum(1 for x in labeled_list if x['user_feedback'] == 'thumbs_up')
         thumbs_down_count = sum(1 for x in labeled_list if x['user_feedback'] == 'thumbs_down')
@@ -252,19 +236,25 @@ class RLHFRewardModel:
                 'reason': str(e)
             }
     
+    def _labeled_examples(self) -> List[Dict]:
+        """Rows with user feedback, as dicts with 'query', 'response', 'user_feedback'."""
+        from estatemind.assistants.chatbot.models import ChatbotResponseLog
+
+        return list(
+            ChatbotResponseLog.objects.filter(user_feedback__isnull=False)
+            .values('query', 'response', 'user_feedback')
+        )
+
     def _encode(self, text: str) -> np.ndarray:
         """
         Encodes text to embedding using sentence-transformers.
         Uses the same multilingual model as intent classifier.
         """
         try:
-            from sentence_transformers import SentenceTransformer
-            
-            # Lazy load
+            from estatemind.assistants.shared_models import INTENT_MODEL, get_sentence_model
+
             if not hasattr(self, '_encoder'):
-                self._encoder = SentenceTransformer(
-                    'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2'
-                )
+                self._encoder = get_sentence_model(INTENT_MODEL)
             
             embedding = self._encoder.encode(text, convert_to_numpy=True)
             return embedding

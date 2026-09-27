@@ -56,10 +56,8 @@ class IntentClassifier:
         try:
             # Load multilingual sentence-transformer model (embedding-based)
             # This handles Arabic, French, English seamlessly
-            self.model = SentenceTransformer(
-                'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2',
-                device='cuda' if torch.cuda.is_available() else 'cpu'
-            )
+            from estatemind.assistants.shared_models import INTENT_MODEL, get_sentence_model
+            self.model = get_sentence_model(INTENT_MODEL)
             self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
             
             # Pre-compute embeddings for intent descriptions
