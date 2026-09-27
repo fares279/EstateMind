@@ -9,6 +9,7 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from django.contrib.auth import get_user_model
+from django.db import transaction
 from django.utils import timezone
 from datetime import datetime, timedelta, timezone as dt_timezone
 
@@ -218,28 +219,39 @@ class BillingViewSet(viewsets.ViewSet):
 
         try:
             # Retrieve the payment intent to verify it's succeeded
-            intent = stripe.PaymentIntent.retrieve(intent_id)
-            
-            if intent.status != 'succeeded':
+            intent = _as_dict(stripe.PaymentIntent.retrieve(intent_id))
+
+            if intent.get('status') != 'succeeded':
                 return Response(
-                    {'error': f'Payment not completed. Status: {intent.status}'},
+                    {'error': f"Payment not completed. Status: {intent.get('status')}"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            # Update user subscription
-            user.plan = plan
-            user.plan_expires_at = timezone.now() + timedelta(days=30)
-            user.save(update_fields=['plan', 'plan_expires_at'])
+            # The plan paid for and its owner come from the intent, not the request:
+            # otherwise a Pro payment could be confirmed as Investor, or by another user.
+            metadata = intent.get('metadata') or {}
+            if metadata.get('user_id') != str(user.id):
+                return Response({'error': 'This payment belongs to another account.'},
+                                status=status.HTTP_403_FORBIDDEN)
+            if metadata.get('plan') != plan:
+                return Response({'error': 'Plan does not match the payment.'},
+                                status=status.HTTP_400_BAD_REQUEST)
 
-            # Log the payment
-            Payment.objects.create(
-                user=user,
-                stripe_payment_id=intent.id,
-                amount=Decimal(intent.amount / 100),  # Convert from cents to currency amount
-                currency=intent.currency.upper(),
-                status='completed',
-                plan=plan
-            )
+            with transaction.atomic():
+                payment, created = Payment.objects.get_or_create(
+                    stripe_payment_intent_id=intent['id'],
+                    defaults={
+                        'user': user,
+                        'amount': Decimal(intent['amount']) / 100,  # cents -> currency units
+                        'currency': str(intent.get('currency', '')).upper(),
+                        'status': 'succeeded',
+                        'plan': plan,
+                    },
+                )
+                if created:  # a repeated confirmation must not extend the plan again
+                    user.plan = plan
+                    user.plan_expires_at = timezone.now() + timedelta(days=30)
+                    user.save(update_fields=['plan', 'plan_expires_at'])
 
             logger.info(f"Payment confirmed for user {user.email}, plan {plan}, intent_id {intent_id}")
 
@@ -248,7 +260,7 @@ class BillingViewSet(viewsets.ViewSet):
                     'success': True,
                     'plan': plan,
                     'message': f'Successfully upgraded to {plan} plan',
-                    'plan_expires_at': user.plan_expires_at.isoformat()
+                    'plan_expires_at': user.plan_expires_at.isoformat() if user.plan_expires_at else None
                 },
                 status=status.HTTP_200_OK
             )

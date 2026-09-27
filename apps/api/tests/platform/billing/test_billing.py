@@ -9,7 +9,7 @@ from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
 from estatemind.platform.billing import views as billing_views
-from estatemind.platform.billing.models import StripeCustomer, Subscription
+from estatemind.platform.billing.models import Payment, StripeCustomer, Subscription
 
 User = get_user_model()
 SECRET = 'whsec_test_secret'
@@ -128,3 +128,50 @@ class CurrentStripeApiShapeTests(_WebhookCase):
         self._post(self._event('invoice.payment_failed', {
             'customer': 'cus_123', 'parent': {'subscription_details': {'subscription': 'sub_123'}}}))
         self.assertEqual(Subscription.objects.get(user=self.user).status, 'past_due')
+
+
+class ConfirmPaymentTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(email='payer@example.com', password='pw12345!x', full_name='Payer')
+        self.client.force_authenticate(self.user)
+
+    def _intent(self, **overrides):
+        intent = {'id': 'pi_1', 'status': 'succeeded', 'amount': 2500, 'currency': 'usd',
+                  'metadata': {'user_id': str(self.user.id), 'plan': 'pro'}}
+        intent.update(overrides)
+        return billing_views.stripe.StripeObject.construct_from(intent, 'sk_test')  # the real SDK type
+
+    def _confirm(self, intent, plan='pro'):
+        with mock.patch.object(billing_views.stripe.PaymentIntent, 'retrieve', return_value=intent):
+            return self.client.post('/api/billing/confirm-payment/', {'intent_id': 'pi_1', 'plan': plan})
+
+    def test_success_upgrades_and_records_payment(self):
+        response = self._confirm(self._intent())
+        self.assertEqual(response.status_code, 200, response.content)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.plan, 'pro')
+        payment = Payment.objects.get(stripe_payment_intent_id='pi_1')
+        self.assertEqual((payment.status, str(payment.amount), payment.currency), ('succeeded', '25.00', 'USD'))
+
+    def test_repeat_confirmation_is_idempotent(self):
+        self._confirm(self._intent())
+        self.user.refresh_from_db()
+        first_expiry = self.user.plan_expires_at
+        self.assertEqual(self._confirm(self._intent()).status_code, 200)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.plan_expires_at, first_expiry)
+        self.assertEqual(Payment.objects.count(), 1)
+
+    def test_cannot_claim_a_different_plan(self):
+        self.assertEqual(self._confirm(self._intent(), plan='investor').status_code, 400)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.plan, 'free')
+
+    def test_cannot_use_another_users_payment(self):
+        other = self._intent(metadata={'user_id': '999999', 'plan': 'pro'})
+        self.assertEqual(self._confirm(other).status_code, 403)
+        self.assertFalse(Payment.objects.exists())
+
+    def test_unfinished_payment_is_rejected(self):
+        self.assertEqual(self._confirm(self._intent(status='requires_payment_method')).status_code, 400)
