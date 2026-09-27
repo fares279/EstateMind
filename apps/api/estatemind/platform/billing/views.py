@@ -25,6 +25,28 @@ logger = logging.getLogger(__name__)
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
+def _as_dict(obj):
+    # stripe>=12 objects are not dicts: .get() raises, which the handlers used
+    # to swallow, so no webhook ever changed a plan or subscription.
+    return obj.to_dict() if hasattr(obj, 'to_dict') else obj
+
+
+def _billing_period(subscription: dict) -> tuple[datetime, datetime]:
+    # API versions from 2025-03-31 moved current_period_* onto subscription items.
+    source = subscription
+    if 'current_period_start' not in subscription:
+        items = (subscription.get('items') or {}).get('data') or [{}]
+        source = items[0]
+    return (datetime.fromtimestamp(source['current_period_start'], tz=dt_timezone.utc),
+            datetime.fromtimestamp(source['current_period_end'], tz=dt_timezone.utc))
+
+
+def _invoice_subscription(invoice: dict):
+    # Same API change: invoice.subscription moved to parent.subscription_details.
+    details = ((invoice.get('parent') or {}).get('subscription_details') or {})
+    return invoice.get('subscription') or details.get('subscription')
+
+
 class BillingViewSet(viewsets.ViewSet):
     """Billing and payment endpoints"""
     permission_classes = [IsAuthenticated]
@@ -320,6 +342,7 @@ def stripe_webhook(request):
 
     # Handle events
     try:
+        event = _as_dict(event)
         if event['type'] == 'checkout.session.completed':
             session = event['data']['object']
             handle_checkout_session_completed(session)
@@ -366,7 +389,7 @@ def handle_checkout_session_completed(session):
         subscription_id = session.get('subscription')
         
         if subscription_id:
-            stripe_subscription = stripe.Subscription.retrieve(subscription_id)
+            stripe_subscription = _as_dict(stripe.Subscription.retrieve(subscription_id))
             
             # Update user plan
             user.plan = plan
@@ -374,12 +397,7 @@ def handle_checkout_session_completed(session):
             user.save(update_fields=['plan', 'plan_expires_at', 'updated_at'])
             
             # Create/update subscription record
-            period_start = datetime.fromtimestamp(
-                stripe_subscription['current_period_start'], tz=dt_timezone.utc
-            )
-            period_end = datetime.fromtimestamp(
-                stripe_subscription['current_period_end'], tz=dt_timezone.utc
-            )
+            period_start, period_end = _billing_period(stripe_subscription)
             
             Subscription.objects.update_or_create(
                 user=user,
@@ -414,12 +432,7 @@ def handle_subscription_updated(subscription):
         user = stripe_customer.user
         
         status_value = subscription.get('status')
-        period_start = datetime.fromtimestamp(
-            subscription['current_period_start'], tz=dt_timezone.utc
-        )
-        period_end = datetime.fromtimestamp(
-            subscription['current_period_end'], tz=dt_timezone.utc
-        )
+        period_start, period_end = _billing_period(subscription)
         
         # Map Stripe status to our status
         status_map = {
@@ -488,7 +501,7 @@ def handle_invoice_payment_succeeded(invoice):
         user = stripe_customer.user
         
         # Get subscription
-        subscription_id = invoice.get('subscription')
+        subscription_id = _invoice_subscription(invoice)
         if subscription_id:
             try:
                 sub = Subscription.objects.get(user=user, stripe_subscription_id=subscription_id)
@@ -514,7 +527,7 @@ def handle_invoice_payment_failed(invoice):
         user = stripe_customer.user
         
         # Get subscription
-        subscription_id = invoice.get('subscription')
+        subscription_id = _invoice_subscription(invoice)
         if subscription_id:
             try:
                 sub = Subscription.objects.get(user=user, stripe_subscription_id=subscription_id)
