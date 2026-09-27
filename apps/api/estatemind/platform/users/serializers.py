@@ -30,7 +30,10 @@ class UserSerializer(serializers.ModelSerializer):
             'is_email_verified', 'is_staff', 'is_superuser', 'role', 'plan', 'plan_expires_at',
             'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'is_email_verified', 'is_staff', 'is_superuser', 'created_at', 'updated_at']
+        # plan/role change only through billing or the admin; email is the login
+        # and changes only through a verified flow
+        read_only_fields = ['id', 'email', 'is_email_verified', 'is_staff', 'is_superuser', 'role', 'plan',
+                            'plan_expires_at', 'created_at', 'updated_at']
 
 
 class RegisterSerializer(serializers.ModelSerializer):

@@ -47,11 +47,15 @@ class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
 
-class UserViewSet(viewsets.ModelViewSet):
+class UserViewSet(viewsets.GenericViewSet):
     """
     User management endpoints
+
+    Only the named actions below are routed. This used to be a ModelViewSet
+    with AllowAny, which let anonymous callers list, create, edit (including
+    plan) and delete any account.
     """
-    
+
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [AllowAny]
