@@ -190,7 +190,7 @@ CELERY_TIMEZONE = 'Africa/Tunis'
 # Celery Beat Schedule — Periodic Tasks
 CELERY_BEAT_SCHEDULE = {
     'monthly-market-calibration': {
-        'task': 'estatemind.market.features.tasks.run_monthly_market_calibration',
+        'task': 'features.run_monthly_market_calibration',
         'schedule': crontab(day_of_month=1, hour=2, minute=0),  # 1st of month, 2 AM Africa/Tunis
         'options': {'expires': 3600}  # Expires after 1 hour if not run
     },
@@ -225,7 +225,7 @@ CELERY_BEAT_SCHEDULE = {
         'options': {'expires': 3600},
     },
     'weekly-legal-recall-validation': {
-        'task': 'estatemind.assistants.legal.tasks.run_recall_validation',
+        'task': 'legal.run_recall_validation',
         'schedule': crontab(day_of_week='monday', hour=3, minute=0),
         'options': {'expires': 3600},
     },

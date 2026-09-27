@@ -4,14 +4,16 @@ from estatemind.assistants.legal.services.retrieval_quality import RetrievalQual
 
 
 @shared_task(name='legal.run_recall_validation')
-def run_recall_validation(collection_name: str):
+def run_recall_validation(collection_name: str | None = None):
     # This task is a thin wrapper; chroma and embedder factories should be provided by the app context
-    from estatemind.assistants.legal.services.chromadb_service import ChromaService
-    from estatemind.assistants.legal.services.embedding_service import EmbeddingService
+    from django.conf import settings
 
-    chroma = ChromaService()
-    embedder = EmbeddingService()
-    validator = RetrievalQualityValidator(chroma_service=chroma, embedding_service=embedder)
+    collection_name = collection_name or settings.LEGAL_RAG['CHROMA_COLLECTION']
+    # Both services are module-level APIs (embed_text / query), which is the
+    # interface RetrievalQualityValidator expects.
+    from estatemind.assistants.legal.services import chromadb_service, embedding_service
+
+    validator = RetrievalQualityValidator(chroma_service=chromadb_service, embedding_service=embedding_service)
     report = validator.run_full_evaluation(collection_name)
     # Persist or alert as needed; for now just return the report
     return report

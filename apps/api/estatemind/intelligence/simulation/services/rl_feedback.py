@@ -1,4 +1,3 @@
-"""
 """Market Simulator - RL Policy Testing Feedback Loop
 
 Tests investment intelligence's offline RL investment policy inside the simulator.
