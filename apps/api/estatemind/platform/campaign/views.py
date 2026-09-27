@@ -15,7 +15,8 @@ class ParticipantViewSet(viewsets.ModelViewSet):
     queryset = Participant.objects.filter(is_active=True)
     serializer_class = ParticipantSerializer
     permission_classes = [AllowAny]
-    http_method_names = ['get', 'post']
+    # sign-up only: GET used to list every participant's email and phone publicly
+    http_method_names = ['post']
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)

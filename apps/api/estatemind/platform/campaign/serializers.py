@@ -8,10 +8,7 @@ class ParticipantSerializer(serializers.ModelSerializer):
     class Meta:
         model = Participant
         fields = ['id', 'full_name', 'email', 'phone', 'region', 'role', 'role_display', 'motivation', 'is_active', 'created_at']
-        read_only_fields = ['id', 'created_at', 'role_display']
-        extra_kwargs = {
-            'is_active': {'default': True}
-        }
+        read_only_fields = ['id', 'created_at', 'role_display', 'is_active']
 
     def validate_email(self, value):
         if Participant.objects.filter(email=value.lower()).exists():
