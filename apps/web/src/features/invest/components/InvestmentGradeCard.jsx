@@ -6,7 +6,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { getInvestmentGrade, getPortfolioRisk } from '../../../services/api-modules';
-import { SHAPDriver, AnomalyAlert, SkeletonLoader, ErrorFallback } from '../../../components/shared/CommonComponents';
+import { SHAPDriver, AnomalyAlert, SkeletonLoader, ErrorFallback } from '../../../components/common/CommonComponents';
 
 export const InvestmentGradeCard = ({ grade }) => {
   const { grade: gradeLabel, score, location, yield_gross, yield_net, irr, irr_ci, recommendation, confidence, drivers } = grade;

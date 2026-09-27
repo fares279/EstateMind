@@ -6,7 +6,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { validateScenario, runSimulation } from '../../../services/api-modules';
-import { AnomalyAlert, SkeletonLoader, ErrorFallback } from '../../../components/shared/CommonComponents';
+import { AnomalyAlert, SkeletonLoader, ErrorFallback } from '../../../components/common/CommonComponents';
 
 export const ScenarioBuilder = ({ onRunSimulation }) => {
   const [scenario, setScenario] = useState({

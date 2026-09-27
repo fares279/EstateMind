@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { getKpiFreshness } from '../../../services/api-modules';
-import { FreshnessPill, TrendBadge, AnomalyAlert, SkeletonLoader, ErrorFallback } from '../../../components/shared/CommonComponents';
+import { FreshnessPill, TrendBadge, AnomalyAlert, SkeletonLoader, ErrorFallback } from '../../../components/common/CommonComponents';
 
 const humanizeKpiName = (name) =>
   String(name || '')

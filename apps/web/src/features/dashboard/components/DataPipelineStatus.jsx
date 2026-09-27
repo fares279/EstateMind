@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { getScraperPipelineHealth } from '../../../services/api-modules';
-import { FreshnessPill, SkeletonLoader, ErrorFallback } from '../../../components/shared/CommonComponents';
+import { FreshnessPill, SkeletonLoader, ErrorFallback } from '../../../components/common/CommonComponents';
 
 export const DataFreshnessHeader = () => {
   const [data, setData] = useState(null);

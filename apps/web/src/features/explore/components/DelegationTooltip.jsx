@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { ConfidenceBadge, SHAPDriver } from '../../../components/shared/CommonComponents';
+import { ConfidenceBadge, SHAPDriver } from '../../../components/common/CommonComponents';
 
 export const DelegationTooltip = ({ delegation }) => {
   const {

@@ -5,7 +5,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { getClimateRisk } from '../../../services/api-modules';
-import { FreshnessPill, SkeletonLoader, ErrorFallback } from '../../../components/shared/CommonComponents';
+import { FreshnessPill, SkeletonLoader, ErrorFallback } from '../../../components/common/CommonComponents';
 
 const FACTOR_CONFIG = [
   { key: 'flood_risk_score', label: 'Flood risk', weight: 0.3 },

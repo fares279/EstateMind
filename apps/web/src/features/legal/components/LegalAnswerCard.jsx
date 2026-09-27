@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { askLegalQuestion } from '../../../services/api-modules';
-import { SourceCitation, SkeletonLoader, ErrorFallback } from '../../../components/shared/CommonComponents';
+import { SourceCitation, SkeletonLoader, ErrorFallback } from '../../../components/common/CommonComponents';
 
 export const LegalAnswerCard = ({ answer, sources, grounding, confidenceLevel }) => {
   const getGroundingColor = () => {

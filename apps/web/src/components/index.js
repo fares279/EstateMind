@@ -8,7 +8,7 @@ export {
   FreshnessPill, ConfidenceBadge, ConfidenceBand, ProvenanceBlock, TrendBadge,
   SHAPDriver, SourceCitation, AnomalyAlert, FallbackNotice, SkeletonLoader,
   ErrorFallback
-} from './shared/CommonComponents';
+} from './common/CommonComponents';
 
 // Data Pipeline Status
 export { DataFreshnessHeader } from '../features/dashboard/components/DataPipelineStatus';

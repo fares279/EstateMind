@@ -6,7 +6,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { sendChatMessage, submitChatFeedback } from '../../../services/api-modules';
-import { FallbackNotice, SkeletonLoader } from '../../../components/shared/CommonComponents';
+import { FallbackNotice, SkeletonLoader } from '../../../components/common/CommonComponents';
 
 export const ChatMessage = ({ message, onFeedback }) => {
   const { id, text, sources, quality_score, is_fallback, fallback_reason, timestamp } = message;

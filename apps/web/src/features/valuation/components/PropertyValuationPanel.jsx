@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { ConfidenceBand, ProvenanceBlock, SHAPDriver, SkeletonLoader } from '../../../components/shared/CommonComponents';
+import { ConfidenceBand, ProvenanceBlock, SHAPDriver, SkeletonLoader } from '../../../components/common/CommonComponents';
 
 export const ValuationResultPanel = ({ result }) => {
   const [activeTab, setActiveTab] = useState('drivers');

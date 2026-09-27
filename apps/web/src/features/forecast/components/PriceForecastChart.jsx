@@ -5,7 +5,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { getForecast } from '../../../services/api-modules';
-import { ProvenanceBlock, SkeletonLoader, ErrorFallback } from '../../../components/shared/CommonComponents';
+import { ProvenanceBlock, SkeletonLoader, ErrorFallback } from '../../../components/common/CommonComponents';
 
 const FanChart = ({ data }) => {
   const canvasRef = useRef(null);
