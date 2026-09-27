@@ -50,7 +50,6 @@ class TunisiaRealEstateSimulator:
         """Execute the full simulation, persisting progress to DB."""
         from ..models          import SimulationRun
         from django.utils      import timezone
-        from django.db         import connections
 
         monthly_states: list = []
 
@@ -95,5 +94,5 @@ class TunisiaRealEstateSimulator:
                 run.save(update_fields=["status", "error_message", "updated_at"])
             except Exception:
                 pass
-        finally:
-            connections.close_all()
+        # Connections are closed by whoever owns the thread (views._run does);
+        # closing them here broke callers running on their own connection.
