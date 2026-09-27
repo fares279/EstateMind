@@ -23,8 +23,21 @@ from estatemind.intelligence.investor.services.scoring_chain import ScannerChain
 from estatemind.intelligence.investor.services.covariance_model import PortfolioCovarianceModel
 from estatemind.intelligence.investor.services.scorer_registry import InvestorScorerRegistry
 from estatemind.intelligence.investor.services.zone_data import get_zone_stats, get_zone_forecast
+from estatemind.market.core.models import DelegationMarketSnapshot
 
 logger = logging.getLogger(__name__)
+
+
+def _latest_median_rent(delegation_name: str) -> float:
+    """Median monthly rent from the latest snapshot that has one; 0 if none."""
+    rent = (
+        DelegationMarketSnapshot.objects
+        .filter(delegation__name__iexact=delegation_name, median_rent_price__isnull=False)
+        .order_by('-as_of_date')
+        .values_list('median_rent_price', flat=True)
+        .first()
+    )
+    return float(rent) if rent else 0
 
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -200,9 +213,8 @@ def portfolio_analysis(request):
         for asset in assets:
             delegation = asset.delegation
             if delegation not in market_data_map:
-                # TODO: Fetch from DelegationMarketSnapshot or similar
                 market_data_map[delegation] = {
-                    'delegation_median_monthly_rent': 0,  # placeholder
+                    'delegation_median_monthly_rent': _latest_median_rent(delegation),
                     'delegation_price_momentum_12m': 0.0,
                 }
 
