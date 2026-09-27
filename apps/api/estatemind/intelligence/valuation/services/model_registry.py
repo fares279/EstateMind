@@ -7,6 +7,8 @@ from types import SimpleNamespace
 
 from django.utils import timezone
 
+from config.paths import resolve_artifact_ref, to_artifact_ref
+
 from estatemind.market.core.models import DelegationMarketSnapshot
 from estatemind.intelligence.valuation.models import ValuationModelVersion
 from estatemind.intelligence.valuation.inference.model_registry import (
@@ -34,9 +36,7 @@ class ValuationModelRegistry:
         return f'CatBoost_{ptype.title()}'
 
     def _version_to_handle(self, version: ValuationModelVersion) -> ModelHandle:
-        path = Path(version.artifact_path)
-        if not path.is_absolute():
-            path = self._artifact_registry.root / version.artifact_path
+        path = resolve_artifact_ref(version.artifact_path)
         return ModelHandle(
             scope='registry',
             property_type=version.model_name.replace('CatBoost_', '').lower(),
@@ -70,7 +70,7 @@ class ValuationModelRegistry:
         synthetic_version = SimpleNamespace(
             model_name=handle.model_name or self._lookup_model_name(property_type),
             version=handle.path.stem,
-            artifact_path=str(handle.path),
+            artifact_path=to_artifact_ref(handle.path),
             training_date=timezone.localdate(),
             eval_rmse=float(handle.metrics.get('rmse', 0) or 0),
             eval_r2=float(handle.metrics.get('r2', 0) or 0),

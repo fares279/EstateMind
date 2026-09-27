@@ -5,6 +5,8 @@ import logging
 from celery import shared_task
 from django.utils import timezone
 
+from config.paths import to_artifact_ref
+
 from estatemind.intelligence.valuation.services.calibration_monitor import ValuationCalibrationMonitor
 from estatemind.intelligence.valuation.services.drift_monitor import ValuationDriftMonitor
 
@@ -54,7 +56,7 @@ def sync_registry_from_artifacts() -> dict:
         model_name = handle.model_name or f'CatBoost_{handle.property_type.title()}'
         version = f'artifact-{index}'
         version_obj = registry.register_challenger(
-            artifact_path=str(handle.path),
+            artifact_path=to_artifact_ref(handle.path),
             model_name=model_name,
             version=version,
             training_date=timezone.localdate(),

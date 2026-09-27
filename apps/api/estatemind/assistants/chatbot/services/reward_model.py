@@ -11,6 +11,8 @@ import pickle
 import os
 from datetime import datetime, timedelta
 
+from config.paths import ARTIFACTS_DIR
+
 logger = logging.getLogger(__name__)
 
 
@@ -27,7 +29,7 @@ class RLHFRewardModel:
     MIN_THUMBS_UP = 100
     MIN_THUMBS_DOWN = 100
     MIN_AUC = 0.60
-    MODEL_ARTIFACT_DIR = '/tmp/chatbot_models'
+    MODEL_ARTIFACT_DIR = str(ARTIFACTS_DIR / 'chatbot')
     
     def __init__(self):
         self.classifier = None
