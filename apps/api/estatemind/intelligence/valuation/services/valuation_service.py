@@ -5,6 +5,8 @@ import tempfile
 import time
 from pathlib import Path
 
+from django.conf import settings
+
 from . import comparables, confidence, explanation, response_builder, scenario_service, shap_service
 from .audit import log_prediction
 from .calibration_monitor import ValuationCalibrationMonitor
@@ -197,7 +199,9 @@ def estimate(data: dict, image_files: list | None = None, user=None) -> dict:
             pred = handle.bundle.predict(
                 mapped,
                 {"avg_price_per_m2": market_avg_tnd_m2},
-                cv_analysis=cv_analysis_signals,
+                # The image multiplier is driven by pixel variance, not by the classifier,
+                # and boosts any image (a map scores +5%); it stays off unless enabled.
+                cv_analysis=cv_analysis_signals if getattr(settings, 'VALUATION_CV_PRICE_ADJUSTMENT', False) else None,
                 text_analysis=text_analysis_signals,
             )
             prediction = {

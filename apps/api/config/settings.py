@@ -338,6 +338,10 @@ SCRAPER = {
 }
 
 # Legal RAG Configuration
+# Image price multiplier (1.0-1.2x) is a pixel-variance heuristic, not a validated
+# model signal; off by default (Phase 4 re-validation).
+VALUATION_CV_PRICE_ADJUSTMENT = config('VALUATION_CV_PRICE_ADJUSTMENT', default=False, cast=bool)
+
 LEGAL_RAG = {
     # Token Factory (OpenAI-compatible hosted LLM — no local Ollama required)
     'LLM_API_URL':       config('LEGAL_LLM_API_URL',  default='https://tokenfactory.esprit.tn/api'),

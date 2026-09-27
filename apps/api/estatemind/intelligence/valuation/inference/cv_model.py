@@ -5,13 +5,11 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-
-from config.paths import ARTIFACTS_DIR
-
-from config.paths import ARTIFACTS_DIR
 from typing import Any
 
 import numpy as np
+
+from config.paths import ARTIFACTS_DIR
 
 
 _TORCH_MODULE = None
@@ -36,6 +34,14 @@ class _ResNet50Wrapper:
             torch.nn.Dropout(p=0.2),
             torch.nn.Linear(self.model.fc.in_features, num_classes),
         )
+
+    def load_state_dict(self, state_dict, strict: bool = True):
+        # The checkpoint was saved from a module holding the network as
+        # `self.model`, so its keys carry a 'model.' prefix. This wrapper is a
+        # plain class without load_state_dict: every load used to raise
+        # AttributeError, which _load_model swallowed, so the model never loaded.
+        stripped = {k[len('model.'):] if k.startswith('model.') else k: v for k, v in state_dict.items()}
+        return self.model.load_state_dict(stripped, strict=strict)
 
     def eval(self):
         self.model.eval()
