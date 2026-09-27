@@ -21,6 +21,8 @@ x-api: &api
     ALLOWED_HOSTS: localhost,127.0.0.1,api
     CORS_ALLOWED_ORIGINS: http://localhost:3000
     CSRF_TRUSTED_ORIGINS: http://localhost:3000
+    # Scraping outside sites needs explicit approval; never on by accident.
+    ENABLE_AUTO_SCRAPER: "False"
   volumes:
     - ./apps/api/artifacts:/app/artifacts
     - hf-cache:/var/cache/huggingface
