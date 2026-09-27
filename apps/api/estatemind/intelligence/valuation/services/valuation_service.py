@@ -187,6 +187,12 @@ def estimate(data: dict, image_files: list | None = None, user=None) -> dict:
         handles = registry.list_handles()
         logger.info("Available handles: %s", [(h.scope, h.property_type, h.path) for h in handles])
     
+    # Image and description signals are shown to the user but only move the price
+    # when enabled. Phase 4 re-validation: the image multiplier is driven by pixel
+    # variance (a map scores +5%), and sentiment added +9.6% with no accuracy gain.
+    cv_price_signals = cv_analysis_signals if getattr(settings, 'VALUATION_CV_PRICE_ADJUSTMENT', False) else None
+    text_price_signals = text_analysis_signals if getattr(settings, 'VALUATION_SENTIMENT_PRICE_ADJUSTMENT', False) else None
+
     prediction = None
     prediction_source = "none"
     
@@ -199,10 +205,8 @@ def estimate(data: dict, image_files: list | None = None, user=None) -> dict:
             pred = handle.bundle.predict(
                 mapped,
                 {"avg_price_per_m2": market_avg_tnd_m2},
-                # The image multiplier is driven by pixel variance, not by the classifier,
-                # and boosts any image (a map scores +5%); it stays off unless enabled.
-                cv_analysis=cv_analysis_signals if getattr(settings, 'VALUATION_CV_PRICE_ADJUSTMENT', False) else None,
-                text_analysis=text_analysis_signals,
+                cv_analysis=cv_price_signals,
+                text_analysis=text_price_signals,
             )
             prediction = {
                 "estimated_price": pred.estimated_price,
@@ -273,7 +277,9 @@ def estimate(data: dict, image_files: list | None = None, user=None) -> dict:
     comps, market_ctx = comparables.find(data, prediction['estimated_price'])
 
     # 5 ── Price drivers, confidence scoring, and scenarios
-    shap_result = shap_service.explain(data, prediction, market_ctx, text_analysis, cv_analysis_signals)
+    # drivers list only signals that actually moved the price
+    shap_result = shap_service.explain(data, prediction, market_ctx,
+                                       text_analysis if text_price_signals is not None else None, cv_price_signals)
     conf_result = confidence.compute(data, prediction, comps, image_files)
 
     if model_version is not None and model_version.calibration_profile:
@@ -328,6 +334,8 @@ def estimate(data: dict, image_files: list | None = None, user=None) -> dict:
         recommendations=recommendations,
         cv_analysis_signals=cv_analysis_signals,
         text_analysis_signals=text_analysis_signals,
+        cv_signals_applied=cv_price_signals is not None,
+        text_signals_applied=text_price_signals is not None,
         prediction_source=prediction_source,
         model_version=model_version,
         snapshot_date=latest_snapshot_date,

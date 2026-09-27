@@ -341,6 +341,9 @@ SCRAPER = {
 # Image price multiplier (1.0-1.2x) is a pixel-variance heuristic, not a validated
 # model signal; off by default (Phase 4 re-validation).
 VALUATION_CV_PRICE_ADJUSTMENT = config('VALUATION_CV_PRICE_ADJUSTMENT', default=False, cast=bool)
+# Description-sentiment multiplier (0.9-1.15x): +9.6% on average with no accuracy
+# gain against listing prices; shown to the user, kept out of the price.
+VALUATION_SENTIMENT_PRICE_ADJUSTMENT = config('VALUATION_SENTIMENT_PRICE_ADJUSTMENT', default=False, cast=bool)
 
 LEGAL_RAG = {
     # Token Factory (OpenAI-compatible hosted LLM — no local Ollama required)

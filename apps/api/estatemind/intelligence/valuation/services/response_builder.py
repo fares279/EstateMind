@@ -53,6 +53,8 @@ def build(
     recommendations: list | None = None,
     cv_analysis_signals: dict | None = None,
     text_analysis_signals: dict | None = None,
+    cv_signals_applied: bool = False,
+    text_signals_applied: bool = False,
     prediction_source: str | None = None,
     model_version=None,
     snapshot_date=None,
@@ -168,13 +170,14 @@ def build(
             'version': getattr(model_version, 'version', prediction.get('model_info', {}).get('version', '2.0.0')),
             'name': _format_model_version(getattr(model_version, 'model_name', prediction.get('model_info', {}).get('name', ''))),
             'source': prediction_source or 'unknown',
-            'cv_signals_applied': cv_analysis_signals is not None,
-            'text_signals_applied': text_analysis_signals is not None,
+            # whether the signal moved the price (it is reported either way)
+            'cv_signals_applied': cv_signals_applied,
+            'text_signals_applied': text_signals_applied,
             'cv_signal_values': cv_analysis_signals or {},
             'text_signal_values': text_analysis_signals or {},
             'note':
                 ('Powered by trained valuation models and local market priors'
-                + (', enhanced with CV and sentiment analysis' if (cv_analysis_signals or text_analysis_signals) else '')
+                + (', adjusted by image and description analysis' if (cv_signals_applied or text_signals_applied) else '')
                 + '.'
                 if prediction.get('prediction_mode', '').startswith(('catboost', 'fallback_model'))
                 else 'Using calibrated market priors.'),
