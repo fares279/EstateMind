@@ -47,16 +47,20 @@ def _load_priors() -> dict[str, dict]:
 
 
 def location_price_priors(property_type: str, transaction_type: str, city: str, governorate: str,
-                          fallback_ppm: float) -> tuple[float, float]:
+                          fallback_ppm: float, priors: Optional[dict] = None) -> tuple[float, float]:
     """(local, governorate) average price per m2 from the training priors.
 
     Local: city__governorate prior, else governorate prior, else fallback.
     Governorate: governorate prior, else local, else fallback.
     """
-    priors = _load_priors().get(f"{property_type}__{transaction_type}") or {}
+    own_priors = priors is not None
+    priors = (priors if own_priors else _load_priors()).get(f"{property_type}__{transaction_type}") or {}
     city_key = f"{city.strip().lower()}__{governorate.strip().lower()}"
     gov_prior = (priors.get("governorate_price_m2") or {}).get(governorate.strip().lower())
-    local = (priors.get("city_governorate_price_m2") or {}).get(city_key) or gov_prior or fallback_ppm
+    # Models with their own priors fall back to their national prior, as in
+    # training; older models keep the request's market average.
+    national = priors.get("global_price_m2") if own_priors else None
+    local = (priors.get("city_governorate_price_m2") or {}).get(city_key) or gov_prior or national or fallback_ppm
     return float(local), float(gov_prior or local)
 
 
@@ -368,6 +372,12 @@ class InferenceBundle:
     source_path: Path
     uses_proxy_price_features: bool = False
     version: str = "estatebundle-v1"
+    # Models trained by ml.valuation.train_catboost_bundle ship a priors.json
+    # next to them: their own price priors and the location normalization
+    # they were trained with. Older models use the fallback-model priors and
+    # raw location values.
+    priors: Optional[dict] = None
+    location_normalization: Optional[str] = None
 
     @classmethod
     def from_handle(cls, handle: "ModelHandle", reference_df: pd.DataFrame | None) -> "InferenceBundle":
@@ -397,7 +407,14 @@ class InferenceBundle:
             processor = _ServingProcessor(subset) if not subset.empty else None
         except Exception:
             processor = None
+        priors = normalization = None
+        priors_file = Path(handle.path).parent / "priors.json"
+        if priors_file.exists():
+            payload = json.loads(priors_file.read_text(encoding="utf-8"))
+            priors, normalization = payload.get("priors"), payload.get("location_normalization")
         return cls(
+            priors=priors,
+            location_normalization=normalization,
             estimator=estimator,
             model_name=handle.model_name,
             property_scope=handle.property_type,
@@ -443,10 +460,17 @@ class InferenceBundle:
             transformed = pd.DataFrame([request_row])
             # Derived features first (they used to be pre-filled with NaN and
             # then skipped, so the model always saw 0 for every location price).
-            city = request_row["city"] or "unknown"
-            gov = request_row["governorate"] or "unknown"
+            if self.location_normalization:
+                from .location import normalize_city, normalize_governorate
+                gov = normalize_governorate(request_row["governorate"], request_row["city"], mapped.get("delegation"))
+                city = normalize_city(request_row["city"])
+                transformed["governorate"], transformed["city"] = gov, city
+            else:
+                city = request_row["city"] or "unknown"
+                gov = request_row["governorate"] or "unknown"
             local_ppm, gov_ppm = location_price_priors(
-                request_row["property_type"], request_row["transaction_type"], city, gov, seed_ppm)
+                request_row["property_type"], request_row["transaction_type"], city, gov, seed_ppm,
+                priors=self.priors)
             transformed["city_governorate"] = f"{city.strip().lower()}__{gov.strip().lower()}"
             transformed["local_avg_price_m2"] = local_ppm
             transformed["gov_avg_price_m2"] = gov_ppm
