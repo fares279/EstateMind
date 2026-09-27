@@ -342,7 +342,7 @@ class EnsembleSimulator:
         from the engine module.
         """
         if simulator_func is None:
-            from .engine import run_simulation_batch
+            from ..engine import run_simulation_batch
             self.simulator = run_simulation_batch
         else:
             self.simulator = simulator_func

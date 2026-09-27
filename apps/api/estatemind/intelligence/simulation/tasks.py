@@ -11,12 +11,10 @@ Tasks:
 import logging
 from celery import shared_task
 from django.utils import timezone
-from datetime import timedelta
 
-from .models import SimulationRun, AgentCalibrationProfile
+from .models import SimulationRun
 from .services.validation import ScenarioValidator
 from .services.ensemble import EnsembleSimulator, StochasticTester
-from .services.rl_feedback import RLPolicySimulationTester
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +49,7 @@ def run_ensemble_task(self, simulation_run_id):
             ensemble_output = ensemble.run_ensemble(
                 scenario=job.scenario_config,
                 n_runs=job.n_runs,
-                n_agents='medium',  # TODO: map job.n_agents to scale string
+                n_agents=job.agent_scale,  # scale preset ('tiny', 'small', ...)
             )
             logger.info(f'Ensemble completed: {ensemble_output["ensemble_size"]} runs')
         except Exception as e:
@@ -158,43 +156,17 @@ def test_rl_policy_task(self, scenarios, n_runs_per_scenario=20):
     Called by: Admin interface or scheduled RL validation workflow
     """
     
-    try:
-        # TODO: Import actual RL policy from Module 7
-        # from classifiers.models import InvestmentPolicy
-        # rl_policy_model = InvestmentPolicy.objects.get(is_active=True)
-        # rl_policy_func = rl_policy_model.get_decision_function()
-        
-        # TODO: Import simulator
-        # from .engine import MultiAgentSimulator
-        # simulator_func = MultiAgentSimulator().run
-        
-        # tester = RLPolicySimulationTester(simulator_func, rl_policy_func)
-        # results = tester.test_policy_across_scenarios(
-        #     scenarios=scenarios,
-        #     n_runs_per_scenario=n_runs_per_scenario,
-        # )
-        
-        # For now, mock
-        results = {
-            'scenario_results': {},
-            'overall_ranking': {
-                'best_strategy': 'rl_policy',
-                'ranking': []
-            },
-            'rl_policy_assessment': {
-                'assessment': 'DEPLOY',
-            }
-        }
-        
-        logger.info(f'Completed RL policy test')
-        return results
-    
-    except Exception as e:
-        logger.exception('RL policy test failed')
-        return {
-            'error': str(e),
-            'status': 'failed'
-        }
+    # Not implemented: RLPolicySimulationTester._run_with_strategy does not run
+    # the simulator (it samples returns from fixed distributions), so any
+    # ranking or DEPLOY/REJECT assessment it produced would be fabricated.
+    # Previously this task returned a hard-coded 'DEPLOY'.
+    logger.warning('test_rl_policy_task called, but RL policy backtesting is not implemented')
+    return {
+        'status': 'not_implemented',
+        'reason': 'RL policy backtesting inside the simulator is not implemented; '
+                  'no assessment is produced.',
+        'scenarios_requested': len(scenarios or []),
+    }
 
 
 @shared_task(bind=True)
@@ -212,100 +184,14 @@ def calibrate_agents_task(self, agent_types=['buyer', 'developer', 'speculator']
     5. Update is_active flag
     """
     
-    try:
-        from .calibration import (
-            BehavioralDataCollector,
-            AgentRewardCalibrator,
-        )
-        
-        # TODO: Fetch actual market data
-        # from core.models import DelegationMarketSnapshot
-        # market_data = DelegationMarketSnapshot.objects.filter(
-        #     as_of_date__gte=timezone.now() - timedelta(days=365)
-        # ).order_by('as_of_date')
-        
-        collector = BehavioralDataCollector()
-        calibrator = AgentRewardCalibrator()
-        
-        results = {}
-        
-        for agent_type in agent_types:
-            try:
-                # Extract behavioral data
-                if agent_type == 'buyer':
-                    behavior_data = collector.extract_buyer_behavior()
-                elif agent_type == 'developer':
-                    behavior_data = collector.extract_developer_behavior()
-                elif agent_type == 'speculator':
-                    behavior_data = collector.extract_speculator_behavior()
-                else:
-                    continue
-                
-                # Calibrate
-                calibration_result = calibrator.calibrate_all_agents()
-                profile_weights = calibration_result.get(agent_type, {})
-                
-                # Validate
-                validation_result = calibrator.validate_calibration(
-                    profile_weights,
-                    historical_periods=[]  # TODO: Add actual data
-                )
-                
-                # Determine quality
-                mape = validation_result.get('mean_price_mape', 0.15)
-                accuracy = validation_result.get('directional_accuracy', 0.75)
-                
-                quality = (
-                    'GOOD' if mape < 0.05 and accuracy > 0.80 else
-                    'ACCEPTABLE' if mape < 0.10 and accuracy > 0.70 else
-                    'POOR'
-                )
-                
-                # Create profile
-                profile = AgentCalibrationProfile.objects.create(
-                    agent_type=agent_type,
-                    calibration_date=timezone.now().date(),
-                    is_active=True,
-                    reward_weights=profile_weights.get('weights', {}),
-                    directional_accuracy=accuracy,
-                    mean_price_mape=mape,
-                    calibration_quality=quality,
-                    training_transactions=1000,  # TODO: Count actual
-                    training_date_range_start=timezone.now().date() - timedelta(days=365),
-                    training_date_range_end=timezone.now().date(),
-                    calibration_method='inverse_rl_mle',
-                    notes=f'Automated calibration run'
-                )
-                
-                # Deactivate older profiles
-                AgentCalibrationProfile.objects.filter(
-                    agent_type=agent_type,
-                    is_active=True
-                ).exclude(id=profile.id).update(is_active=False)
-                
-                results[agent_type] = {
-                    'status': 'success',
-                    'quality': quality,
-                    'mape': float(mape),
-                    'accuracy': float(accuracy),
-                }
-                
-            except Exception as e:
-                logger.warning(f'Failed to calibrate {agent_type}: {e}')
-                results[agent_type] = {
-                    'status': 'failed',
-                    'error': str(e)
-                }
-        
-        logger.info(f'Completed agent calibration: {results}')
-        return {
-            'status': 'success',
-            'calibration_results': results
-        }
-    
-    except Exception as e:
-        logger.exception('Agent calibration task failed')
-        return {
-            'error': str(e),
-            'status': 'failed'
-        }
+    # Not implemented: AgentRewardCalibrator's likelihood does not depend on the
+    # weights and validate_calibration returns fixed errors, so persisting an
+    # AgentCalibrationProfile from them would record fabricated quality metrics.
+    # (The previous body also failed on import: it imported `.calibration`
+    # instead of `.services.calibration`.)
+    logger.warning('calibrate_agents_task called, but agent calibration is not implemented')
+    return {
+        'status': 'not_implemented',
+        'reason': 'Inverse-RL agent calibration is not implemented; no profile is created.',
+        'agent_types_requested': list(agent_types),
+    }
