@@ -3,11 +3,20 @@ import {
   Scale, Send, ExternalLink, ChevronRight,
   AlertCircle, CheckCircle2, Loader2, Sparkles,
   Receipt, Building2, BookOpen, Landmark, ArrowRight, RotateCcw,
+  ThumbsUp, ThumbsDown, Info,
 } from 'lucide-react';
-import { LegalAnswerCard, LegalQAInterface } from '../features/legal/components/LegalAnswerCard';
-import { ChatInterface } from '../features/advisor/components/AdvisorChatWidget';
-import api from '../services/api';
-import { getLegalStatus, getLegalSampleQuestions } from '../services/api';
+import {
+  askLegalQuestion, getLegalStatus, getLegalSampleQuestions, sendLegalFeedback,
+} from '../services/api';
+
+// What the assistant did with the question (LegalResponseLog.outcome).
+const OUTCOME_NOTES = {
+  answered_flagged: 'Some sentences could not be verified against the sources and are marked.',
+  refused_no_sources: 'No relevant legal text was found, so no answer was generated.',
+  refused_ungrounded: 'The generated answer was not supported by the sources and was withheld.',
+  llm_unavailable: 'The answer service is unreachable; showing the most relevant legal texts.',
+  out_of_scope: 'This is not a legal question.',
+};
 
 // ─── Status chip ──────────────────────────────────────────────────────────────
 function StatusChip({ s }) {
@@ -47,7 +56,7 @@ function SourceCard({ source, index }) {
         {index + 1}
       </span>
       <div className="flex-1 min-w-0">
-        <p className="text-[11px] font-medium text-gray-300 truncate">{source.article_ref || `Article ${index + 1}`}</p>
+        <p className="text-[11px] font-medium text-gray-300 truncate">{source.article || source.article_ref || `Article ${index + 1}`}</p>
         <p className="text-[10px] text-gray-600 truncate">{source.law_name}</p>
       </div>
       {hasLink && (
@@ -58,6 +67,30 @@ function SourceCard({ source, index }) {
 }
 
 // ─── Message ──────────────────────────────────────────────────────────────────
+function Feedback({ logId }) {
+  const [sent, setSent] = useState(null);
+  const send = (value) => {
+    if (sent || !logId) return;
+    setSent(value);
+    sendLegalFeedback(logId, value).catch(() => setSent(null));
+  };
+  if (!logId) return null;
+  return (
+    <div className="flex items-center gap-2 ml-1 text-[11px] text-gray-600">
+      <span>{sent ? 'Thanks for the feedback' : 'Was this helpful?'}</span>
+      {['thumbs_up', 'thumbs_down'].map(v => {
+        const Icon = v === 'thumbs_up' ? ThumbsUp : ThumbsDown;
+        return (
+          <button key={v} onClick={() => send(v)} disabled={!!sent} aria-label={v.replace('_', ' ')}
+            className={`p-1 rounded-md transition-colors ${sent === v ? 'text-[#FF6B35]' : 'hover:text-gray-300'} disabled:cursor-default`}>
+            <Icon size={12} />
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function Message({ msg }) {
   const [showSources, setShowSources] = useState(false);
   const isUser = msg.role === 'user';
@@ -96,6 +129,12 @@ function Message({ msg }) {
           ) : (
             <div className="space-y-3">
               <p className="text-sm text-gray-200 leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+
+              {OUTCOME_NOTES[msg.outcome] && (
+                <p className="flex items-start gap-1.5 text-[11px] text-gray-500">
+                  <Info size={11} className="flex-shrink-0 mt-0.5" /> {OUTCOME_NOTES[msg.outcome]}
+                </p>
+              )}
 
               {(msg.grounding_label || hasCitations) && (
                 <div className="space-y-2">
@@ -158,6 +197,8 @@ function Message({ msg }) {
           )}
         </div>
 
+        <Feedback logId={msg.response_log_id} />
+
         {hasSources && (
           <div className="ml-1">
             <button
@@ -212,27 +253,27 @@ function Thinking() {
 const QUICK_TOPICS = [
   {
     icon: Receipt,
-    label: 'Registration & Duties',
-    desc: 'Fees for property transactions',
-    q: 'What registration duties apply to real estate transactions in Tunisia?',
+    label: 'Registration Duties',
+    desc: 'Fixed duty on purchases from developers',
+    q: 'Which property acquisition contracts are registered at the fixed registration duty?',
   },
   {
     icon: Building2,
-    label: 'Investment Incentives',
-    desc: 'Benefits for real estate projects',
-    q: 'What investment incentives are available for real estate projects in Tunisia?',
+    label: 'Mortgages & Land Register',
+    desc: 'Assigning mortgage-backed debts',
+    q: 'Must an assignment of a mortgage-backed debt be recorded in the land register?',
   },
   {
     icon: BookOpen,
-    label: 'Property Taxation',
-    desc: 'Income tax on real estate',
-    q: 'How is income from real estate taxed under Tunisian law?',
+    label: 'VAT Refunds',
+    desc: 'Deadlines for refund approval',
+    q: 'How long does the tax administration have to approve a VAT refund request?',
   },
   {
     icon: Landmark,
     label: 'Company Formation',
-    desc: 'Setting up a real estate company',
-    q: 'What are the legal steps to create a real estate company in Tunisia?',
+    desc: 'Constitutive general meeting',
+    q: 'Within what time limit must the founders convene the constitutive general meeting?',
   },
 ];
 
@@ -297,6 +338,7 @@ export default function LegalAIPage() {
   const [status, setStatus] = useState(null);
   const [questions, setQuestions] = useState([]);
   const [inputFocused, setInputFocused] = useState(false);
+  const [sessionId, setSessionId] = useState(null);
 
   const bottomRef = useRef(null);
   const textareaRef = useRef(null);
@@ -330,42 +372,47 @@ export default function LegalAIPage() {
     setMessages(prev => [...prev, { id: Date.now(), role: 'user', content: q }]);
     setLoading(true);
 
+    const toMessage = (data) => ({
+      id: Date.now() + 1,
+      role: 'assistant',
+      content: data.answer || '',
+      outcome: data.outcome,
+      sources: data.sources || [],
+      citations: data.citations || [],
+      sentences: data.outcome === 'answered_flagged' ? data.sentences : [],
+      grounding_label: data.grounding_label,
+      grounding_score: data.grounding_score,
+      quality_label: data.quality_label,
+      response_log_id: data.response_log_id,
+    });
+
     try {
-      // Use chatbot endpoint with legal mode instead of broken /legal/ask/
-      const res = await api.post('/chatbot/message/', {
-        message: q,
-        mode: 'legal',
-        session_id: `legal_${Date.now()}`
-      }, { timeout: 90000 });
-      
-      const { response, sources = [], grounding_label, quality_label } = res.data;
-      setMessages(prev => [
-        ...prev,
-        {
-          id: Date.now() + 1,
-          role: 'assistant',
-          content: response || 'Unable to generate response',
-          sources: sources || [],
-          grounding_label,
-          quality_label,
-        },
-      ]);
+      const res = await askLegalQuestion(q, sessionId);
+      setSessionId(res.data.session_id);
+      setMessages(prev => [...prev, toMessage(res.data)]);
       getLegalStatus().then(r => setStatus(r.data)).catch(() => {});
     } catch (err) {
-      const errMsg =
-        err.response?.data?.error ||
-        (err.code === 'ECONNABORTED'
-          ? 'Request timed out. The AI is taking longer than expected.'
-          : 'Could not connect to the legal service.');
-      setMessages(prev => [
-        ...prev,
-        { id: Date.now() + 1, role: 'assistant', content: '', error: errMsg, sources: [] },
-      ]);
+      const data = err.response?.data;
+      if (data?.outcome === 'llm_unavailable') {
+        // 503 still carries the most relevant sources
+        setSessionId(data.session_id);
+        setMessages(prev => [...prev, toMessage(data)]);
+      } else {
+        const errMsg =
+          data?.error ||
+          (err.code === 'ECONNABORTED'
+            ? 'Request timed out. The AI is taking longer than expected.'
+            : 'Could not connect to the legal service.');
+        setMessages(prev => [
+          ...prev,
+          { id: Date.now() + 1, role: 'assistant', content: '', error: errMsg, sources: [] },
+        ]);
+      }
     } finally {
       setLoading(false);
       textareaRef.current?.focus();
     }
-  }, [input, loading]);
+  }, [input, loading, sessionId]);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {

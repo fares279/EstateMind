@@ -142,8 +142,10 @@ export const getForecastMarket = (property_type = 'apartment') =>
   api.get('/forecast/market/', { params: { property_type } });
 
 // Legal AI endpoints (RAG over Tunisian law — AllowAny, no auth required)
-export const askLegalQuestion = (question) =>
-  api.post('/legal/ask/', { question }, { timeout: 90000 });
+export const askLegalQuestion = (question, sessionId) =>
+  api.post('/legal/ask/', { question, session_id: sessionId || undefined }, { timeout: 90000 });
+export const sendLegalFeedback = (responseLogId, feedback) =>
+  api.post('/legal/feedback/', { response_log_id: responseLogId, feedback });
 export const getLegalStatus = () =>
   api.get('/legal/status/');
 export const getLegalSampleQuestions = () =>

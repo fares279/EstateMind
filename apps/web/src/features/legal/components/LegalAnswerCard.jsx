@@ -62,7 +62,7 @@ export const LegalQAInterface = () => {
     try {
       setLoading(true);
       const response = await askLegalQuestion(input);
-      setAnswer(response);
+      setAnswer(response.data);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to get answer'));
@@ -99,9 +99,9 @@ export const LegalQAInterface = () => {
       {loading && <SkeletonLoader variant="card" lines={3} />}
       {answer && (
         <LegalAnswerCard
-          answer={answer.answer_text}
+          answer={answer.answer}
           sources={answer.sources}
-          grounding={answer.grounding_pct}
+          grounding={typeof answer.grounding_score === 'number' ? Math.round(answer.grounding_score * 100) : null}
           confidenceLevel={answer.grounding_label}
         />
       )}
