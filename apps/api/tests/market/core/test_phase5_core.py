@@ -18,7 +18,7 @@ class DelegationModelTests(TestCase):
         )
 
         self.assertEqual(delegation.name, "La Soukra")
-        self.assertEqual(str(delegation), "La Soukra, Tunis")
+        self.assertEqual(str(delegation), "La Soukra — Tunis")
 
     def test_delegation_unique_together(self):
         region = Region.objects.create(governorate="Ariana")

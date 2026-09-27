@@ -346,18 +346,23 @@ def test_classifier_confidence(signal, confidence):
             'delegation_price_momentum_12m': 0.15,
             'undervaluation_score': 0.20,
             'estimated_net_yield': 5.0,
+            'climate_risk_score': 0.20,
         }
     elif signal == 'WAIT':
         features = {
             'delegation_price_momentum_12m': 0.02,
             'undervaluation_score': 0.05,
             'estimated_net_yield': 2.5,
+            'climate_risk_score': 0.30,
         }
     else:  # AVOID
         features = {
+            'delegation_price_momentum_12m': 0.0,
+            'undervaluation_score': 0.0,
             'climate_risk_score': 0.80,
             'estimated_net_yield': 1.5,
         }
 
     result = m3.score(**features)
+    assert result['signal'] == signal
     assert result['confidence'] >= 0.4
