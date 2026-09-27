@@ -352,7 +352,9 @@ def chat_message(request):
             'grounded': grounding_result['is_grounded'],
             'grounding_score': round(grounding_result['grounding_score'], 2),
             'sources': sources_used,
-            'turn_index': memory.turn_count,
+            # the index the log is stored under, so session+turn feedback finds this
+            # answer (it used to be one ahead: the count after add_turn)
+            'turn_index': response_log.turn_index,
             'reward_score': round(reward_score, 2),
             'response_log_id': response_log.id,
             'feedback_requested': True,  # Show feedback widget
