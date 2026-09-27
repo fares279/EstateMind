@@ -126,3 +126,19 @@ class ServingFeatureTests(SimpleTestCase):
         self.assertGreater(row['local_avg_price_m2'], 0)
         self.assertAlmostEqual(row['size_x_local_price'], 90 * row['local_avg_price_m2'])
         self.assertLess(prices[0], prices[1])
+
+
+class RegistryColumnWidthTests(SimpleTestCase):
+    """SQLite ignores max_length; Postgres rejects longer values. Without a registry row the
+    version falls back to the bundle stem, e.g. 'bytype__appartement__catboost' (29 chars), which
+    overflowed varchar(20): on Postgres no prediction log or valuation history row was saved."""
+
+    def test_version_values_fit_their_columns(self):
+        from estatemind.intelligence.valuation.models import ValuationPredictionLog, ValuationRequest
+        from estatemind.intelligence.valuation.services.model_registry import artifact_family
+        values = ['bytype__appartement__catboost', 'global__catboost',
+                  f"{artifact_family('valuation/models/models_estateprocessor/bytype__maison__et.joblib')}-artifact"]
+        for value in values:
+            for model, field in ((V, 'version'), (ValuationPredictionLog, 'model_version_label'),
+                                 (ValuationRequest, 'model_version')):
+                self.assertLessEqual(len(value), model._meta.get_field(field).max_length, (value, model.__name__, field))

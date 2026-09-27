@@ -51,7 +51,7 @@ class ValuationRequest(models.Model):
 
     # Model provenance
     model_name       = models.CharField(max_length=80, blank=True)
-    model_version    = models.CharField(max_length=20, blank=True)
+    model_version    = models.CharField(max_length=64, blank=True)
     model_artifact   = models.CharField(max_length=255, blank=True)
 
     # Climate signals
@@ -79,7 +79,7 @@ class ValuationModelVersion(models.Model):
     ]
 
     model_name = models.CharField(max_length=80)
-    version = models.CharField(max_length=20)
+    version = models.CharField(max_length=64)  # bundle stems reach 29 chars; 20 failed on Postgres
     artifact_path = models.CharField(max_length=255)
     training_date = models.DateField()
     training_data_hash = models.CharField(max_length=64)
@@ -113,7 +113,7 @@ class ValuationPredictionLog(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
     model_version = models.ForeignKey(ValuationModelVersion, on_delete=models.SET_NULL, null=True, blank=True)
     model_name = models.CharField(max_length=80, blank=True)
-    model_version_label = models.CharField(max_length=20, blank=True)
+    model_version_label = models.CharField(max_length=64, blank=True)
     input_hash = models.CharField(max_length=64)
     input_features = models.JSONField(default=dict)
     prediction_tnd = models.FloatField()
