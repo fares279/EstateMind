@@ -5,10 +5,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from config.paths import EXTERNAL_DATA_DIR
-
-from config.paths import EXTERNAL_DATA_DIR
 from typing import Any
+
+from config.paths import ARTIFACTS_DIR
 
 import joblib
 
@@ -30,7 +29,7 @@ class SentimentModelService:
     """Load and use pre-trained TF-IDF sentiment analysis model."""
 
     def __init__(self, artifacts_dir: str | Path | None = None) -> None:
-        self.artifacts_dir = Path(artifacts_dir) if artifacts_dir else EXTERNAL_DATA_DIR / "frontend" / "repo_clone" / "artifacts" / "models"
+        self.artifacts_dir = Path(artifacts_dir) if artifacts_dir else ARTIFACTS_DIR / "valuation" / "models"
         self.model_path = self.artifacts_dir / "tfidf_char_sentiment.joblib"
         
         self._model: Any | None = None
