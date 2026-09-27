@@ -8,12 +8,10 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from config.paths import EXTERNAL_DATA_DIR
-
-_ROOT = EXTERNAL_DATA_DIR  # was parents[3] = project root, not backend/
-_ZONE_STATS_CSV   = _ROOT / 'investor' / 'data' / 'zone_market_stats.csv'
-_ZONE_FCST_CSV    = _ROOT / 'investor' / 'data' / 'zone_price_forecasts.csv'
-_MACRO_CSV        = _ROOT / 'investor' / 'data' / 'macro_indicators.csv'
+_DATA = Path(__file__).resolve().parents[1] / 'data'  # investor/data/
+_ZONE_STATS_CSV   = _DATA / 'zone_market_stats.csv'
+_ZONE_FCST_CSV    = _DATA / 'zone_price_forecasts.csv'
+_MACRO_CSV        = _DATA / 'macro_indicators.csv'
 
 _PTYPE_NORM = {
     'apartment': 'Apartment', 'house': 'House', 'villa': 'House',

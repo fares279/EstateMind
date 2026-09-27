@@ -30,13 +30,13 @@ def _deleg_code(deleg: str) -> float:
     global _DELEG_LIST
     if _DELEG_LIST is None:
         try:
-            from pathlib import Path
             import csv
-            from config.paths import EXTERNAL_DATA_DIR
-            csv_path = EXTERNAL_DATA_DIR / 'delegations' / 'delegations.csv'
-            with open(csv_path, encoding='utf-8') as f:
+            from config.paths import DATA_DIR
+            csv_path = DATA_DIR / 'delegations.csv'
+            with open(csv_path, encoding='utf-8-sig') as f:
                 reader = csv.DictReader(f)
-                _DELEG_LIST = sorted(set(row.get('delegation', '').lower().strip() for row in reader))
+                names = (row.get('Delegation') or row.get('delegation') or '' for row in reader)
+                _DELEG_LIST = sorted({n.lower().strip() for n in names if n.strip()})
         except Exception:
             _DELEG_LIST = []
     key = deleg.lower().strip()
