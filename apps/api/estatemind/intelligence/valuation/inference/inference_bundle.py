@@ -8,10 +8,11 @@ import unicodedata
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from config.paths import EXTERNAL_DATA_DIR
-
-from config.paths import EXTERNAL_DATA_DIR
+import json
+from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Optional
+
+from config.paths import ARTIFACTS_DIR, EXTERNAL_DATA_DIR
 
 import numpy as np
 import pandas as pd
@@ -29,6 +30,35 @@ REFERENCE_DATASET_CANDIDATES = (
     Path("data/csv/preprocessed/final_listings_preprocessed.csv"),
     Path("data/csv/final_listings_preprocessed.csv"),
 )
+
+# Price-per-m2 priors computed from the training data, saved with the
+# fallback tabular models. Used for the location price features when the
+# reference dataset (and so the serving processor) is unavailable.
+PRIORS_MANIFEST = ARTIFACTS_DIR / "valuation" / "models" / "fallback_tabular" / "manifest.json"
+
+
+@lru_cache(maxsize=1)
+def _load_priors() -> dict[str, dict]:
+    try:
+        models = json.loads(PRIORS_MANIFEST.read_text(encoding="utf-8")).get("models", {})
+    except (OSError, ValueError):
+        return {}
+    return {name: spec.get("priors", {}) for name, spec in models.items()}
+
+
+def location_price_priors(property_type: str, transaction_type: str, city: str, governorate: str,
+                          fallback_ppm: float) -> tuple[float, float]:
+    """(local, governorate) average price per m2 from the training priors.
+
+    Local: city__governorate prior, else governorate prior, else fallback.
+    Governorate: governorate prior, else local, else fallback.
+    """
+    priors = _load_priors().get(f"{property_type}__{transaction_type}") or {}
+    city_key = f"{city.strip().lower()}__{governorate.strip().lower()}"
+    gov_prior = (priors.get("governorate_price_m2") or {}).get(governorate.strip().lower())
+    local = (priors.get("city_governorate_price_m2") or {}).get(city_key) or gov_prior or fallback_ppm
+    return float(local), float(gov_prior or local)
+
 
 # trimmed constants (same as upstream)
 CATEGORICAL_COLUMNS = ("city", "governorate", "property_type", "transaction_type")
@@ -411,25 +441,19 @@ class InferenceBundle:
             warnings = ["reference_dataset_missing"]
             ood_flags = ["processor_unavailable"]
             transformed = pd.DataFrame([request_row])
+            # Derived features first (they used to be pre-filled with NaN and
+            # then skipped, so the model always saw 0 for every location price).
+            city = request_row["city"] or "unknown"
+            gov = request_row["governorate"] or "unknown"
+            local_ppm, gov_ppm = location_price_priors(
+                request_row["property_type"], request_row["transaction_type"], city, gov, seed_ppm)
+            transformed["city_governorate"] = f"{city.strip().lower()}__{gov.strip().lower()}"
+            transformed["local_avg_price_m2"] = local_ppm
+            transformed["gov_avg_price_m2"] = gov_ppm
+            transformed["size_x_local_price"] = float(mapped.get("surface_m2", 0)) * local_ppm
             for col in self.feature_columns:
                 if col not in transformed.columns:
                     transformed[col] = np.nan
-            
-            # Create derived features that processor would normally create
-            if "city_governorate" in self.feature_columns and "city_governorate" not in transformed.columns:
-                city_col = transformed["city"].fillna("unknown").astype(str) if "city" in transformed.columns else "unknown"
-                gov_col = transformed["governorate"].fillna("unknown").astype(str) if "governorate" in transformed.columns else "unknown"
-                transformed["city_governorate"] = city_col + "__" + gov_col
-            
-            # Create market context features with defaults
-            if "local_avg_price_m2" in self.feature_columns and "local_avg_price_m2" not in transformed.columns:
-                transformed["local_avg_price_m2"] = seed_ppm
-            
-            if "gov_avg_price_m2" in self.feature_columns and "gov_avg_price_m2" not in transformed.columns:
-                transformed["gov_avg_price_m2"] = seed_ppm
-            
-            if "size_x_local_price" in self.feature_columns and "size_x_local_price" not in transformed.columns:
-                transformed["size_x_local_price"] = float(mapped.get("surface_m2", 0)) * seed_ppm
 
         # Integrate CV and sentiment signals
         cv_signal_multiplier = 1.0

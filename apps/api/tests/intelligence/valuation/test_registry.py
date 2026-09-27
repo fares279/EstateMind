@@ -85,3 +85,42 @@ class RegistrySyncTaskTests(TestCase):
         self.assertEqual(len(champions), len(set(champions)))
         self.assertFalse(V.objects.filter(status='challenger', ab_traffic_pct__gt=0).exists())
         self.assertEqual(sync_registry_from_artifacts.apply().result['created'], 0)
+
+
+class ServingFeatureTests(SimpleTestCase):
+    """Location price features when the reference dataset is unavailable."""
+
+    def test_priors_lookup_order(self):
+        from estatemind.intelligence.valuation.inference.inference_bundle import location_price_priors
+        local, gov = location_price_priors('appartement', 'sale', 'Agba', 'Tunis', 999.0)
+        self.assertAlmostEqual(local, 1612.9, places=1)   # city__governorate prior
+        self.assertGreater(gov, 0)
+        self.assertEqual(location_price_priors('appartement', 'sale', 'Nowhere', 'Nowhere', 999.0), (999.0, 999.0))
+
+    def test_bundle_features_carry_location_and_size(self):
+        from estatemind.intelligence.valuation.inference.model_registry import ModelRegistry
+        from estatemind.intelligence.valuation.inference.request_mapper import map_request
+        reg = ModelRegistry()
+        handle = reg.maybe_load_bundle(reg.get_best_handle('appartement'))
+        if handle is None or handle.bundle is None:
+            self.skipTest('valuation artifacts not available')
+        seen = []
+        real = handle.bundle.estimator
+
+        class Spy:
+            def __getattr__(self, name):
+                return getattr(real, name)
+
+            def predict(self, X):
+                seen.append(X.iloc[0].to_dict())
+                return real.predict(X)
+
+        handle.bundle.estimator = Spy()
+        prices = [handle.bundle.predict(map_request({'property_type': 'Appartement', 'governorate': 'Tunis',
+                                                     'city': 'Agba', 'size_m2': s, 'bedrooms': 3}),
+                                        {'avg_price_per_m2': 2000}).estimated_price for s in (90, 180)]
+        row = seen[0]
+        self.assertEqual(row['city_governorate'], 'agba__tunis')
+        self.assertGreater(row['local_avg_price_m2'], 0)
+        self.assertAlmostEqual(row['size_x_local_price'], 90 * row['local_avg_price_m2'])
+        self.assertLess(prices[0], prices[1])
