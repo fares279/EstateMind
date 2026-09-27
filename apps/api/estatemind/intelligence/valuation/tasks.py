@@ -44,21 +44,35 @@ def run_weekly_drift_monitor() -> dict:
 
 @shared_task(name='valuation.sync_registry_from_artifacts')
 def sync_registry_from_artifacts() -> dict:
-    """Best-effort registry sync so prediction logs can attach model provenance."""
-    from estatemind.intelligence.valuation.services.model_registry import ValuationModelRegistry
+    """Register discovered artifacts, one registry key per serving scope.
+
+    A scope with no champion gets the artifact that discovery serves for it;
+    other artifacts are registered as challengers with 0% traffic, so nothing
+    new is served until someone promotes it or gives it traffic.
+    """
+    from estatemind.intelligence.valuation.models import ValuationModelVersion
+    from estatemind.intelligence.valuation.services.model_registry import (
+        GLOBAL_SCOPE, ValuationModelRegistry, artifact_family, registry_key,
+    )
 
     registry = ValuationModelRegistry()
-    handles = registry._artifact_registry.list_handles()
+    artifacts = registry._artifact_registry
     created = 0
-    for index, handle in enumerate(handles, start=1):
+    for handle in artifacts.list_handles():
         if not handle.path.exists():
             continue
-        model_name = handle.model_name or f'CatBoost_{handle.property_type.title()}'
-        version = f'artifact-{index}'
-        version_obj = registry.register_challenger(
-            artifact_path=to_artifact_ref(handle.path),
-            model_name=model_name,
-            version=version,
+        scope = GLOBAL_SCOPE if handle.scope == 'global' else handle.property_type
+        key = registry_key(scope)
+        ref = to_artifact_ref(handle.path)
+        if ValuationModelVersion.objects.filter(model_name=key, artifact_path=ref).exists():
+            continue
+        served = artifacts.get_global_handle() if scope == GLOBAL_SCOPE else artifacts.get_property_handle(scope)
+        make_champion = (served is not None and served.path == handle.path
+                         and not ValuationModelVersion.objects.filter(model_name=key, status='champion').exists())
+        registry.register_challenger(
+            artifact_path=ref,
+            model_name=key,
+            version=f'{artifact_family(ref)}-artifact',
             training_date=timezone.localdate(),
             training_data_hash='',
             training_samples=0,
@@ -66,9 +80,9 @@ def sync_registry_from_artifacts() -> dict:
             eval_r2=handle.metrics.get('r2', 0),
             eval_mape=handle.metrics.get('mape', 0),
             eval_holdout_size=handle.metrics.get('holdout_size', 0),
-            status='champion' if created == 0 else 'challenger',
-            ab_traffic_pct=100 if created == 0 else 10,
-            notes='Auto-synced from artifact discovery.',
+            status='champion' if make_champion else 'challenger',
+            ab_traffic_pct=100 if make_champion else 0,
+            notes=f'Auto-synced from artifact discovery ({handle.path.name}).',
         )
         created += 1
     return {'status': 'completed', 'created': created}

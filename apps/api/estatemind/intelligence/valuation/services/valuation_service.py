@@ -164,7 +164,10 @@ def estimate(data: dict, image_files: list | None = None, user=None) -> dict:
     active_handle = None
     model_version = None
     if hasattr(registry, 'get_active_model'):
-        active_handle, model_version = registry.get_active_model(mapped.get("model_property_type", mapped.get("property_type", "")))
+        active_handle, model_version = registry.get_active_model(
+            mapped.get("model_property_type", mapped.get("property_type", "")),
+            user_id=getattr(user, 'id', None),
+        )
     else:
         active_handle = registry.get_best_handle(mapped.get("model_property_type", mapped.get("property_type", "")))
     handle = active_handle

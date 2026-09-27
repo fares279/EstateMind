@@ -15,8 +15,36 @@ from estatemind.intelligence.valuation.inference.model_registry import (
     ModelHandle,
     ModelRegistry as ArtifactModelRegistry,
 )
+from estatemind.intelligence.valuation.inference.request_mapper import MODEL_PROPERTY_TYPE_MAP
 
 logger = logging.getLogger(__name__)
+
+REGISTRY_PREFIX = 'valuation:'
+GLOBAL_SCOPE = 'global'
+_SCOPE_ALIASES = {**MODEL_PROPERTY_TYPE_MAP, 'villa': 'maison', 'all': GLOBAL_SCOPE}
+
+
+def serving_scope(property_type: str | None) -> str:
+    """Scope a model serves: the request mapper's model property type ('appartement',
+    'maison', 'terrain', ...) or 'global'. English and French names map to the same scope."""
+    ptype = str(property_type or '').strip().lower() or 'appartement'
+    return _SCOPE_ALIASES.get(ptype, ptype)
+
+
+def registry_key(property_type: str | None) -> str:
+    """ValuationModelVersion.model_name for every version serving this scope."""
+    return f'{REGISTRY_PREFIX}{serving_scope(property_type)}'
+
+
+def artifact_family(artifact_path: str) -> str:
+    """Model family from the artifact filename (bytype__maison__et -> 'et'); 'catboost' otherwise."""
+    stem = Path(str(artifact_path).replace('\\', '/')).stem.lower()
+    parts = stem.split('__')
+    if stem.startswith('bytype__') and len(parts) >= 3:
+        return parts[2]
+    if stem.startswith('global__') and len(parts) >= 2:
+        return parts[1]
+    return 'catboost'
 
 
 class ValuationModelRegistry:
@@ -32,16 +60,18 @@ class ValuationModelRegistry:
         return qs.order_by('-created_at')
 
     def _lookup_model_name(self, property_type: str) -> str:
-        ptype = str(property_type or 'apartment').strip().lower()
-        return f'CatBoost_{ptype.title()}'
+        return registry_key(property_type)
 
     def _version_to_handle(self, version: ValuationModelVersion) -> ModelHandle:
-        path = resolve_artifact_ref(version.artifact_path)
+        # The handle mirrors what artifact discovery produces (scope, property
+        # type, model family): InferenceBundle keys off those, not the registry key.
+        scope = version.model_name[len(REGISTRY_PREFIX):] if version.model_name.startswith(REGISTRY_PREFIX)             else serving_scope(version.model_name)
+        is_global = scope == GLOBAL_SCOPE
         return ModelHandle(
-            scope='registry',
-            property_type=version.model_name.replace('CatBoost_', '').lower(),
-            model_name=version.model_name,
-            path=path,
+            scope='global' if is_global else 'by_type',
+            property_type='all' if is_global else scope,
+            model_name=artifact_family(version.artifact_path),
+            path=resolve_artifact_ref(version.artifact_path),
             metrics={
                 'eval_rmse': version.eval_rmse,
                 'eval_r2': version.eval_r2,
@@ -52,12 +82,18 @@ class ValuationModelRegistry:
         )
 
     def _get_version_for_property(self, property_type: str, user_id: int | None = None) -> ValuationModelVersion | None:
-        model_name = self._lookup_model_name(property_type)
-        champion = ValuationModelVersion.objects.filter(model_name=model_name, status='champion').order_by('-promoted_at', '-created_at').first()
-        challenger = ValuationModelVersion.objects.filter(model_name=model_name, status='challenger').order_by('-promoted_at', '-created_at').first()
-        if challenger and user_id is not None and user_id % 10 == 0:
-            return challenger
-        return champion or challenger
+        """Champion for the scope, or a challenger for the share of users its
+        ab_traffic_pct asks for (user_id % 100). Scopes without a champion use
+        the global champion."""
+        for key in dict.fromkeys((registry_key(property_type), registry_key(GLOBAL_SCOPE))):
+            versions = ValuationModelVersion.objects.filter(model_name=key).order_by('-promoted_at', '-created_at')
+            champion = versions.filter(status='champion').first()
+            challenger = versions.filter(status='challenger', ab_traffic_pct__gt=0).first()
+            if challenger and user_id is not None and user_id % 100 < challenger.ab_traffic_pct:
+                return challenger
+            if champion:
+                return champion
+        return None
 
     def get_active_model(self, property_type: str, user_id: int | None = None) -> tuple[ModelHandle | None, ValuationModelVersion | None]:
         version = self._get_version_for_property(property_type, user_id=user_id)
@@ -119,7 +155,7 @@ class ValuationModelRegistry:
                 'eval_mape': metrics.get('eval_mape') or 0,
                 'eval_holdout_size': metrics.get('eval_holdout_size') or 0,
                 'status': metrics.get('status') or 'challenger',
-                'ab_traffic_pct': metrics.get('ab_traffic_pct') or 10,
+                'ab_traffic_pct': metrics.get('ab_traffic_pct', 10),
                 'notes': metrics.get('notes') or '',
             },
         )
