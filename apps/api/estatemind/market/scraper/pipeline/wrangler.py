@@ -729,6 +729,7 @@ class DataWrangler:
     MAX_PRICE    = 50_000_000
     MIN_SURFACE  = 10
     MAX_SURFACE  = 5_000
+    MAX_LAND_SURFACE = 100_000  # as SilverSchemaValidator; plots over 5,000 m² are common
     MAX_BEDROOMS = 15
     MAX_BATHROOMS = 10
 
@@ -821,7 +822,8 @@ class DataWrangler:
         if tx_type == 'rent' and price_tnd is not None:
             if price_tnd > _MAX_RENT.get(property_type, 10_000):
                 price_tnd = None
-        if surface_m2 is not None and not (self.MIN_SURFACE <= surface_m2 <= self.MAX_SURFACE):
+        max_surface = self.MAX_LAND_SURFACE if property_type == 'land' else self.MAX_SURFACE
+        if surface_m2 is not None and not (self.MIN_SURFACE <= surface_m2 <= max_surface):
             surface_m2 = None
         if bedrooms is not None:
             bedrooms = max(0, min(bedrooms, self.MAX_BEDROOMS))

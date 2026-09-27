@@ -117,10 +117,13 @@ def _parse_price(raw: str | None) -> float | None:
 def _parse_surface(surface_raw: str | None, description: str = '') -> float | None:
     """Extract surface in m² from a raw string or description fallback."""
     for text in filter(None, [surface_raw, description]):
-        m = re.search(r'(\d{2,4})\s*(?:m²|m2|m²|\bm\b)', str(text), re.IGNORECASE)
+        # thousands separators ('12 500', '1.200') and decimals ('85,5'); the old
+        # \d{2,4} read '10000 m2' as 0 and '12 500 m²' as 500
+        m = re.search(r'(\d{1,3}(?:[   .]\d{3})+|\d+(?:[.,]\d+)?)\s*(?:m²|m2|m²|\bm\b)', str(text), re.IGNORECASE)
         if m:
+            token = re.sub(r'[   .](?=\d{3}\b)', '', m.group(1)).replace(',', '.')
             try:
-                return float(m.group(1))
+                return float(token)
             except ValueError:
                 pass
     return None
@@ -163,6 +166,14 @@ def _split_location(raw: str) -> tuple[str, str, str]:
     return governorate, city, neighborhood
 
 
+def _positive(value) -> float | None:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    return number if number > 0 else None
+
+
 def normalize_tunisian_data(raw: dict) -> dict:
     """
     Transform a raw scraper dict into the canonical Silver-layer schema.
@@ -180,12 +191,12 @@ def normalize_tunisian_data(raw: dict) -> dict:
     gov = _clean(out.get('governorate', ''))
     out['governorate'] = ARABIC_TO_FRENCH_GOVERNORATES.get(gov, gov)
 
-    # Parse price
-    out['price_tnd'] = _parse_price(str(out.get('price') or ''))
-
-    # Parse surface
-    out['surface_m2'] = _parse_surface(
-        str(out.get('surface_area') or out.get('surface_m2') or ''),
+    # Keep the numbers scrapers already parsed; parse the raw strings only when
+    # they are missing. Re-parsing str(120.0) needs a unit and failed, so every
+    # numeric surface (e.g. all of tayara's) was replaced by a benchmark value.
+    out['price_tnd'] = _positive(out.get('price_tnd')) or _parse_price(str(out.get('price') or ''))
+    out['surface_m2'] = _positive(out.get('surface_m2')) or _parse_surface(
+        str(out.get('surface_area') or ''),
         out.get('description', ''),
     )
 
