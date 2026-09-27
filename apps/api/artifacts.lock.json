@@ -1,0 +1,136 @@
+{
+ "files": {
+  "chroma/legal/0a4e7382-b09c-4c61-a383-e5dfb2281bda/data_level0.bin": {
+   "size": 167600,
+   "sha256": "2a34dd1ea4bb93533a98151a020e581aee6907e3e3f870e017f7ec1dedb7cc0e"
+  },
+  "chroma/legal/0a4e7382-b09c-4c61-a383-e5dfb2281bda/header.bin": {
+   "size": 100,
+   "sha256": "a0e81c3b22454233bc12d0762f06dcca48261a75231cf87c79b75e69a6c00150"
+  },
+  "chroma/legal/0a4e7382-b09c-4c61-a383-e5dfb2281bda/length.bin": {
+   "size": 400,
+   "sha256": "ef69edfdf5b8134036df855372f1f2485b695260ee50135cf87e11c4e3722c1a"
+  },
+  "chroma/legal/0a4e7382-b09c-4c61-a383-e5dfb2281bda/link_lists.bin": {
+   "size": 0,
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "chroma/legal/391fdaac-945b-4375-ab36-d6759f3c600d/data_level0.bin": {
+   "size": 1676000,
+   "sha256": "d3c9fd302f000d7790aa403c2d0d8fec363fe46f30b07d53020b6e33b22435a9"
+  },
+  "chroma/legal/391fdaac-945b-4375-ab36-d6759f3c600d/header.bin": {
+   "size": 100,
+   "sha256": "e87a1dc8bcae6f2c4bea6d5dd5005454d4dace8637dae29bff3c037ea771411e"
+  },
+  "chroma/legal/391fdaac-945b-4375-ab36-d6759f3c600d/length.bin": {
+   "size": 4000,
+   "sha256": "4e0807797eeb09e7daa33b34b447115463994d0fbedc593d36ca3880d8b2f591"
+  },
+  "chroma/legal/391fdaac-945b-4375-ab36-d6759f3c600d/link_lists.bin": {
+   "size": 0,
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "chroma/legal/chroma.sqlite3": {
+   "size": 708608,
+   "sha256": "468608f5a2373bea9bab0385cf43000c90d03f114092fe44725e6ab6d02fca64"
+  },
+  "chroma/legal/ee6b1f93-d3ed-40d9-91e0-1eb2df92efe2/data_level0.bin": {
+   "size": 167600,
+   "sha256": "8efe528019b5d537ef6ac86efae922d25b08b4d4536daa99c8f6f666dc6b8be9"
+  },
+  "chroma/legal/ee6b1f93-d3ed-40d9-91e0-1eb2df92efe2/header.bin": {
+   "size": 100,
+   "sha256": "a0e81c3b22454233bc12d0762f06dcca48261a75231cf87c79b75e69a6c00150"
+  },
+  "chroma/legal/ee6b1f93-d3ed-40d9-91e0-1eb2df92efe2/length.bin": {
+   "size": 400,
+   "sha256": "3e9437018191bf0940a2658d87708ffbea97f7ceafc91a323f184e35e69e8dea"
+  },
+  "chroma/legal/ee6b1f93-d3ed-40d9-91e0-1eb2df92efe2/link_lists.bin": {
+   "size": 0,
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "forecast/forecast_model.joblib": {
+   "size": 15935611,
+   "sha256": "aa780aeffb1423f94ba3555e5592c9c4865f66c9a648f843841bc333e8ea712a"
+  },
+  "valuation/models/estate_v2_20260927/bytype__appartement__catboost.joblib": {
+   "size": 209154,
+   "sha256": "5a3c9e30f4d5c3fa0b3bf325965d4307495140bc45fa209e07b3add54225fc20"
+  },
+  "valuation/models/estate_v2_20260927/bytype__maison__catboost.joblib": {
+   "size": 361518,
+   "sha256": "cbcba0632ca50407e093eb9349e1221c03ef7b76b91c4f6c1b1ab221f0a1d73c"
+  },
+  "valuation/models/estate_v2_20260927/bytype__terrain__catboost.joblib": {
+   "size": 147192,
+   "sha256": "a8030af758b7bf635268267eea103a0b02172fa9dd2b158dc954d6d48fbf7c03"
+  },
+  "valuation/models/estate_v2_20260927/global__catboost.joblib": {
+   "size": 836486,
+   "sha256": "df6401bf94748397ecec2e0fcc0b501a1803356cb6d4e0969b25ae7dabbe07c3"
+  },
+  "valuation/models/estate_v2_20260927/priors.json": {
+   "size": 9187,
+   "sha256": "590be194a7147723a10dcad9ae98dbc2d7d1f881cc4c733ecb183a5dd0952c0b"
+  },
+  "valuation/models/fallback_tabular/appartement__sale__catboost.joblib": {
+   "size": 754785,
+   "sha256": "69566cd1141354d8a07072f28dc42217c83e3d66f9f4d818fc379eca9d000341"
+  },
+  "valuation/models/fallback_tabular/maison__sale__catboost.joblib": {
+   "size": 750657,
+   "sha256": "7cab85a31193570f91f74b559723a2e9572b4084997089c6c7aea714b61f97af"
+  },
+  "valuation/models/fallback_tabular/manifest.json": {
+   "size": 66348,
+   "sha256": "90466db67a423d11299b8f9e2fe96bf2014d9050de5aac7974e116392d0c9f6c"
+  },
+  "valuation/models/fallback_tabular/terrain__sale__catboost.joblib": {
+   "size": 716029,
+   "sha256": "f268bd5216c4f970d1f11365d623324c1c3c7b1a1c6f7dfa48678b0329022067"
+  },
+  "valuation/models/image_property_type_fallback.labels.json": {
+   "size": 461,
+   "sha256": "b5fea4a88e8b02feaf1fb70ca89232cbdf5f92e566e8758f4ea8250cf53c2820"
+  },
+  "valuation/models/image_property_type_fallback.pt": {
+   "size": 94374993,
+   "sha256": "9686f02a472bf19474bad49386202c6849dee5090c9a14b17ccc69bce1fff189"
+  },
+  "valuation/models/models_estateprocessor/bytype__appartement__catboost.joblib": {
+   "size": 1960913,
+   "sha256": "a13bb9e6e12eb1ff939c11b45cf32dfe4e5367139d7e94695e9064445fb66e2b"
+  },
+  "valuation/models/models_estateprocessor/bytype__maison__catboost.joblib": {
+   "size": 1930329,
+   "sha256": "8035c1fa095cd425f8c5f3f86e53fa1d0e3d15887a77b852036687681179877c"
+  },
+  "valuation/models/models_estateprocessor/bytype__maison__et.joblib": {
+   "size": 10232321,
+   "sha256": "1ec672c2e1b9ecdef9ce507df2237c364ad02604e6f51ffd2bae871f9055eff0"
+  },
+  "valuation/models/models_estateprocessor/bytype__terrain__catboost.joblib": {
+   "size": 2393329,
+   "sha256": "3b8464ec1f4e75a3f86be9877479aa155650581671e510e02b59266fb5402476"
+  },
+  "valuation/models/models_estateprocessor/bytype__terrain__et.joblib": {
+   "size": 6374593,
+   "sha256": "d99493194138e1f8ade72ef404091732033b740b4c3f20d74f470b23668afba9"
+  },
+  "valuation/models/models_estateprocessor/global__catboost.joblib": {
+   "size": 2225281,
+   "sha256": "11d9ab70bccc46ffc678d0d6eca2cb1efaea28e0c640d0aa63166393bb5fdf4d"
+  },
+  "valuation/models/tfidf_char_sentiment.joblib": {
+   "size": 192388,
+   "sha256": "96998548155d53b689cb7328c5eec7072b127197a34d1119b6db6e5c37884d2e"
+  },
+  "valuation/valuation_model.joblib": {
+   "size": 1060699,
+   "sha256": "49e4615fe8ce144da8b1fdd9ab0307f228950e5d45c79d516ea63016cc85ba6b"
+  }
+ }
+}

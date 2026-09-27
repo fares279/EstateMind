@@ -8,6 +8,14 @@ DESCRIPTION = 'Magnifique appartement lumineux avec vue sur mer, enti√®rement r√
 
 
 class SentimentPriceGatingTests(TestCase):
+    # the multipliers are applied inside the CatBoost bundle
+    def setUp(self):
+        from estatemind.intelligence.valuation.inference.model_registry import ModelRegistry
+        reg = ModelRegistry()
+        handle = reg.maybe_load_bundle(reg.get_best_handle('appartement'))
+        if handle is None or handle.bundle is None:
+            self.skipTest('valuation artifacts not available')
+
     def _driver_names(self, result):
         return {c['feature'] for c in result['shap']['contributions']}
 

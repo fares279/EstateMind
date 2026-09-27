@@ -91,7 +91,9 @@ class ServingFeatureTests(SimpleTestCase):
     """Location price features when the reference dataset is unavailable."""
 
     def test_priors_lookup_order(self):
-        from estatemind.intelligence.valuation.inference.inference_bundle import location_price_priors
+        from estatemind.intelligence.valuation.inference.inference_bundle import PRIORS_MANIFEST, location_price_priors
+        if not PRIORS_MANIFEST.exists():
+            self.skipTest('valuation priors artifact not available')
         local, gov = location_price_priors('appartement', 'sale', 'Agba', 'Tunis', 999.0)
         self.assertAlmostEqual(local, 1612.9, places=1)   # city__governorate prior
         self.assertGreater(gov, 0)
