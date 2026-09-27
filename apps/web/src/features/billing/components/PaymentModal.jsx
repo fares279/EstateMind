@@ -3,6 +3,7 @@ import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { X, AlertCircle, CheckCircle, Loader } from 'lucide-react';
 import axios from 'axios';
+import { API_BASE } from '../../../config/apiBase';
 
 // Initialize Stripe (guard against missing publishable key to avoid runtime error)
 const PUBLISHABLE_KEY = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY;
@@ -67,7 +68,7 @@ function PaymentForm({ clientSecret, plan, onSuccess, onClose, userEmail, userFu
         try {
           const token = localStorage.getItem('access_token');
           const response = await axios.post(
-            `${process.env.REACT_APP_API_URL}/billing/confirm-payment/`,
+            `${API_BASE}/billing/confirm-payment/`,
             {
               intent_id: paymentIntent.id,
               plan: plan,

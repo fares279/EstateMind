@@ -1,10 +1,5 @@
 import axios from 'axios';
-
-// Runtime global wins (set in public/index.html), then build-time env var, then default.
-const API_BASE =
-  (typeof window !== 'undefined' && window.__API_BASE__) ||
-  process.env.REACT_APP_API_URL ||
-  'http://localhost:8000/api';
+import { API_BASE } from '../config/apiBase';
 
 const api = axios.create({
   baseURL: API_BASE,

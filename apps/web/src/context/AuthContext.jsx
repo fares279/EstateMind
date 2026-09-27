@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { API_BASE } from '../config/apiBase';
 import { canAccessPlan, normalizePlan } from '../utils/accessControl';
 import { trackUserActivity, createCheckoutSession, devUpgradePlan } from '../services/api';
 
@@ -11,11 +12,6 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('access_token'));
   const [, setRefreshToken] = useState(localStorage.getItem('refresh_token'));
-
-  const API_BASE =
-    (typeof window !== 'undefined' && window.__API_BASE__) ||
-    process.env.REACT_APP_API_URL ||
-    'http://localhost:8000/api';
 
   const clearStoredAuth = useCallback(() => {
     localStorage.removeItem('access_token');

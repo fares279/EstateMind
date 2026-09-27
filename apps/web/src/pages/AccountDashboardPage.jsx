@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Crown, Save, Trash2, User } from 'lucide-react';
 import axios from 'axios';
+import { API_BASE } from '../config/apiBase';
 import { useAuth } from '../context/AuthContext';
 import PaymentModal from '../features/billing/components/PaymentModal';
 
@@ -66,7 +67,7 @@ export default function AccountDashboardPage() {
     try {
       const token = localStorage.getItem('access_token');
       const response = await axios.post(
-        `${process.env.REACT_APP_API_URL}/billing/create-checkout-session/`,
+        `${API_BASE}/billing/create-checkout-session/`,
         { plan },
         {
           headers: {
