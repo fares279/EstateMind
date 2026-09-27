@@ -1,4 +1,4 @@
-from django.urls import path, include
+from django.urls import path
 from . import views
 from . import views_module7
 
@@ -18,7 +18,7 @@ urlpatterns = [
 # Module 7: Portfolio & Investment Intelligence
 module7_patterns = [
     path('scan/',                   views_module7.scan_property,          name='investor-scan'),
-    path('portfolio/',              views_module7.portfolio_analysis,     name='investor-portfolio'),
+    path('portfolio/analysis/',     views_module7.portfolio_analysis,     name='investor-portfolio-analysis'),
     path('portfolio/add/',          views_module7.add_portfolio_asset,    name='investor-portfolio-add'),
     path('scorers/',                views_module7.list_scorer_versions,   name='investor-scorers'),
     path('scorers/start-ab-test/',  views_module7.start_ab_test,          name='investor-scorers-start-ab-test'),

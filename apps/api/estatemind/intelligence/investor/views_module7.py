@@ -3,7 +3,7 @@ Module 7: Portfolio & Investment Intelligence API Endpoints
 
 Endpoints:
   POST   /api/investor/scan/          - Analyze single property
-  GET    /api/investor/portfolio/     - Get portfolio analysis
+  GET    /api/investor/portfolio/analysis/ - Get portfolio analysis
   POST   /api/investor/portfolio/add/ - Add asset to portfolio
   GET    /api/investor/scorers/       - List scorer versions
   POST   /api/investor/scorers/start-ab-test/
