@@ -161,6 +161,8 @@ class LegalAssistant:
                 logger.warning('Legal LLM unavailable: %s', exc)
                 return O.OUTCOME_LLM_UNAVAILABLE, prompts.message('llm_unavailable', language), {}
             grounding = self.detector.check_answer(answer, texts)
+            if not answer.strip():  # declined / empty output: nothing to show
+                grounding = {**grounding, 'decision': FAIL, 'grounded_ratio': 0.0}
             if grounding['decision'] != FAIL:
                 if grounding['decision'] == FLAG:
                     shown = {r['sentence']: r['display_text'] for r in grounding['sentences']}
@@ -193,8 +195,10 @@ def get_status() -> dict:
 
     route = ChromaRouter().route('transactions')
     docs = chromadb_service.get_document_count(route.collection)
-    llm_ok = llm_service.check_availability()
+    llm_endpoints = llm_service.endpoint_status()
+    llm_ok = any(e['available'] for e in llm_endpoints)
     return {
+        'llm_endpoints': llm_endpoints,
         'documents_indexed': docs,
         'collection': route.collection,
         'collection_source': route.source,

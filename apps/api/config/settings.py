@@ -343,8 +343,19 @@ LEGAL_RAG = {
     'LLM_API_URL':       config('LEGAL_LLM_API_URL',  default='https://tokenfactory.esprit.tn/api'),
     'LLM_API_KEY':       config('LEGAL_LLM_API_KEY',  default=''),
     'LLM_MODEL':         config('LEGAL_LLM_MODEL',    default='hosted_vllm/Llama-3.1-70B-Instruct'),
+    # 'openai_compatible' (any /chat/completions API) or 'anthropic' (Claude)
+    'LLM_PROVIDER':      config('LEGAL_LLM_PROVIDER', default='openai_compatible'),
     'LLM_VERIFY_SSL':    config('LEGAL_LLM_VERIFY_SSL', default=False, cast=bool),
     'LLM_TIMEOUT':       config('LEGAL_LLM_TIMEOUT', default=90, cast=int),
+    'LLM_EFFORT':        config('LEGAL_LLM_EFFORT', default='medium'),  # Claude only
+    # Optional second endpoint, used only when the primary is unreachable
+    # (e.g. Token Factory off the campus network). Off unless PROVIDER is set.
+    'LLM_FALLBACK': {
+        'provider': config('LEGAL_LLM_FALLBACK_PROVIDER', default=''),
+        'base_url': config('LEGAL_LLM_FALLBACK_API_URL', default=''),
+        'api_key':  config('LEGAL_LLM_FALLBACK_API_KEY', default=''),
+        'model':    config('LEGAL_LLM_FALLBACK_MODEL', default=''),
+    },
     # Local embedding model (sentence-transformers, runs on CPU). Multilingual:
     # the corpus is French, questions arrive in French, English and Arabic.
     # Changing it requires `manage.py index_legal_data` (new collection).

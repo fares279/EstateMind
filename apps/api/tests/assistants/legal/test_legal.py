@@ -294,3 +294,116 @@ class TestLegalRewardModel(TestCase):
         rows = LegalRewardModel()._labeled_examples()
         self.assertEqual(rows, [{'query': 'q', 'response': 'a', 'user_feedback': 'thumbs_up'}])
         self.assertEqual(LegalRewardModel().train()['reason'], 'insufficient_data')
+
+
+# ── LLM endpoints: OpenAI-compatible primary, optional fallback, Claude ──────
+
+from django.test import override_settings  # noqa: E402
+from django.conf import settings as dj_settings  # noqa: E402
+
+
+def _rag(**overrides):
+    return {**dj_settings.LEGAL_RAG, **overrides}
+
+
+class _Resp:
+    def __init__(self, text):
+        self.status_code = 200
+        self._text = text
+
+    def raise_for_status(self):
+        pass
+
+    def json(self):
+        return {'choices': [{'message': {'content': self._text}}]}
+
+
+class TestLLMEndpoints(TestCase):
+    MSGS = [{'role': 'system', 'content': 'sys'}, {'role': 'user', 'content': 'q'}]
+
+    def test_primary_only_by_default(self):
+        with override_settings(LEGAL_RAG=_rag(LLM_FALLBACK={'provider': ''})):
+            self.assertEqual([e['name'] for e in llm_service.endpoints()], ['primary'])
+
+    def test_fallback_used_when_primary_unreachable(self):
+        import requests
+        fb = {'provider': 'openai_compatible', 'base_url': 'https://fallback.example/v1',
+              'api_key': 'k', 'model': 'fb-model'}
+
+        def post(url, **kw):
+            if 'fallback.example' not in url:
+                raise requests.exceptions.ConnectionError('dns')
+            return _Resp('from fallback [1].')
+
+        with override_settings(LEGAL_RAG=_rag(LLM_FALLBACK=fb)), \
+                patch.object(llm_service.requests, 'post', side_effect=post):
+            self.assertEqual(llm_service.chat(self.MSGS), 'from fallback [1].')
+            self.assertEqual(llm_service.model_name(), 'fb-model')
+
+    def test_unreachable_everywhere_raises(self):
+        import requests
+        with override_settings(LEGAL_RAG=_rag(LLM_FALLBACK={'provider': ''})), \
+                patch.object(llm_service.requests, 'post', side_effect=requests.exceptions.ConnectionError('x')):
+            with self.assertRaises(llm_service.LLMUnavailable):
+                llm_service.chat(self.MSGS)
+
+    def test_http_400_is_not_treated_as_unreachable(self):
+        import requests
+        err = requests.exceptions.HTTPError(response=SimpleNamespace(status_code=400, text='bad request'))
+        resp = MagicMock(raise_for_status=MagicMock(side_effect=err))
+        with override_settings(LEGAL_RAG=_rag(LLM_FALLBACK={'provider': ''})), \
+                patch.object(llm_service.requests, 'post', return_value=resp):
+            with self.assertRaises(RuntimeError) as ctx:
+                llm_service.chat(self.MSGS)
+            self.assertNotIsInstance(ctx.exception, llm_service.LLMUnavailable)
+
+
+class TestClaudeAdapter(TestCase):
+    MSGS = [{'role': 'system', 'content': 'You answer from passages.'},
+            {'role': 'user', 'content': 'earlier q'}, {'role': 'assistant', 'content': 'earlier a'},
+            {'role': 'user', 'content': 'Question?'}]
+
+    def _response(self, text='Answer [1].', stop_reason='end_turn'):
+        return SimpleNamespace(stop_reason=stop_reason, stop_details=None,
+                               content=[SimpleNamespace(type='thinking', thinking=''),
+                                        SimpleNamespace(type='text', text=text)])
+
+    def test_request_shape_and_text(self):
+        from estatemind.assistants.legal.services import anthropic_client
+        client = MagicMock()
+        client.beta.messages.create.return_value = self._response()
+        with patch.object(anthropic_client.anthropic, 'Anthropic', return_value=client):
+            text = anthropic_client.chat(self.MSGS, {'model': 'claude-opus-5', 'api_key': 'k'})
+        self.assertEqual(text, 'Answer [1].')
+        kw = client.beta.messages.create.call_args.kwargs
+        self.assertEqual(kw['system'], 'You answer from passages.')
+        self.assertEqual([m['role'] for m in kw['messages']], ['user', 'assistant', 'user'])
+        self.assertEqual(kw['fallbacks'], 'default')
+        self.assertEqual(kw['betas'], ['server-side-fallback-2026-07-01'])
+        self.assertEqual(kw['output_config'], {'effort': 'medium'})
+
+    def test_model_without_fallbacks_uses_plain_create(self):
+        from estatemind.assistants.legal.services import anthropic_client
+        client = MagicMock()
+        client.messages.create.return_value = self._response()
+        with patch.object(anthropic_client.anthropic, 'Anthropic', return_value=client):
+            anthropic_client.chat(self.MSGS, {'model': 'claude-sonnet-5'})
+        self.assertNotIn('fallbacks', client.messages.create.call_args.kwargs)
+
+    def test_refusal_becomes_empty_answer_and_connection_error_unavailable(self):
+        import anthropic
+        from estatemind.assistants.legal.services import anthropic_client
+        ep = {'name': 'primary', 'provider': 'anthropic', 'model': 'claude-opus-5', 'api_key': 'k'}
+        client = MagicMock()
+        client.beta.messages.create.return_value = self._response('', stop_reason='refusal')
+        with patch.object(anthropic_client.anthropic, 'Anthropic', return_value=client):
+            self.assertEqual(llm_service._endpoint_chat(ep, self.MSGS, 750, 0.1)[0], '')
+        client.beta.messages.create.side_effect = anthropic.APIConnectionError(request=MagicMock())
+        with patch.object(anthropic_client.anthropic, 'Anthropic', return_value=client):
+            with self.assertRaises(llm_service.LLMUnavailable):
+                llm_service._endpoint_chat(ep, self.MSGS, 750, 0.1)
+
+    def test_empty_answer_is_refused_not_answered(self):
+        with patch.object(llm_service, 'chat', return_value=''):
+            result = _assistant(decisions=(PASS, PASS)).answer('Which contracts pay the fixed duty?')
+        self.assertEqual(result['outcome'], LegalResponseLog.OUTCOME_UNGROUNDED)
