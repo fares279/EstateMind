@@ -75,9 +75,9 @@ def _fetch_climate_score(delegation: str, lat: float = None, lon: float = None) 
     if delegation:
         try:
             from estatemind.market.core.models import DelegationClimateScore, Delegation
-            d = Delegation.objects.filter(
-                name__icontains=delegation
-            ).first()
+            from estatemind.intelligence.valuation.inference.location import plain
+            key = plain(delegation)
+            d = next((x for x in Delegation.objects.all() if plain(x.name) == key), None)                 or Delegation.objects.filter(name__icontains=delegation).first()
             
             if d:
                 score = DelegationClimateScore.objects.get(delegation=d)
@@ -128,7 +128,9 @@ def map_request(payload: Any) -> dict[str, Any]:
     # Fetch climate score
     lat = _get_value(payload, "latitude", None)
     lon = _get_value(payload, "longitude", None)
-    climate_result = _fetch_climate_score(delegation, lat, lon)
+    # the web form sends the town as 'city'; 'delegation' was always empty, so every
+    # valuation used the national-average climate fallback
+    climate_result = _fetch_climate_score(delegation or city, lat, lon)
 
     # Fetch delegation market average (TND/m²)
     market_avg_tnd_m2 = 2000  # National fallback

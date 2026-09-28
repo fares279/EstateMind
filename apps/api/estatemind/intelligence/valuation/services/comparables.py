@@ -70,7 +70,11 @@ def find(ref: dict, estimated_price: float, limit: int = 4) -> tuple[list, dict]
     except ImportError:
         return [], _empty_context()
 
+    from estatemind.market.core.models import SYNTHETIC_SOURCE
+
     ptype    = (ref.get('property_type') or 'apartment').lower()
+    # the form sends French types; Property stores English ones (no DB match before)
+    ptype    = {'appartement': 'apartment', 'maison': 'house', 'villa': 'house', 'terrain': 'land'}.get(ptype, ptype)
     gov_raw  = (ref.get('governorate') or '').strip()
     tx_type  = (ref.get('transaction_type') or 'sale').lower()
     size_m2  = float(ref.get('size_m2') or 100)
@@ -78,7 +82,7 @@ def find(ref: dict, estimated_price: float, limit: int = 4) -> tuple[list, dict]
     qs = Property.objects.select_related('region', 'delegation').filter(
         is_active=True, price__isnull=False, price__gt=0,
         transaction_type=tx_type, property_type=ptype,
-    )
+    ).exclude(source=SYNTHETIC_SOURCE)  # evidence must be real listings, not benchmark samples
     if gov_raw:
         qs = qs.filter(region__governorate__iexact=gov_raw)
 
