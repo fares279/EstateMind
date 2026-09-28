@@ -62,7 +62,19 @@ class ChatbotFeedbackTests(TestCase):
         self.assertEqual(response.status_code, 400)
 
     def test_unknown_response_log(self):
-        response = self.client.post('/api/chatbot/feedback/', {'response_log_id': 99999, 'feedback': 'thumbs_up'},
-                                    format='json')
+        response = self.client.post('/api/chatbot/feedback/', {
+            'response_log_id': 99999, 'session_id': self.reply['session_id'], 'feedback': 'thumbs_up'}, format='json')
         self.assertEqual(response.status_code, 404)
         self.assertTrue(ChatbotSession.objects.exists())
+
+    def test_feedback_by_id_needs_the_matching_session(self):
+        url, log_id = '/api/chatbot/feedback/', self.reply['response_log_id']
+        self.assertEqual(self.client.post(url, {'response_log_id': log_id, 'feedback': 'thumbs_down'},
+                                          format='json').status_code, 400)
+        other = self.client.post('/api/chatbot/message/', {'message': 'Hello'}, format='json').json()['session_id']
+        self.assertEqual(self.client.post(url, {'response_log_id': log_id, 'session_id': other,
+                                                'feedback': 'thumbs_down'}, format='json').status_code, 404)
+        ok = self.client.post(url, {'response_log_id': log_id, 'session_id': self.reply['session_id'],
+                                    'feedback': 'thumbs_down'}, format='json')
+        self.assertEqual(ok.status_code, 200)
+        self.assertEqual(ChatbotResponseLog.objects.get(id=log_id).user_feedback, 'thumbs_down')

@@ -30,9 +30,10 @@ describe('legal API client', () => {
     expect(instance.post.mock.calls[0][1]).toEqual({ question: 'Bonjour', session_id: undefined });
   });
 
-  it('sends feedback by response log id', async () => {
-    await api.sendLegalFeedback(42, 'thumbs_up');
-    expect(instance.post).toHaveBeenCalledWith('/legal/feedback/', { response_log_id: 42, feedback: 'thumbs_up' });
+  it('sends feedback with the response log id and its session', async () => {
+    await api.sendLegalFeedback(42, 'thumbs_up', 'sess-1');
+    expect(instance.post).toHaveBeenCalledWith(
+      '/legal/feedback/', { response_log_id: 42, feedback: 'thumbs_up', session_id: 'sess-1' });
   });
 });
 

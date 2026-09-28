@@ -9,12 +9,12 @@ import { sendChatMessage, submitChatFeedback } from '../../../services/api-modul
 import { FallbackNotice, SkeletonLoader } from '../../../components/common/CommonComponents';
 
 export const ChatMessage = ({ message, onFeedback }) => {
-  const { id, text, sources, quality_score, is_fallback, fallback_reason, timestamp } = message;
+  const { text, sources, quality_score, is_fallback, fallback_reason, timestamp } = message;
   const [feedbackGiven, setFeedbackGiven] = useState(null);
 
   const handleFeedback = (feedback) => {
     setFeedbackGiven(feedback);
-    onFeedback(id, feedback);
+    onFeedback(message, feedback);
   };
 
   return (
@@ -120,9 +120,10 @@ export const ChatInterface = () => {
     }
   };
 
-  const handleFeedback = async (messageId, feedback) => {
+  const handleFeedback = async (message, feedback) => {
+    if (!message.response_log_id) return;
     try {
-      await submitChatFeedback(messageId, feedback);
+      await submitChatFeedback(message.response_log_id, message.session_id, feedback);
     } catch (error) {
       console.error('Failed to submit feedback:', error);
     }

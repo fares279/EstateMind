@@ -20,9 +20,11 @@ export const sendChatMessage = (message, sessionId) => {
 	return chatSendMessage({ message, session_id: sessionId }).then((response) => response.data);
 };
 
-export const submitChatFeedback = (responseLogId, feedback, feedbackText = '') =>
+// The API only accepts feedback with the conversation's session_id.
+export const submitChatFeedback = (responseLogId, sessionId, feedback, feedbackText = '') =>
 	api.post('/chatbot/feedback/', {
 		response_log_id: responseLogId,
+		session_id: sessionId,
 		feedback: feedback === 'helpful' ? 'thumbs_up' : 'thumbs_down',
 		feedback_text: feedbackText,
 	}).then((response) => response.data);

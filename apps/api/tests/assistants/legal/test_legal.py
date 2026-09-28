@@ -253,8 +253,17 @@ class TestLegalViews(TestCase):
         for key in ('answer', 'sources', 'citations', 'session_id', 'outcome', 'response_log_id', 'quality_label'):
             self.assertIn(key, body)
 
+        # without the session the id alone is not enough (anyone could rate any answer)
+        anon = self.client.post('/api/legal/feedback/', {'response_log_id': body['response_log_id'],
+                                                         'feedback': 'thumbs_down'}, format='json')
+        self.assertEqual(anon.status_code, 400)
+        wrong = self.client.post('/api/legal/feedback/', {'response_log_id': body['response_log_id'],
+                                                          'session_id': 'someone-else', 'feedback': 'thumbs_down'},
+                                 format='json')
+        self.assertEqual(wrong.status_code, 404)
         fb = self.client.post('/api/legal/feedback/', {'response_log_id': body['response_log_id'],
-                                                       'feedback': 'thumbs_up'}, format='json')
+                                                       'session_id': body['session_id'], 'feedback': 'thumbs_up'},
+                              format='json')
         self.assertEqual(fb.status_code, 200)
         self.assertEqual(LegalResponseLog.objects.get(id=body['response_log_id']).user_feedback, 'thumbs_up')
 

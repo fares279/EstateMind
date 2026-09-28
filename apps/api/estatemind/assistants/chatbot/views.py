@@ -12,13 +12,14 @@ import re
 from django.core.cache import cache
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 
 from estatemind.assistants.chatbot.services.conversation_memory import ConversationMemory
 from estatemind.assistants.chatbot.models import ChatbotSession, ChatbotResponseLog
+from estatemind.platform.throttling import ChatThrottle, FeedbackThrottle, with_defaults
 from estatemind.assistants.chatbot.apps import (
     get_intent_classifier,
     get_market_retriever,
@@ -155,6 +156,7 @@ def _save_memory(session_id: str, memory: ConversationMemory):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes(with_defaults(ChatThrottle))
 @csrf_exempt
 def chat_message(request):
     """
@@ -527,6 +529,7 @@ def chat_session(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes(with_defaults(FeedbackThrottle))
 @csrf_exempt
 def record_feedback(request):
     """
@@ -558,8 +561,13 @@ def record_feedback(request):
         # Format 1: by response ID
         response_log_id = request.data.get('response_log_id')
         if response_log_id:
+            # The session id (a random UUID only that conversation's client holds)
+            # must match, or anyone could rate any answer and skew reward training.
+            if not request.data.get('session_id'):
+                return Response({'error': 'session_id is required'}, status=status.HTTP_400_BAD_REQUEST)
             try:
-                response_log = ChatbotResponseLog.objects.get(id=response_log_id)
+                response_log = ChatbotResponseLog.objects.get(
+                    id=response_log_id, session__session_id=request.data['session_id'])
             except ChatbotResponseLog.DoesNotExist:
                 return Response(
                     {'error': f'Response log {response_log_id} not found'},

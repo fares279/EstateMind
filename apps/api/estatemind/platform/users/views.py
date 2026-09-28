@@ -1,5 +1,4 @@
 """API views for user authentication"""
-
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -10,6 +9,8 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from estatemind.market.core.models import Property, PriceTrend
 from estatemind.platform.campaign.models import Participant
+from estatemind.platform.throttling import (LoginThrottle, OTPThrottle, PasswordResetThrottle, RegisterThrottle,
+                                            with_defaults)
 
 from .serializers import (
     UserSerializer, RegisterSerializer, ChangePasswordSerializer,
@@ -20,7 +21,7 @@ from .serializers import (
 )
 from .emails import send_verification_email, send_password_reset_email, send_welcome_email
 from .permissions import RequiresPro, RequiresInvestor
-from .models import UserActivity, SavedProperty, UserValuation, Portfolio
+from .models import OTPLocked, UserActivity, SavedProperty, UserValuation, Portfolio
 
 User = get_user_model()
 
@@ -43,6 +44,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):
+    throttle_classes = with_defaults(LoginThrottle)
     """Custom login endpoint that uses email instead of username"""
     serializer_class = CustomTokenObtainPairSerializer
 
@@ -60,7 +62,7 @@ class UserViewSet(viewsets.GenericViewSet):
     serializer_class = UserSerializer
     permission_classes = [AllowAny]
 
-    @action(detail=False, methods=['POST'], permission_classes=[AllowAny])
+    @action(detail=False, methods=['POST'], permission_classes=[AllowAny], throttle_classes=with_defaults(RegisterThrottle))
     def register(self, request):
         """
         Register a new user
@@ -81,7 +83,7 @@ class UserViewSet(viewsets.GenericViewSet):
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=False, methods=['POST'], permission_classes=[AllowAny])
+    @action(detail=False, methods=['POST'], permission_classes=[AllowAny], throttle_classes=with_defaults(OTPThrottle))
     def verify_otp(self, request):
         """
         Verify OTP during registration
@@ -98,7 +100,7 @@ class UserViewSet(viewsets.GenericViewSet):
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=False, methods=['POST'], permission_classes=[AllowAny])
+    @action(detail=False, methods=['POST'], permission_classes=[AllowAny], throttle_classes=with_defaults(OTPThrottle))
     def resend_otp(self, request):
         """
         Resend OTP to email
@@ -112,7 +114,10 @@ class UserViewSet(viewsets.GenericViewSet):
             if user.is_email_verified:
                 return Response({'message': 'Email is already verified'}, status=status.HTTP_200_OK)
             
-            otp = user.generate_otp()
+            try:
+                otp = user.generate_otp()
+            except OTPLocked as locked:
+                return Response({'error': str(locked)}, status=status.HTTP_429_TOO_MANY_REQUESTS)
             # Send OTP via email
             try:
                 send_verification_email(user, otp)
@@ -126,7 +131,7 @@ class UserViewSet(viewsets.GenericViewSet):
         except User.DoesNotExist:
             return Response({'email': 'No account found with this email.'}, status=status.HTTP_404_NOT_FOUND)
 
-    @action(detail=False, methods=['POST'], permission_classes=[AllowAny])
+    @action(detail=False, methods=['POST'], permission_classes=[AllowAny], throttle_classes=with_defaults(OTPThrottle))
     def verify_email(self, request):
         """
         Verify email using token
@@ -149,7 +154,7 @@ class UserViewSet(viewsets.GenericViewSet):
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=False, methods=['POST'], permission_classes=[AllowAny])
+    @action(detail=False, methods=['POST'], permission_classes=[AllowAny], throttle_classes=with_defaults(OTPThrottle))
     def resend_verification_email(self, request):
         """
         Resend verification email
@@ -170,7 +175,7 @@ class UserViewSet(viewsets.GenericViewSet):
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=False, methods=['POST'], permission_classes=[AllowAny])
+    @action(detail=False, methods=['POST'], permission_classes=[AllowAny], throttle_classes=with_defaults(PasswordResetThrottle))
     def forgot_password(self, request):
         """
         Request password reset
@@ -192,7 +197,7 @@ class UserViewSet(viewsets.GenericViewSet):
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=False, methods=['POST'], permission_classes=[AllowAny])
+    @action(detail=False, methods=['POST'], permission_classes=[AllowAny], throttle_classes=with_defaults(PasswordResetThrottle))
     def reset_password(self, request):
         """
         Reset password using token

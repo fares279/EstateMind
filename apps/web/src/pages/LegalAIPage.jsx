@@ -67,12 +67,12 @@ function SourceCard({ source, index }) {
 }
 
 // ─── Message ──────────────────────────────────────────────────────────────────
-function Feedback({ logId }) {
+function Feedback({ logId, sessionId }) {
   const [sent, setSent] = useState(null);
   const send = (value) => {
     if (sent || !logId) return;
     setSent(value);
-    sendLegalFeedback(logId, value).catch(() => setSent(null));
+    sendLegalFeedback(logId, value, sessionId).catch(() => setSent(null));
   };
   if (!logId) return null;
   return (
@@ -197,7 +197,7 @@ function Message({ msg }) {
           )}
         </div>
 
-        <Feedback logId={msg.response_log_id} />
+        <Feedback logId={msg.response_log_id} sessionId={msg.session_id} />
 
         {hasSources && (
           <div className="ml-1">
@@ -384,6 +384,7 @@ export default function LegalAIPage() {
       grounding_score: data.grounding_score,
       quality_label: data.quality_label,
       response_log_id: data.response_log_id,
+      session_id: data.session_id,
     });
 
     try {

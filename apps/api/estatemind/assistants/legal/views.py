@@ -13,6 +13,8 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from estatemind.platform.throttling import FeedbackThrottle, LegalAskThrottle, with_defaults
+
 from .models import LegalResponseLog, LegalSession
 
 logger = logging.getLogger(__name__)
@@ -30,6 +32,7 @@ SAMPLE_QUESTIONS = [
 
 class LegalAskView(APIView):
     permission_classes = [AllowAny]
+    throttle_classes = with_defaults(LegalAskThrottle)
 
     def post(self, request):
         question = (request.data.get('question') or '').strip()
@@ -59,6 +62,7 @@ class LegalFeedbackView(APIView):
     """{ "response_log_id": int, "feedback": "thumbs_up"|"thumbs_down", "feedback_text": str? }
     or { "session_id": str, "turn_index": int, ... } — same contract as /api/chatbot/feedback/."""
     permission_classes = [AllowAny]
+    throttle_classes = with_defaults(FeedbackThrottle)
 
     def post(self, request):
         feedback = request.data.get('feedback')
@@ -68,9 +72,14 @@ class LegalFeedbackView(APIView):
 
         log = None
         log_id = request.data.get('response_log_id')
+        session_id = request.data.get('session_id')
         if log_id:
-            log = LegalResponseLog.objects.filter(id=log_id).first()
-        elif request.data.get('session_id') and request.data.get('turn_index') is not None:
+            # The session id (a random UUID only that conversation's client holds)
+            # must match, or anyone could rate any answer and skew reward training.
+            if not session_id:
+                return Response({'error': 'session_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+            log = LegalResponseLog.objects.filter(id=log_id, session__session_id=session_id).first()
+        elif session_id and request.data.get('turn_index') is not None:
             log = LegalResponseLog.objects.filter(
                 session__session_id=request.data['session_id'], turn_index=request.data['turn_index']).first()
         else:

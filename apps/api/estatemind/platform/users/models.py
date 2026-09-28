@@ -5,6 +5,14 @@ from django.db import models
 import uuid
 
 
+class OTPLocked(Exception):
+    """Too many wrong OTP codes; a new code can be requested after `minutes`."""
+
+    def __init__(self, minutes: int):
+        super().__init__(f'Too many failed attempts. Try again in {minutes} minute(s).')
+        self.minutes = minutes
+
+
 class CustomUserManager(UserManager):
     """Custom user manager that uses email instead of username"""
     
@@ -119,37 +127,62 @@ class User(AbstractUser):
         self.save()
         return token
     
-    def generate_otp(self):
-        """Generate a 6-digit OTP for email verification"""
-        import random
-        from django.utils import timezone
-        
-        otp = str(random.randint(100000, 999999))
-        self.otp = otp
-        self.otp_created_at = timezone.now()
-        self.otp_attempts = 0
-        self.save()
-        return otp
-    
-    def verify_otp(self, otp_code):
-        """Verify OTP and mark email as verified"""
+    OTP_MAX_ATTEMPTS = 5
+    OTP_VALID_MINUTES = 10
+    OTP_LOCKOUT_MINUTES = 15
+
+    def otp_lockout_remaining(self):
+        """Minutes left in an OTP lockout (0 = not locked). Five wrong codes lock
+        the account's OTP for 15 minutes from when the last code was issued."""
         from django.utils import timezone
         from datetime import timedelta
-        
-        if not self.otp or self.otp != otp_code:
+        if self.otp_attempts < self.OTP_MAX_ATTEMPTS or not self.otp_created_at:
+            return 0
+        left = self.otp_created_at + timedelta(minutes=self.OTP_LOCKOUT_MINUTES) - timezone.now()
+        return max(0, int(left.total_seconds() // 60) + 1) if left.total_seconds() > 0 else 0
+
+    def generate_otp(self):
+        """Generate a 6-digit OTP for email verification.
+
+        A resend keeps the wrong-guess count (it used to reset it, giving 5 more
+        guesses per resend); the count only clears once a lockout has passed.
+        Raises OTPLocked while locked.
+        """
+        import secrets
+        from django.utils import timezone
+
+        remaining = self.otp_lockout_remaining()
+        if remaining:
+            raise OTPLocked(remaining)
+        if self.otp_attempts >= self.OTP_MAX_ATTEMPTS:
+            self.otp_attempts = 0  # lockout over
+        otp = f'{secrets.randbelow(900_000) + 100_000}'
+        self.otp = otp
+        self.otp_created_at = timezone.now()
+        self.save()
+        return otp
+
+    def verify_otp(self, otp_code):
+        """Verify OTP and mark email as verified"""
+        import secrets
+        from django.utils import timezone
+        from datetime import timedelta
+
+        # Lockout first: checking it after the comparison told a locked-out
+        # guesser which code was right (different message).
+        if self.otp_attempts >= self.OTP_MAX_ATTEMPTS:
+            return False, "Too many failed attempts. Request a new code later."
+
+        if not self.otp or not secrets.compare_digest(str(self.otp), str(otp_code or '')):
             self.otp_attempts += 1
             self.save()
             return False, "Invalid OTP"
-        
-        # Check if OTP expired (valid for 10 minutes)
+
+        # Check if OTP expired
         if self.otp_created_at:
-            if timezone.now() - self.otp_created_at > timedelta(minutes=10):
+            if timezone.now() - self.otp_created_at > timedelta(minutes=self.OTP_VALID_MINUTES):
                 return False, "OTP expired"
-        
-        # Check attempt limit
-        if self.otp_attempts >= 5:
-            return False, "Too many failed attempts"
-        
+
         # Mark email as verified
         self.is_email_verified = True
         self.email_verified_at = timezone.now()

@@ -154,7 +154,35 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',
     ],
+    # Generous defaults (a page load fires many requests); sensitive or costly
+    # endpoints add a tighter scope from estatemind/platform/throttling.py.
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '300/min',
+        'user': '600/min',
+        'login': '10/min',
+        'register': '10/hour',
+        'otp': '5/min',
+        'password_reset': '5/hour',
+        'chat': '20/min',
+        'legal_ask': '10/min',
+        'feedback': '30/min',
+    },
+    # Behind a load balancer set this to the number of proxies, so throttles see
+    # the client IP (X-Forwarded-For) instead of the proxy's.
+    'NUM_PROXIES': config('NUM_PROXIES', default=None, cast=lambda v: int(v) if v not in (None, '') else None),
 }
+
+# Throttle counters and chatbot conversation memory live in the cache. The
+# default in-memory cache is per process: with several gunicorn workers a chat
+# loses its memory whenever a request lands on another worker. Set CACHE_URL
+# (e.g. redis://redis:6379/1) wherever more than one process serves requests.
+if config('CACHE_URL', default=''):
+    CACHES = {'default': {'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+                          'LOCATION': config('CACHE_URL')}}
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'EstateMind API',
