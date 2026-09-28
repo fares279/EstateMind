@@ -14,6 +14,7 @@ from django.utils import timezone
 from datetime import datetime, timedelta, timezone as dt_timezone
 
 from .models import Payment, Subscription, StripeCustomer
+from estatemind.platform.errors import error_body
 from .serializers import (
     PaymentSerializer, SubscriptionSerializer, CheckoutSessionSerializer,
     CheckoutSessionResponseSerializer, StripeCustomerSerializer
@@ -168,7 +169,7 @@ class BillingViewSet(viewsets.ViewSet):
         except stripe.error.InvalidRequestError as e:
             logger.error(f"Invalid request to Stripe: {e}")
             return Response(
-                {'error': f'Invalid payment request: {str(e)}'},
+                {'error': 'The payment request was not accepted. Please try again or contact support.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         except stripe.error.AuthenticationError:
@@ -268,7 +269,7 @@ class BillingViewSet(viewsets.ViewSet):
         except stripe.error.InvalidRequestError as e:
             logger.error(f"Invalid payment intent: {e}")
             return Response(
-                {'error': f'Invalid payment intent: {str(e)}'},
+                {'error': 'This payment could not be found. Please try again or contact support.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         except Exception as e:
@@ -379,7 +380,7 @@ def stripe_webhook(request):
 
     except Exception as e:
         logger.error(f"Error processing webhook event: {e}")
-        return JsonResponse({'error': str(e)}, status=500)
+        return JsonResponse(error_body(e, where='stripe_webhook'), status=500)
 
 
 def handle_checkout_session_completed(session):

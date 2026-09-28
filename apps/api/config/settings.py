@@ -154,6 +154,8 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',
     ],
+    # Unexpected errors reach users as a plain message + reference code, never raw text
+    'EXCEPTION_HANDLER': 'estatemind.platform.errors.api_exception_handler',
     # Generous defaults (a page load fires many requests); sensitive or costly
     # endpoints add a tighter scope from estatemind/platform/throttling.py.
     'DEFAULT_THROTTLE_CLASSES': [

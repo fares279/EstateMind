@@ -4,7 +4,11 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 
+from estatemind.platform.errors import error_body
+
 from .models import PortfolioAsset, ScanResult
+
+INPUT_MESSAGE = 'Some of the values could not be read. Please check them and try again.'
 from .services.scorer import score_listing, score_asset, score_portfolio
 from .services.zone_data import get_zone_stats, get_zone_forecast
 from .services.registry import REGISTRY
@@ -101,8 +105,8 @@ def portfolio_list(request):
             notes                 = data.get('notes', ''),
         )
         return Response(_asset_to_dict(asset), status=status.HTTP_201_CREATED)
-    except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    except (TypeError, ValueError) as e:
+        return Response(error_body(e, INPUT_MESSAGE, where='portfolio_list'), status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['GET', 'PUT', 'PATCH', 'DELETE'])

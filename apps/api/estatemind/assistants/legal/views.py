@@ -14,6 +14,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from estatemind.platform.throttling import FeedbackThrottle, LegalAskThrottle, with_defaults
+from estatemind.platform.errors import error_body
 
 from .models import LegalResponseLog, LegalSession
 
@@ -130,7 +131,9 @@ class LegalStatusView(APIView):
             return Response(get_status())
         except Exception as exc:  # noqa: BLE001
             logger.exception('Legal status failed')
-            return Response({'documents_indexed': 0, 'llm_available': False, 'ready': False, 'error': str(exc)})
+            return Response({'documents_indexed': 0, 'llm_available': False, 'ready': False,
+                             'error': 'The legal assistant status is unavailable right now.',
+                             'reference': error_body(exc, where='legal_status')['reference']})
 
 
 class LegalSampleQuestionsView(APIView):

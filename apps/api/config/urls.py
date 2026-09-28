@@ -36,3 +36,12 @@ urlpatterns = [
     path('api/core/', include('estatemind.market.core.urls')),
     path('api/', include('estatemind.market.features.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+
+def server_error(request):
+    """Unhandled errors outside DRF (DEBUG=False): JSON with a plain message, not an HTML page."""
+    from estatemind.platform.errors import GENERIC_MESSAGE
+    return JsonResponse({'error': GENERIC_MESSAGE}, status=500)
+
+
+handler500 = server_error

@@ -20,6 +20,7 @@ from rest_framework import status
 from estatemind.assistants.chatbot.services.conversation_memory import ConversationMemory
 from estatemind.assistants.chatbot.models import ChatbotSession, ChatbotResponseLog
 from estatemind.platform.throttling import ChatThrottle, FeedbackThrottle, with_defaults
+from estatemind.platform.errors import error_body
 from estatemind.assistants.chatbot.apps import (
     get_intent_classifier,
     get_market_retriever,
@@ -627,7 +628,7 @@ def record_feedback(request):
     except Exception as exc:
         logger.exception(f'Feedback recording error: {exc}')
         return Response(
-            {'error': f'Internal error: {str(exc)}'},
+            error_body(exc, where='chatbot'),
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 

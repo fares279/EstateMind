@@ -5,6 +5,7 @@ All views are CSRF-exempt function-based views returning JSON with CORS headers.
 from __future__ import annotations
 
 import ast
+import functools
 import json
 import logging
 import threading
@@ -14,6 +15,7 @@ from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
 from .models import SimulationRun
+from estatemind.platform.errors import internal_error_json
 from .engine.config import (
     SCENARIOS, SCALE_PRESETS, get_scenario, get_scale, scenarios_list,
 )
@@ -59,6 +61,18 @@ def _user(request):
     return result[0] if result else None
 
 
+def _safe(view):
+    """Unexpected errors become a plain message with a reference code (logged),
+    never database or exception text (these are plain Django views, outside DRF)."""
+    @functools.wraps(view)
+    def wrapper(request, *args, **kwargs):
+        try:
+            return view(request, *args, **kwargs)
+        except Exception as exc:  # noqa: BLE001
+            return internal_error_json(exc, where=view.__name__)
+    return wrapper
+
+
 def _can_delete(user, run: SimulationRun) -> bool:
     if user is None:
         return False
@@ -66,6 +80,7 @@ def _can_delete(user, run: SimulationRun) -> bool:
 
 
 # ── Scenario catalogue ─────────────────────────────────────────────────────────
+@_safe
 def scenarios_view(request):
     if request.method == "OPTIONS":
         return _preflight()
@@ -73,6 +88,7 @@ def scenarios_view(request):
 
 
 # ── Start simulation ───────────────────────────────────────────────────────────
+@_safe
 @csrf_exempt
 def start_view(request):
     if request.method == "OPTIONS":
@@ -133,7 +149,7 @@ def start_view(request):
         )
     except Exception as exc:
         logger.exception("Failed to create SimulationRun")
-        return _err(f"Database error: {exc}", 500)
+        return internal_error_json(exc, "The simulation could not be started. Please try again.", where="simulation_start")
 
     def _run():
         from .engine.simulator import TunisiaRealEstateSimulator
@@ -168,6 +184,7 @@ def start_view(request):
 
 
 # ── Run list ───────────────────────────────────────────────────────────────────
+@_safe
 def runs_list_view(request):
     if request.method == "OPTIONS":
         return _preflight()
@@ -196,6 +213,7 @@ def runs_list_view(request):
 
 
 # ── Run detail / delete ────────────────────────────────────────────────────────
+@_safe
 @csrf_exempt
 def run_detail_view(request, run_id):
     if request.method == "OPTIONS":
@@ -249,6 +267,7 @@ def run_detail_view(request, run_id):
 
 
 # ── Timeseries ─────────────────────────────────────────────────────────────────
+@_safe
 def timeseries_view(request, run_id):
     if request.method == "OPTIONS":
         return _preflight()
@@ -277,6 +296,7 @@ def timeseries_view(request, run_id):
 
 
 # ── Summary metrics ────────────────────────────────────────────────────────────
+@_safe
 def metrics_view(request, run_id):
     if request.method == "OPTIONS":
         return _preflight()
@@ -311,6 +331,7 @@ def metrics_view(request, run_id):
 
 
 # ── Agent outcomes ─────────────────────────────────────────────────────────────
+@_safe
 def agents_view(request, run_id):
     if request.method == "OPTIONS":
         return _preflight()
@@ -328,6 +349,7 @@ def agents_view(request, run_id):
 
 
 # ── Compare two runs ───────────────────────────────────────────────────────────
+@_safe
 def compare_view(request):
     if request.method == "OPTIONS":
         return _preflight()
@@ -342,7 +364,7 @@ def compare_view(request):
         run_a = SimulationRun.objects.get(run_id=run_a_id)
         run_b = SimulationRun.objects.get(run_id=run_b_id)
     except SimulationRun.DoesNotExist as exc:
-        return _err(f"Run not found: {exc}", 404)
+        return _err("One of the runs to compare was not found.", 404)
 
     def _summary(run: SimulationRun) -> dict:
         states = run.monthly_states or []
@@ -373,6 +395,7 @@ def compare_view(request):
 
 
 # ── Zone price snapshot (for frontend geographic map) ─────────────────────────
+@_safe
 def zones_view(request, run_id):
     """Return per-governorate average apartment price for the most recent step."""
     if request.method == "OPTIONS":

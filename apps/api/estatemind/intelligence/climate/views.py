@@ -4,6 +4,7 @@ from rest_framework.decorators import api_view, action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.http import Http404
+from estatemind.platform.errors import error_body
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from estatemind.market.core.models import Delegation, DelegationClimateScore
@@ -87,7 +88,7 @@ def delegation_climate_detail(request, delegation_name):
     except Exception as e:
         logger.error(f'Error fetching climate details for {delegation_name}: {e}')
         return Response(
-            {'error': str(e)},
+            error_body(e, where='climate'),
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
@@ -121,7 +122,7 @@ def climate_point_query(request):
     except Exception as e:
         logger.error(f'Error querying climate at ({lat}, {lon}): {e}')
         return Response(
-            {'error': str(e)},
+            error_body(e, where='climate'),
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
@@ -167,7 +168,7 @@ def climate_heatmap(request):
     except Exception as e:
         logger.error(f'Error generating climate heatmap: {e}')
         return Response(
-            {'error': str(e)},
+            error_body(e, where='climate'),
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
@@ -233,7 +234,7 @@ def climate_summary(request):
     except Exception as e:
         logger.error(f'Error generating climate summary: {e}')
         return Response(
-            {'error': str(e)},
+            error_body(e, where='climate'),
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
@@ -286,7 +287,7 @@ def climate_freshness_status(request):
     except Exception as e:
         logger.error(f'Error generating climate freshness status: {e}')
         return Response(
-            {'error': str(e)},
+            error_body(e, where='climate'),
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
@@ -333,7 +334,7 @@ def trigger_climate_recalibration(request):
     except Exception as e:
         logger.error(f'Error triggering climate recalibration: {e}')
         return Response(
-            {'error': str(e)},
+            error_body(e, where='climate'),
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 

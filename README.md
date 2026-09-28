@@ -32,7 +32,7 @@ cd apps/api
 python -m venv .venv && .venv/Scripts/activate      # Windows; use .venv/bin/activate elsewhere
 pip install -r requirements/dev.txt
 cp .env.example .env                                # set USE_SQLITE=True for a local database
-python manage.py migrate
+python manage.py migrate                            # again after every pull: new code may add migrations
 python manage.py runserver
 ```
 

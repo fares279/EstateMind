@@ -16,6 +16,10 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 
+from estatemind.platform.errors import error_body
+
+INPUT_MESSAGE = 'Some of the values could not be read. Please check them and try again.'
+
 from estatemind.intelligence.investor.models import (
     PortfolioAsset, InvestmentScore, PortfolioAnalysis, InvestorScorerVersion,
 )
@@ -144,7 +148,7 @@ def scan_property(request):
     except Exception as e:
         logger.error(f'Scanner error: {e}')
         return Response(
-            {'detail': str(e)},
+            error_body(e, key='detail', where='investor'),
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -186,7 +190,7 @@ def add_portfolio_asset(request):
 
     except Exception as e:
         logger.error(f'Error adding asset: {e}')
-        return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(error_body(e, INPUT_MESSAGE, key='detail', where='investor'), status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['GET'])
@@ -267,7 +271,7 @@ def portfolio_analysis(request):
     except Exception as e:
         logger.error(f'Portfolio analysis error: {e}')
         return Response(
-            {'detail': str(e)},
+            error_body(e, key='detail', where='investor'),
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -311,7 +315,7 @@ def list_scorer_versions(request):
     except Exception as e:
         logger.error(f'Error listing scorer versions: {e}')
         return Response(
-            {'detail': str(e)},
+            error_body(e, key='detail', where='investor'),
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -345,7 +349,7 @@ def start_ab_test(request):
     except Exception as e:
         logger.error(f'Error starting A/B test: {e}')
         return Response(
-            {'detail': str(e)},
+            error_body(e, INPUT_MESSAGE, key='detail', where='investor'),
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -379,7 +383,7 @@ def promote_to_champion(request):
     except Exception as e:
         logger.error(f'Error promoting: {e}')
         return Response(
-            {'detail': str(e)},
+            error_body(e, INPUT_MESSAGE, key='detail', where='investor'),
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -403,6 +407,6 @@ def rollback_scorer(request):
     except Exception as e:
         logger.error(f'Error rolling back: {e}')
         return Response(
-            {'detail': str(e)},
+            error_body(e, INPUT_MESSAGE, key='detail', where='investor'),
             status=status.HTTP_400_BAD_REQUEST,
         )

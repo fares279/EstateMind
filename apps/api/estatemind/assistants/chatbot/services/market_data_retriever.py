@@ -166,10 +166,10 @@ class MarketDataRetriever:
             }
             
         except Exception as e:
-            logger.warning(f'Market snapshot retrieval failed for {location}: {e}')
+            logger.warning(f'Market snapshot retrieval failed for {location}: {e}', exc_info=True)
             return {
                 'available': False,
-                'reason': f'Market data retrieval error: {str(e)[:100]}',
+                'reason': 'Market data is temporarily unavailable.',
                 'fallback': 'unable_to_retrieve'
             }
     
@@ -206,10 +206,10 @@ class MarketDataRetriever:
                 }
                 
         except Exception as e:
-            logger.warning(f'Forecast retrieval failed for {location}: {e}')
+            logger.warning(f'Forecast retrieval failed for {location}: {e}', exc_info=True)
             return {
                 'available': False,
-                'reason': f'Forecast retrieval error: {str(e)[:100]}'
+                'reason': 'Forecast data is temporarily unavailable.'
             }
     
     def _get_climate_risk(self, location: str) -> Dict:
@@ -261,10 +261,10 @@ class MarketDataRetriever:
             }
             
         except Exception as e:
-            logger.warning(f'Climate risk retrieval failed for {location}: {e}')
+            logger.warning(f'Climate risk retrieval failed for {location}: {e}', exc_info=True)
             return {
                 'available': False,
-                'reason': f'Climate retrieval error: {str(e)[:100]}'
+                'reason': 'Climate data is temporarily unavailable.'
             }
     
     def _get_investment_context(self, location: str) -> Dict:
@@ -297,10 +297,10 @@ class MarketDataRetriever:
                 }
                 
         except Exception as e:
-            logger.warning(f'Investment analysis failed for {location}: {e}')
+            logger.warning(f'Investment analysis failed for {location}: {e}', exc_info=True)
             return {
                 'available': False,
-                'reason': f'Investment analysis error: {str(e)[:100]}'
+                'reason': 'Investment analysis is temporarily unavailable.'
             }
     
     def get_national_rankings(self, data_types: Optional[List[str]] = None,
@@ -337,8 +337,8 @@ class MarketDataRetriever:
                     retrieval_errors.append(top_investments.get('reason', 'Unknown error'))
         
         except Exception as e:
-            logger.error(f'National rankings retrieval failed: {e}')
-            retrieval_errors.append(f'Ranking retrieval error: {str(e)[:100]}')
+            logger.error(f'National rankings retrieval failed: {e}', exc_info=True)
+            retrieval_errors.append('Rankings are temporarily unavailable.')
         
         return {
             'context': context,
@@ -387,10 +387,10 @@ class MarketDataRetriever:
             }
             
         except Exception as e:
-            logger.warning(f'Market rankings failed: {e}')
+            logger.warning(f'Market rankings failed: {e}', exc_info=True)
             return {
                 'available': False,
-                'reason': f'Market ranking error: {str(e)[:100]}'
+                'reason': 'Market rankings are temporarily unavailable.'
             }
     
     def _get_forecast_rankings(self, property_type: str) -> Dict:
@@ -448,10 +448,10 @@ class MarketDataRetriever:
             }
             
         except Exception as e:
-            logger.warning(f'Forecast rankings failed: {e}')
+            logger.warning(f'Forecast rankings failed: {e}', exc_info=True)
             return {
                 'available': False,
-                'reason': f'Forecast ranking error: {str(e)[:100]}'
+                'reason': 'Forecast rankings are temporarily unavailable.'
             }
     
     def _get_investment_rankings(self) -> Dict:
@@ -476,9 +476,9 @@ class MarketDataRetriever:
             }
             
         except Exception as e:
-            logger.warning(f'Investment rankings failed: {e}')
+            logger.warning(f'Investment rankings failed: {e}', exc_info=True)
             return {
                 'available': False,
-                'reason': f'Investment ranking error: {str(e)[:100]}'
+                'reason': 'Investment rankings are temporarily unavailable.'
             }
 
