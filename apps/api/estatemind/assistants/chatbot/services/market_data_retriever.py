@@ -76,95 +76,88 @@ class MarketDataRetriever:
             'location_type': location_type
         }
     
+    @staticmethod
+    def _resolve_location(location: str):
+        """(delegation, region) for a place name: exact delegation name first, then a
+        governorate name (answered at governorate level), then a partial match.
+        Accent- and case-insensitive."""
+        from estatemind.intelligence.valuation.inference.location import plain
+        from estatemind.market.core.models import Delegation, Region
+
+        key = plain(location)
+        if not key:
+            return None, None
+        for d in Delegation.objects.select_related('region'):
+            if plain(d.name) == key:
+                return d, d.region
+        for r in Region.objects.all():
+            if plain(r.governorate) == key:
+                return None, r
+        d = Delegation.objects.select_related('region').filter(name__icontains=location).first()
+        return (d, d.region) if d else (None, None)
+
     def _get_market_snapshot(self, location: str, location_type: str) -> Dict:
-        """
-        Retrieves current market snapshot for a delegation.
-        Checks data freshness and warns if aging.
-        """
+        """Latest market snapshot (core.DelegationMarketSnapshot) for a delegation, or
+        the median over a governorate's delegations. Says when the figures rest on
+        EstateMind's price benchmarks (synthetic sample listings) rather than real ones.
+        (This used to read a hard-coded table of six cities.)"""
         try:
-            from estatemind.market.core.models import Delegation
-            from estatemind.intelligence.simulation.services.market_service import (
-                get_market_snapshot_for_delegation
-            )
-            
-            # Find delegation
-            d = Delegation.objects.filter(
-                name__icontains=location
-            ).first()
-            
-            if not d:
-                return {
-                    'available': False,
-                    'reason': f'No delegation found matching "{location}"',
-                    'fallback': 'national_average'
-                }
-            
-            # Get market snapshot
-            snapshot = get_market_snapshot_for_delegation(d.name)
-            
-            if not snapshot or snapshot.get('error'):
-                return {
-                    'available': False,
-                    'reason': f'No market data available for {d.name}',
-                    'fallback': 'national_average'
-                }
-            
-            # Check data freshness
-            snapshot_date = snapshot.get('as_of_date')
-            if isinstance(snapshot_date, str):
-                try:
-                    snapshot_date = datetime.fromisoformat(snapshot_date).date()
-                except:
-                    snapshot_date = date.today()
-            
-            age_days = (date.today() - snapshot_date).days if snapshot_date else 0
-            
-            freshness = (
-                'FRESH' if age_days < 7 else
-                'ACCEPTABLE' if age_days < 30 else
-                'STALE'
-            )
-            
-            freshness_prefix = (
-                '' if freshness == 'FRESH' else
-                f'As of {snapshot_date}: ' if freshness == 'ACCEPTABLE' else
-                f'Note: Data from {snapshot_date} (may be outdated). '
-            )
-            
-            # Validate listing_count - must be positive integer
-            listing_count = snapshot.get('listing_count', 0)
-            try:
-                listing_count = int(listing_count) if listing_count else 0
-                if listing_count < 0:
-                    listing_count = 0  # Invalid negative count
-            except (ValueError, TypeError):
-                listing_count = 0  # Invalid type
-            
-            # Detect impossible condition: no listings but median price exists
-            median_price_per_sqm = snapshot.get('median_price_per_sqm', 0)
-            median_price_total = snapshot.get('median_price_total', 0)
-            is_impossible_state = (listing_count == 0 and (median_price_per_sqm > 0 or median_price_total > 0))
-            if is_impossible_state:
-                logger.warning(f'Impossible market state detected for {d.name}: listing_count=0 but median_price exists')
-            
+            from statistics import median
+
+            from estatemind.market.core.models import DelegationMarketSnapshot
+
+            delegation, region = self._resolve_location(location)
+            if delegation is None and region is None:
+                return {'available': False, 'reason': f'I could not find a place called "{location}".',
+                        'fallback': 'national_average'}
+            qs = DelegationMarketSnapshot.objects.select_related('delegation__region').order_by('-as_of_date')
+            if delegation is not None:
+                snaps = [s for s in [qs.filter(delegation=delegation).first()] if s]
+                name = delegation.name
+            else:
+                latest = qs.filter(delegation__region=region).values_list('as_of_date', flat=True).first()
+                snaps = list(qs.filter(delegation__region=region, as_of_date=latest)) if latest else []
+                name = region.governorate
+            snaps = [s for s in snaps if s.median_price_per_sqm]
+            if not snaps:
+                return {'available': False, 'reason': f'There is no market data for {name} yet.',
+                        'fallback': 'national_average'}
+
+            ppm = median(float(s.median_price_per_sqm) for s in snaps)
+            real = sum(s.real_listing_count for s in snaps)
+            synthetic = sum(s.synthetic_listing_count for s in snaps)
+            growth = [(float(s.forecast_12m) / float(s.median_price_per_sqm) - 1) * 100
+                      for s in snaps if s.forecast_12m and s.median_price_per_sqm]
+            trend_pct = median(growth) if growth else 0.0
+            sale_prices = [float(s.median_sale_price) for s in snaps if s.median_sale_price]
+            snapshot_date = max(s.as_of_date for s in snaps)
+            age_days = (date.today() - snapshot_date).days
+            freshness = 'FRESH' if age_days < 7 else 'ACCEPTABLE' if age_days < 30 else 'STALE'
+            if freshness == 'FRESH':
+                prefix = ''
+            elif freshness == 'ACCEPTABLE':
+                prefix = f'As of {snapshot_date}: '
+            else:
+                prefix = f'Note: Data from {snapshot_date} (may be outdated). '
             return {
                 'available': True,
-                'delegation': d.name,
-                'median_price_per_sqm': median_price_per_sqm,
-                'median_price_total': median_price_total,
-                'listing_count': listing_count,
-                'listing_count_valid': listing_count > 0,
-                'impossible_state': is_impossible_state,  # Flag impossible scenarios
-                'supply_pressure': snapshot.get('supply_pressure', 'unknown'),
-                'trend_direction': snapshot.get('trend_direction', 'stable'),
-                'trend_pct': snapshot.get('trend_pct', 0),
-                'as_of_date': str(snapshot_date) if snapshot_date else date.today().isoformat(),
+                'delegation': name,
+                'median_price_per_sqm': ppm,
+                'median_price_total': median(sale_prices) if sale_prices else 0,
+                'listing_count': real,
+                'listing_count_valid': real > 0,
+                'synthetic_listing_count': synthetic,
+                'data_basis': 'listings' if not synthetic else ('benchmarks' if not real else 'mixed'),
+                'impossible_state': False,
+                'supply_pressure': snaps[0].supply_pressure if len(snaps) == 1 else 'unknown',
+                'trend_direction': 'rising' if trend_pct > 0.5 else ('falling' if trend_pct < -0.5 else 'stable'),
+                'trend_pct': round(trend_pct, 1),
+                'as_of_date': str(snapshot_date),
                 'age_days': age_days,
                 'freshness': freshness,
                 'source_tag': f'market_snapshot_{snapshot_date}',
-                'freshness_prefix': freshness_prefix
+                'freshness_prefix': prefix,
             }
-            
         except Exception as e:
             logger.warning(f'Market snapshot retrieval failed for {location}: {e}', exc_info=True)
             return {
@@ -172,7 +165,7 @@ class MarketDataRetriever:
                 'reason': 'Market data is temporarily unavailable.',
                 'fallback': 'unable_to_retrieve'
             }
-    
+
     def _get_forecast(self, location: str, location_type: str,
                       property_type: str = 'apartment') -> Dict:
         """
@@ -183,18 +176,25 @@ class MarketDataRetriever:
                 get_delegation_forecast
             )
             
-            forecast = get_delegation_forecast(
-                delegation_name=location,
-                property_type=property_type
-            )
+            from estatemind.intelligence.forecast.services.forecast_service import get_governorate_forecast_summary
+
+            delegation, region = self._resolve_location(location)
+            if delegation is not None:
+                forecast = get_delegation_forecast(delegation_name=delegation.name, property_type=property_type)
+            elif region is not None:  # a governorate name: its delegations' average
+                forecast = get_governorate_forecast_summary(region.governorate, property_type)
+            else:
+                forecast = None
             
             if forecast and forecast.get('summary'):
                 summary = forecast['summary']
+                # the summary keys are growth_pct_12m / trend; reading price_change_pct and
+                # confidence returned 0.0% and an invented 50% confidence for every place
                 return {
                     'available': True,
-                    'price_change_12m_pct': summary.get('price_change_pct', 0),
-                    'trend_direction': summary.get('trend_direction', 'stable'),
-                    'confidence': summary.get('confidence', 0.5),
+                    'price_change_12m_pct': summary.get('growth_pct_12m', 0),
+                    'trend_direction': summary.get('trend', 'stable'),
+                    'confidence': None,  # the forecast summary carries no confidence
                     'model_type': forecast.get('model_info', {}).get('model_type', 'unknown'),
                     'source_tag': f'forecast_{location}_{property_type}',
                     'forecasted_at': forecast.get('forecasted_at', timezone.now().isoformat())
@@ -268,41 +268,39 @@ class MarketDataRetriever:
             }
     
     def _get_investment_context(self, location: str) -> Dict:
-        """
-        Retrieves investment grade and opportunity context.
-        """
+        """Rule-based opportunity score (the same scoring as the investor opportunities
+        list) at the place's current median price per m2. (This used to read a
+        hard-coded table of grades for six cities.)"""
         try:
-            from estatemind.intelligence.investor.services.investment_service import (
-                analyze_investment_opportunity
-            )
-            
-            analysis = analyze_investment_opportunity(location)
-            
-            if analysis and analysis.get('grade'):
-                return {
-                    'available': True,
-                    'delegation': location,
-                    'grade': analysis.get('grade'),
-                    'opportunity_score': analysis.get('opportunity_score', 0),
-                    'risk_level': analysis.get('risk_level', 'unknown'),
-                    'rental_yield_potential': analysis.get('rental_yield_potential', 0),
-                    'capital_appreciation': analysis.get('capital_appreciation', 0),
-                    'source_tag': 'investment_analysis',
-                    'analyzed_at': timezone.now().isoformat()
-                }
-            else:
-                return {
-                    'available': False,
-                    'reason': f'No investment analysis available for {location}'
-                }
-                
+            from estatemind.intelligence.investor.services.delegation_scoring import score_delegation
+
+            market = self._get_market_snapshot(location, 'delegation')
+            if not market.get('available'):
+                return {'available': False, 'reason': market.get('reason', '')}
+            delegation, region = self._resolve_location(location)
+            scored = score_delegation(delegation.name if delegation else '',
+                                      region.governorate if region else '', market['median_price_per_sqm'])
+            if not scored:
+                return {'available': False, 'reason': f'No investment analysis available for {location}'}
+            return {
+                'available': True,
+                'delegation': market['delegation'],
+                'grade': scored['investment_grade'],
+                'opportunity_score': scored['opportunity_score'],
+                'risk_level': 'unknown',
+                'rental_yield_potential': scored['gross_yield_pct'],
+                'capital_appreciation': scored['forecast_12m_pct'],
+                'scoring_method': 'rule_based',
+                'source_tag': 'investment_analysis',
+                'analyzed_at': timezone.now().isoformat()
+            }
         except Exception as e:
             logger.warning(f'Investment analysis failed for {location}: {e}', exc_info=True)
             return {
                 'available': False,
                 'reason': 'Investment analysis is temporarily unavailable.'
             }
-    
+
     def get_national_rankings(self, data_types: Optional[List[str]] = None,
                              property_type: str = 'apartment') -> Dict:
         """

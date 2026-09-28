@@ -73,6 +73,17 @@ def _detect_ranking_query(message: str) -> bool:
     return any(keyword in lower for keyword in ranking_keywords)
 
 
+def _data_basis_note(market: dict) -> str:
+    """Say when a market figure rests on EstateMind's price benchmarks (synthetic
+    sample listings) rather than real listings."""
+    basis = market.get('data_basis')
+    if basis == 'benchmarks':
+        return "No real listings are on record there, so this figure comes from EstateMind's price benchmarks. "
+    if basis == 'mixed':
+        return "Part of this figure comes from EstateMind's price benchmarks where real listings are missing. "
+    return ''
+
+
 def _format_source_tag(source_tag: str) -> str:
     """Convert verbose source tag to concise label for display."""
     if not source_tag:
@@ -253,7 +264,9 @@ def chat_message(request):
             retrieval_data = {}
             sources_used = []
             # Allow retrieval for: location-specific queries OR ranking queries without location
-            should_retrieve = location and intent in ['market_inquiry', 'investment_advice', 'forecast_inquiry']
+            # climate_question was missing here, so climate answers never had data
+            should_retrieve = location and intent in ['market_inquiry', 'investment_advice', 'forecast_inquiry',
+                                                      'climate_question']
             should_retrieve = should_retrieve or (is_ranking_query and intent in ['market_inquiry', 'investment_advice'])
             
             if should_retrieve:
@@ -411,9 +424,10 @@ def _generate_grounded_response(intent: str, entities: dict,
             source_label = _format_source_tag(market.get('source_tag', ''))
             parts.append(
                 f"{freshness}The market in {location} shows a median price of "
-                f"{market['median_price_per_sqm']:.0f} TND/m² with {market['trend_direction']} "
-                f"trend ({market.get('trend_pct', 0):.1f}% YoY). "
-                f"There are {market['listing_count']} active listings. "
+                f"{market['median_price_per_sqm']:.0f} TND/m² with a {market['trend_direction']} "
+                f"12-month outlook ({market.get('trend_pct', 0):.1f}%). "
+                f"There are {market['listing_count']} real listings on record. "
+                f"{_data_basis_note(market)}"
                 f"[Source: {source_label}]"
             )
         else:
@@ -430,13 +444,12 @@ def _generate_grounded_response(intent: str, entities: dict,
         
         if forecast.get('available'):
             parts_list.append(
-                f"12-month forecast projects {forecast['price_change_12m_pct']:.1f}% change "
-                f"with {forecast['confidence']:.0%} confidence"
+                f"12-month forecast projects {forecast['price_change_12m_pct']:.1f}% change"
             )
         
         if investment.get('available'):
             parts_list.append(
-                f"Investment grade: {investment['grade']} "
+                f"rule-based investment grade: {investment['grade']} "
                 f"(opportunity score {investment['opportunity_score']:.0f}/100)"
             )
         
@@ -448,6 +461,7 @@ def _generate_grounded_response(intent: str, entities: dict,
         if parts_list:
             parts.append(
                 "Based on current market analysis: " + ", ".join(parts_list) + ". "
+                + (_data_basis_note(market) if market.get('available') else '') +
                 "Investment decision should depend on your risk tolerance and horizon."
             )
         else:
@@ -461,8 +475,8 @@ def _generate_grounded_response(intent: str, entities: dict,
             source_label = _format_source_tag(forecast.get('source_tag', ''))
             parts.append(
                 f"The 12-month forecast for {location} projects "
-                f"{forecast['price_change_12m_pct']:.1f}% price change with "
-                f"{forecast['confidence']:.0%} confidence level. "
+                f"{forecast['price_change_12m_pct']:.1f}% price change "
+                f"(extrapolated from EstateMind's price benchmarks). "
                 f"[Source: {source_label}]"
             )
         else:

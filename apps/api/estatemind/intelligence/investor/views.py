@@ -9,6 +9,7 @@ from estatemind.platform.errors import error_body
 from .models import PortfolioAsset, ScanResult
 
 INPUT_MESSAGE = 'Some of the values could not be read. Please check them and try again.'
+from .services.delegation_scoring import score_delegation
 from .services.scorer import score_listing, score_asset, score_portfolio
 from .services.zone_data import get_zone_stats, get_zone_forecast
 from .services.registry import REGISTRY
@@ -314,40 +315,14 @@ def opportunities(request):
             price_avg = row.get('price_avg')
             annual_trend_pct = row.get('annual_trend_pct')
 
-        price = float(price_avg or 0)
-        if price <= 0:
-            continue
-
-        _ = get_zone_stats(delegation_name, ptype)
-        _ = get_zone_forecast(delegation_name, ptype)
-
-        inp = {
-            'listing_price_tnd': price * 100.0,
-            'surface_m2': 100.0,
-            'property_type': ptype,
-            'governorate': governorate,
-            'delegation': delegation_name,
-            'room_count': 3,
-        }
-
         try:
-            scored = score_listing(inp)
+            scored = score_delegation(delegation_name, governorate, price_avg, ptype)
         except Exception:
             continue
-
-        results.append({
-            'delegation': delegation_name,
-            'governorate': governorate,
-            'avg_price_pm2': price,
-            'annual_trend_pct': float(annual_trend_pct or 0),
-            'opportunity_score': scored['opportunity_score'],
-            'investment_grade': scored['investment_grade'],
-            'gross_yield_pct': scored['yield']['gross_yield_pct'],
-            'buy_signal': scored['buy_signal']['signal'],
-            'forecast_6m_pct': scored['forecast']['forecast_6m_pct'],
-            'forecast_12m_pct': scored['forecast']['forecast_12m_pct'],
-            'undervaluation': scored['undervaluation']['label'],
-        })
+        if scored is None:
+            continue
+        scored.pop('scoring_method', None)
+        results.append({**scored, 'annual_trend_pct': float(annual_trend_pct or 0)})
 
     results.sort(key=lambda x: x['opportunity_score'], reverse=True)
     return Response(results[:limit])
