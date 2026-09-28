@@ -47,7 +47,7 @@ npm start                                           # http://localhost:3000, cal
 ## Tests
 
 ```bash
-cd apps/api && python -m pytest -q          # 224 tests; 7 skip when model artifacts are absent
+cd apps/api && python -m pytest -q          # 241 tests; 7 skip when model artifacts are absent
 cd apps/web && npm test -- --watchAll=false # 12 tests
 ```
 
@@ -64,3 +64,4 @@ images.
 - [Deployment](docs/deployment.md): images, environment variables, production checklist
 - [Frontend](docs/frontend.md): structure, configuration, the Vite recommendation
 - [Known issues](docs/known-issues.md)
+- [Migration final report](docs/final-report.md)
