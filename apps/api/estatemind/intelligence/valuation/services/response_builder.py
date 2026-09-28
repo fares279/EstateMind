@@ -1,6 +1,13 @@
 """
 Assembles the final API response payload from individual service outputs.
 """
+from .labels import model_label, user_reasons
+
+CLIMATE_SOURCE_LABELS = {
+    'delegation_composite_score': 'Local climate score for this delegation',
+    'kriging': 'Climate score interpolated from nearby delegations',
+    'national_average_fallback': 'National average (no local climate score available)',
+}
 
 
 def _format_model_version(model_name: str) -> str:
@@ -115,7 +122,8 @@ def build(
         'confidence_level':    confidence_result.get('confidence_level', 'Medium'),
         'uncertainty_ratio':   confidence_result.get('uncertainty_ratio', 0.14),
         'uncertainty_mode':    confidence_result.get('uncertainty_mode', 'fallback'),
-        'uncertainty_reasons': confidence_result.get('uncertainty_reasons', []),
+        # plain sentences only; pipeline codes (e.g. 'reference_dataset_missing') are dropped
+        'uncertainty_reasons': user_reasons(confidence_result.get('uncertainty_reasons', [])),
         'signal_breakdown':    confidence_result.get('signal_breakdown', {}),
 
         # Feature attribution
@@ -163,7 +171,7 @@ def build(
         'cv_mode':         image_analysis.get('cv_mode', 'no_cv') if image_analysis else 'no_cv',
         'vision_guidance': [],
         # Expose only user-facing warnings; internal telemetry is suppressed
-        'warnings':        user_warnings,
+        'warnings':        user_reasons(user_warnings),
         'climate_source': climate_source or 'unknown',  # Audit trail for climate data provenance
         'model_info': {
             'mode':    prediction.get('prediction_mode', 'heuristic'),
@@ -191,7 +199,12 @@ def build(
             'eval_mape': getattr(model_version, 'eval_mape', None),
             'data_vintage': snapshot_date.isoformat() if snapshot_date else None,
             'climate_source': climate_source or 'unknown',  # Climate data source for audit
+            'climate_source_label': CLIMATE_SOURCE_LABELS.get(climate_source or '', None),
         },
+        # e.g. 'CatBoost (Apartment model), trained 2026-09-27'; raw names stay in provenance
+        'model_display_name': model_label(
+            getattr(model_version, 'model_name', None), getattr(model_version, 'version', None),
+            getattr(model_version, 'training_date', None)),
         'counterfactuals': counterfactuals or [],
         'confidence_pct': confidence_result.get('confidence', 50),
         'confidence_band': {

@@ -32,25 +32,28 @@ AMENITY_KW = {
     'elevator': ['ascenseur', 'elevator', 'lift'],
 }
 
-_LOCATION_SENTIMENT = {
-    'la marsa':     ('positive', 0.85),
-    'carthage':     ('positive', 0.90),
-    'sidi bou said':('positive', 0.88),
-    'gammarth':     ('positive', 0.82),
-    'les berges':   ('positive', 0.80),
-    'ennasr':       ('positive', 0.75),
-    'menzah':       ('positive', 0.73),
-    'el menzah':    ('positive', 0.73),
-    'soukra':       ('positive', 0.68),
-    'ariana':       ('neutral',  0.55),
-    'manouba':      ('neutral',  0.50),
-    'sfax':         ('neutral',  0.55),
-    'sousse':       ('positive', 0.65),
-    'monastir':     ('positive', 0.62),
-    'nabeul':       ('positive', 0.60),
-    'hammamet':     ('positive', 0.72),
-    'tunis':        ('positive', 0.65),
-}
+_WORD_RE = re.compile(r"[^\W\d_]+")
+_LATIN_VOWELS = set("aeiouyàâäéèêëîïôöùûü")
+
+
+def word_count(text: str) -> int:
+    return len(_WORD_RE.findall(text or ''))
+
+
+def _plausible(word: str) -> bool:
+    if not 2 <= len(word) <= 20 or re.search(r"(.)\1\1", word):
+        return False
+    latin = all(ch.isascii() or ch in _LATIN_VOWELS for ch in word)
+    return not latin or any(ch in _LATIN_VOWELS for ch in word)
+
+
+def is_readable(text: str, min_words: int = 3, min_share: float = 0.6) -> bool:
+    """Enough real-looking words to analyse: at least `min_words` plausible words
+    (no letter tripled, a vowel if Latin script, 2-20 letters) making up at least
+    `min_share` of the words. Arabic script counts as plausible."""
+    words = [w.lower() for w in _WORD_RE.findall(text or '')]
+    good = [w for w in words if _plausible(w)]
+    return len(good) >= min_words and len(good) >= min_share * len(words)
 
 
 def analyze_description(description: str) -> dict:
@@ -122,15 +125,3 @@ def analyze_description(description: str) -> dict:
         'key_phrases':            list(set(key_phrases))[:6],
         'token_count':            token_count,
     }
-
-
-def analyze_location(city: str, governorate: str) -> dict:
-    """Return location sentiment based on city/governorate priors."""
-    key = (city or '').lower().strip()
-    gov = (governorate or '').lower().strip()
-
-    for loc_key, (label, score) in _LOCATION_SENTIMENT.items():
-        if loc_key in key or loc_key in gov:
-            return {'label': label, 'score': score, 'location_key': loc_key}
-
-    return {'label': 'neutral', 'score': 0.50, 'location_key': gov or 'unknown'}

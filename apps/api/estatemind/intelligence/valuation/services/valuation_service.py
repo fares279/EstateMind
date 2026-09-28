@@ -22,6 +22,8 @@ from . import nlp_service
 
 logger = logging.getLogger(__name__)
 
+_PUNCT = '.,;:!?()"\''  # stripped from key phrases ('rénové,' -> 'rénové')
+
 
 def estimate(data: dict, image_files: list | None = None, user=None) -> dict:
     """
@@ -112,52 +114,54 @@ def estimate(data: dict, image_files: list | None = None, user=None) -> dict:
                 except Exception:
                     pass
 
-    # 0b ── Pre-analysis: Sentiment analysis (text model) - extract signals for price model
+    # 0b ── Description analysis (shown for information; not applied to the price by default).
+    # Only readable text is analysed: 'veryyyyy goooood' used to yield key phrases and a tone.
+    # (A 'location sentiment' from a hard-coded table of place names was also shown; removed.)
     text_analysis = None
     sentiment_prediction = None
     text_analysis_signals = None
-    try:
-        description = data.get('description', '')
-        sentiment_prediction = sentiment_service.analyze_description(description)
-        if sentiment_prediction:
-            location_sentiment = nlp_service.analyze_location(data.get('city', ''), data.get('governorate', ''))
-            text_analysis_signals = {
-                'sentiment_score': sentiment_prediction.sentiment_score,
-                'sentiment_label': sentiment_prediction.sentiment_label,
-                'description_quality': sentiment_prediction.description_quality,
-            }
-            text_analysis = {
-                'description_quality': sentiment_prediction.description_quality,
-                'description_sentiment': sentiment_prediction.sentiment_score,
-                'description_sentiment_label': sentiment_prediction.sentiment_label,
-                'sentiment_score': sentiment_prediction.sentiment_score,
-                'sentiment_label': sentiment_prediction.sentiment_label,
-                'location_sentiment': location_sentiment,
-                'location_sentiment_label': location_sentiment.get('label', 'neutral'),
-                'marketing_effectiveness': 'Evaluated' if description else 'Not evaluated',
-                'key_phrases': sentiment_prediction.key_phrases,
-                'token_count': sentiment_prediction.token_count,
-                'description_score': sentiment_prediction.description_score,
-                'sentiment_mode': 'tfidf_enabled',
-                'warnings': sentiment_prediction.warnings,
-            }
-    except Exception as exc:
-        logger.warning("Sentiment analysis failed: %s", exc)
-    
-    if not text_analysis:
-        location_sentiment = nlp_service.analyze_location(data.get('city', ''), data.get('governorate', ''))
+    description = data.get('description', '') or ''
+    if description.strip() and not nlp_service.is_readable(description):
         text_analysis = {
-            'description_quality': 'Not evaluated',
-            'description_sentiment': 0.5,
-            'description_sentiment_label': 'neutral',
-            'sentiment_score': 0.5,
-            'sentiment_label': 'neutral',
-            'location_sentiment': location_sentiment,
-            'location_sentiment_label': location_sentiment.get('label', 'neutral'),
-            'marketing_effectiveness': 'Not evaluated',
-            'key_phrases': [],
-            'token_count': 0,
-            'description_score': 0,
+            'description_quality': 'insufficient',
+            'sentiment_score': None, 'sentiment_label': None,
+            'description_sentiment': None, 'description_sentiment_label': None,
+            'key_phrases': [], 'token_count': nlp_service.word_count(description), 'description_score': None,
+            'sentiment_mode': 'insufficient_text',
+            'note': 'Not enough readable text to analyse.',
+            'warnings': [],
+        }
+    else:
+        try:
+            sentiment_prediction = sentiment_service.analyze_description(description) if description.strip() else None
+            if sentiment_prediction:
+                text_analysis_signals = {
+                    'sentiment_score': sentiment_prediction.sentiment_score,
+                    'sentiment_label': sentiment_prediction.sentiment_label,
+                    'description_quality': sentiment_prediction.description_quality,
+                }
+                text_analysis = {
+                    'description_quality': sentiment_prediction.description_quality,
+                    'description_sentiment': sentiment_prediction.sentiment_score,
+                    'description_sentiment_label': sentiment_prediction.sentiment_label,
+                    'sentiment_score': sentiment_prediction.sentiment_score,
+                    'sentiment_label': sentiment_prediction.sentiment_label,
+                    'key_phrases': [k.strip(_PUNCT) for k in sentiment_prediction.key_phrases if k.strip(_PUNCT)],
+                    'token_count': sentiment_prediction.token_count,
+                    'description_score': sentiment_prediction.description_score,
+                    'sentiment_mode': 'tfidf_enabled',
+                    'note': 'Shown for information; it does not change the estimate.',
+                    'warnings': sentiment_prediction.warnings,
+                }
+        except Exception as exc:
+            logger.warning("Sentiment analysis failed: %s", exc)
+
+    if not text_analysis:
+        text_analysis = {
+            'description_quality': 'not_provided' if not description.strip() else 'not_evaluated',
+            'description_sentiment': None, 'description_sentiment_label': None,
+            'sentiment_score': None, 'sentiment_label': None,
+            'key_phrases': [], 'token_count': 0, 'description_score': None,
             'sentiment_mode': 'not_used',
             'warnings': [],
         }
@@ -215,6 +219,7 @@ def estimate(data: dict, image_files: list | None = None, user=None) -> dict:
                 "warnings": getattr(pred, "warnings", []),
                 "uncertainty_reasons": getattr(pred, "uncertainty_reasons", []),
                 "model_info": getattr(pred, "model_info", {}),
+                "attributions": getattr(pred, "attributions", None),
                 "cv_signals": cv_analysis_signals,
                 "text_signals": text_analysis_signals,
             }
@@ -343,6 +348,10 @@ def estimate(data: dict, image_files: list | None = None, user=None) -> dict:
         counterfactuals=counterfactuals,
         climate_source=climate_source,
     )
+    # plain explanation above; pipeline details for the collapsible section
+    result['technical_details'] = explanation.technical_details(
+        prediction, model_version, shap_result, text_analysis, image_analysis, prediction_source,
+        climate_source, conf_result)
 
     fallback_used = prediction_source == 'fallback_tabular' or prediction.get('prediction_mode', '').startswith('fallback')
     log_prediction(

@@ -4,6 +4,12 @@ from typing import Any, Callable
 
 import numpy as np
 
+from .labels import feature_label
+
+
+def _value(v: float) -> str:
+    return f'{v:,.0f}' if abs(v) >= 10 else f'{v:g}'
+
 
 class CounterfactualEngine:
     """Generate local counterfactuals for mutable property features."""
@@ -40,6 +46,7 @@ class CounterfactualEngine:
                 delta = pred - base_pred
                 best = {
                     'feature': feature,
+                    'feature_label': feature_label(feature),
                     'original_value': original_val,
                     'new_value': round(mid, 2),
                     'new_prediction': round(pred),
@@ -68,7 +75,10 @@ class CounterfactualEngine:
         return None
 
     def _describe(self, feature: str, original: float, new_value: float, delta: float, base_prediction: float) -> str:
+        # display labels and whole units ('Size (m²) from 500 to 555'), not raw field names
+        pct = delta / max(base_prediction, 1.0) * 100
         return (
-            f"Changing {feature} from {round(original, 2)} to {round(new_value, 2)} "
-            f"would shift the valuation by {round(delta):,} TND (+{round((delta / max(base_prediction, 1.0)) * 100, 1)}%)."
+            f"Changing {feature_label(feature).lower()} from {_value(original)} to {_value(new_value)} "
+            f"would change the estimate by {'+' if delta >= 0 else '-'}{abs(round(delta)):,} TND "
+            f"({'+' if pct >= 0 else ''}{pct:.1f}%)."
         )

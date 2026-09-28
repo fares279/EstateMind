@@ -453,17 +453,37 @@ function MarketContext({ market }) {
 }
 
 // ── AI Explanation text ───────────────────────────────────────────────────────
-function Explanation({ text }) {
+function Explanation({ text, details }) {
+  const [open, setOpen] = useState(false);
   if (!text) return null;
   const parts = text.split('**').map((s, i) =>
     i % 2 === 1 ? <strong key={i} className="text-white">{s}</strong> : s
   );
   return (
-    <div className="flex gap-3">
-      <div className="mt-0.5 h-fit flex-shrink-0 rounded-lg bg-[#FF6B35]/20 p-2">
-        <Brain size={15} className="text-[#FF6B35]" />
+    <div className="space-y-3">
+      <div className="flex gap-3">
+        <div className="mt-0.5 h-fit flex-shrink-0 rounded-lg bg-[#FF6B35]/20 p-2">
+          <Brain size={15} className="text-[#FF6B35]" />
+        </div>
+        <p className="text-sm leading-relaxed text-gray-300">{parts}</p>
       </div>
-      <p className="text-sm leading-relaxed text-gray-300">{parts}</p>
+      {details?.length > 0 && (
+        <div className="pl-11">
+          <button type="button" onClick={() => setOpen(o => !o)} className="text-xs text-gray-500 hover:text-gray-300 underline">
+            {open ? 'Hide technical details' : 'Show technical details'}
+          </button>
+          {open && (
+            <dl className="mt-2 grid gap-x-4 gap-y-1 text-xs sm:grid-cols-[max-content_1fr]">
+              {details.map(({ label, value }) => (
+                <React.Fragment key={label}>
+                  <dt className="text-gray-500">{label}</dt>
+                  <dd className="text-gray-300 break-words">{value}</dd>
+                </React.Fragment>
+              ))}
+            </dl>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -498,28 +518,35 @@ function Signals({ breakdown }) {
 }
 
 // ── Text analysis ─────────────────────────────────────────────────────────────
+// Description tone is shown for information only; it does not change the estimate.
+const QUALITY_LABELS = { good: 'Good', fair: 'Fair', poor: 'Poor' };
+
 function TextAnalysis({ ta }) {
   if (!ta) return null;
-  const sc = { positive:'text-green-400', neutral:'text-gray-400', negative:'text-red-400' };
+  if (ta.description_quality === 'not_provided' || ta.description_quality === 'not_evaluated') {
+    return <p className="text-sm text-gray-500">No description was provided.</p>;
+  }
+  if (ta.description_quality === 'insufficient') {
+    return <p className="text-sm text-gray-400">Not enough readable text to analyse. Add a few sentences about the property to see this section.</p>;
+  }
+  const sc = { positive:'text-green-400', neutral:'text-gray-300', negative:'text-red-400' };
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-3 gap-3">
-        {[
-          { l:'Description Quality', v: ta.description_quality||'N/A',
-            sub: <div className="mt-1 h-1 rounded-full bg-white/10 overflow-hidden"><div className="h-full rounded-full bg-[#FF6B35]" style={{width:`${Math.round((ta.description_score||0)*100)}%`}} /></div> },
-          { l:'Sentiment', v: ta.sentiment_label||'neutral', colored: sc[ta.sentiment_label], sub: <p className="text-xs text-gray-500">{ta.token_count||0} words · {ta.sentiment_mode||''}</p> },
-          { l:'Marketing', v: ta.marketing_effectiveness||'N/A' },
-        ].map(({ l, v, colored, sub }) => (
-          <div key={l} className="rounded-xl border border-white/10 bg-white/5 p-3">
-            <p className="text-xs uppercase tracking-wider text-gray-500">{l}</p>
-            <p className={`mt-1 font-bold capitalize ${colored||'text-white'}`}>{v}</p>
-            {sub}
-          </div>
-        ))}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+          <p className="text-xs text-gray-500">Description quality</p>
+          <p className="mt-1 font-bold text-white">{QUALITY_LABELS[ta.description_quality] || 'Not rated'}</p>
+          <div className="mt-1 h-1 rounded-full bg-white/10 overflow-hidden"><div className="h-full rounded-full bg-[#FF6B35]" style={{width:`${Math.round((ta.description_score||0)*100)}%`}} /></div>
+        </div>
+        <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+          <p className="text-xs text-gray-500">Tone</p>
+          <p className={`mt-1 font-bold capitalize ${sc[ta.sentiment_label] || 'text-white'}`}>{ta.sentiment_label || 'Not rated'}</p>
+          <p className="text-xs text-gray-500">{ta.token_count || 0} words</p>
+        </div>
       </div>
       {ta.key_phrases?.length > 0 && (
         <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-          <p className="text-xs uppercase tracking-wider text-gray-500 mb-2">Detected Key Phrases</p>
+          <p className="text-xs text-gray-500 mb-2">Key phrases</p>
           <div className="flex flex-wrap gap-2">
             {ta.key_phrases.map((kw,i) => (
               <span key={i} className="rounded-full border border-[#FF6B35]/30 bg-[#FF6B35]/10 px-2.5 py-0.5 text-xs text-[#FFB38F]">{kw}</span>
@@ -527,20 +554,13 @@ function TextAnalysis({ ta }) {
           </div>
         </div>
       )}
-      {ta.location_sentiment && (
-        <div className="rounded-xl border border-white/10 bg-white/5 p-3 flex items-center gap-3">
-          <MapPin size={14} className="text-[#FF6B35] flex-shrink-0" />
-          <div>
-            <p className="text-xs uppercase tracking-wider text-gray-500">Location Sentiment</p>
-            <p className={`text-sm font-semibold capitalize ${sc[ta.location_sentiment.label]||'text-white'}`}>
-              {ta.location_sentiment.label} ({(ta.location_sentiment.score*100).toFixed(0)}% positive signal)
-            </p>
-          </div>
-        </div>
-      )}
+      <p className="text-xs text-gray-500">Shown for information only; the description does not change the estimate.</p>
     </div>
   );
 }
+
+const IMAGE_STATUS = { success: 'Analysed', no_images: 'No photos uploaded', model_load_failed: 'Photo analysis unavailable',
+  analysis_error: 'Photo analysis unavailable', analysis_failed: 'Photo analysis unavailable' };
 
 // ── Image analysis panel ──────────────────────────────────────────────────────
 function ImageAnalysis({ ia }) {
@@ -551,8 +571,7 @@ function ImageAnalysis({ ia }) {
         { k:'Images Submitted', v: ia.image_count ?? 0 },
         { k:'Coverage Score',  v: `${Math.round((ia.coverage_score||0)*100)}%` },
         { k:'Quality Score',   v: `${Math.round((ia.quality_score||0)*100)}%` },
-        { k:'CV Mode',         v: ia.cv_mode || 'no_cv' },
-        { k:'Status',          v: ia.status || '—' },
+        { k:'Status',          v: IMAGE_STATUS[ia.status] || 'Not analysed' },
       ].map(({ k, v }) => (
         <div key={k} className="flex justify-between border-b border-white/5 pb-1.5">
           <span className="text-gray-500">{k}</span>
@@ -606,10 +625,13 @@ function Warnings({ items }) {
 // ── Scenario cards ────────────────────────────────────────────────────────────
 function ScenariosPanel({ scenarios, currency }) {
   if (!scenarios?.length) return (
-    <p className="text-sm text-gray-500 italic">No scenarios available — provide amenities and condition data to generate what-if analysis.</p>
+    <p className="text-sm text-gray-500 italic">No upgrade scenarios for this property.</p>
   );
   return (
     <div className="space-y-3">
+      <p className="text-xs text-gray-500">
+        Typical premiums for common upgrades. These are rules of thumb, not predictions of the valuation model.
+      </p>
       {scenarios.map((s, i) => {
         const positive = s.price_delta >= 0;
         return (
@@ -643,24 +665,24 @@ function ScenariosPanel({ scenarios, currency }) {
   );
 }
 
-function ProvenancePanel({ provenance, modelInfo, imageContribution }) {
+function ProvenancePanel({ provenance, modelInfo, imageContribution, modelName }) {
   const rmse = provenance?.eval_rmse;
   const r2 = provenance?.eval_r2;
   // Hide RMSE and R² metrics if both are 0 or missing (indicates metrics not available)
   const showMetrics = (rmse && rmse !== 0) || (r2 && r2 !== 0);
 
+  // Rows with nothing to show are left out rather than shown as a dash.
+  // Auto-registered models ('...-artifact') have no known training date.
+  const trainingKnown = provenance?.training_date && !String(provenance?.model_version || '').endsWith('-artifact');
   const items = [
-    { label: 'Model', value: provenance?.model_name || modelInfo?.name || 'Unknown' },
-    { label: 'Version', value: provenance?.model_version || modelInfo?.version || '—' },
-    { label: 'Training Date', value: provenance?.training_date || '—' },
-    { label: 'Data Vintage', value: provenance?.data_vintage || '—' },
-    ...(showMetrics ? [
-      { label: 'RMSE', value: rmse != null ? Number(rmse).toLocaleString() : '—' },
-      { label: 'R²', value: r2 != null ? Number(r2).toFixed(3) : '—' },
-    ] : []),
-    { label: 'Image Confidence', value: imageContribution?.image_confidence != null ? `${Math.round(Number(imageContribution.image_confidence) * 100)}%` : '—' },
-    { label: 'Images Used', value: imageContribution?.images_used ?? 0 },
-  ];
+    { label: 'Model', value: modelName || 'Valuation model' },
+    trainingKnown && { label: 'Trained', value: provenance.training_date },
+    provenance?.data_vintage && { label: 'Market data as of', value: provenance.data_vintage },
+    provenance?.climate_source_label && { label: 'Climate data', value: provenance.climate_source_label },
+    showMetrics && rmse && { label: 'Typical error (RMSE)', value: `${Number(rmse).toLocaleString()} TND` },
+    showMetrics && r2 && { label: 'R²', value: Number(r2).toFixed(3) },
+    imageContribution?.images_used > 0 && { label: 'Photos used', value: imageContribution.images_used },
+  ].filter(Boolean);
 
   return (
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -670,12 +692,6 @@ function ProvenancePanel({ provenance, modelInfo, imageContribution }) {
           <p className="mt-1 text-sm font-semibold text-white break-words">{value}</p>
         </div>
       ))}
-      {provenance?.artifact_path && (
-        <div className="rounded-xl border border-white/10 bg-white/5 p-3 sm:col-span-2 xl:col-span-4">
-          <p className="text-xs uppercase tracking-wider text-gray-500">Artifact Path</p>
-          <p className="mt-1 break-all text-xs text-gray-300">{provenance.artifact_path}</p>
-        </div>
-      )}
     </div>
   );
 }
@@ -688,7 +704,7 @@ function CounterfactualsList({ counterfactuals }) {
   return (
     <div className="space-y-3">
       {counterfactuals.map((item, index) => {
-        const label = item.label || item.feature || item.name || `Suggestion ${index + 1}`;
+        const label = item.feature_label || item.label || `Suggestion ${index + 1}`;
         const action = item.action || item.description || item.recommendation || 'Adjust this feature';
         const effect = item.delta_tnd ?? item.impact_tnd ?? item.delta ?? item.price_delta ?? null;
         return (
@@ -701,8 +717,8 @@ function CounterfactualsList({ counterfactuals }) {
               </div>
               <div className="text-right">
                 {effect != null && (
-                  <p className="text-lg font-black text-emerald-400">
-                    +{Number(effect).toLocaleString()} TND
+                  <p className={`text-lg font-black ${Number(effect) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {Number(effect) >= 0 ? '+' : '−'}{Math.abs(Number(effect)).toLocaleString()} TND
                   </p>
                 )}
                 {item.confidence != null && (
@@ -780,14 +796,15 @@ function Results({ result, txType }) {
       <ValuationResultPanel result={result} />
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card title="Model Provenance" icon={Info}>
+        <Card title="About this estimate" icon={Info}>
           <ProvenancePanel
             provenance={result.provenance}
             modelInfo={result.model_info}
             imageContribution={result.image_contribution}
+            modelName={result.model_display_name}
           />
         </Card>
-        <Card title="Counterfactual Suggestions" icon={TrendingUp}>
+        <Card title="What would change the estimate" icon={TrendingUp}>
           <CounterfactualsList counterfactuals={result.counterfactuals} />
         </Card>
       </div>
@@ -810,7 +827,7 @@ function Results({ result, txType }) {
           {tab === 'overview' && (
             <div className="space-y-4">
               <Card title="AI Explanation" icon={Brain}>
-                <Explanation text={result.ai_explanation} />
+                <Explanation text={result.ai_explanation} details={result.technical_details} />
               </Card>
               <Card title="Confidence Signal Breakdown" icon={Activity}>
                 <Signals breakdown={result.signal_breakdown} />

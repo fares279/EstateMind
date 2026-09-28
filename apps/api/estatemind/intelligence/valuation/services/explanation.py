@@ -1,6 +1,20 @@
 """
-Model-aware explanation builder for valuation responses.
+Valuation explanations: plain language by default (`build`), with the pipeline
+details kept for a collapsible 'technical details' section (`technical_details`).
+
+Only what actually shaped the estimate is described as doing so: the drivers are
+the model's own attributions, and description tone and photos are reported as
+information only (they do not change the price; see VALUATION_*_PRICE_ADJUSTMENT).
 """
+from .labels import model_label
+
+_TYPE_WORDS = {'appartement': 'apartment', 'apartment': 'apartment', 'maison': 'house', 'house': 'house',
+               'villa': 'house', 'terrain': 'plot of land', 'land': 'plot of land', 'commercial': 'commercial property'}
+_CONFIDENCE_WORDS = {'high': 'high', 'medium': 'moderate', 'low': 'low'}
+
+
+def _fmt(n) -> str:
+    return f"{int(round(float(n))):,}"
 
 
 def build(
@@ -16,138 +30,85 @@ def build(
     text_signals: dict | None = None,
     prediction_source: str | None = None,
 ) -> str:
-    """Return a human-readable explanation string grounded in the active models."""
+    """A short plain-language explanation of the estimate."""
     lines = []
+    kind = _TYPE_WORDS.get(str(data.get('property_type') or '').lower(), 'property')
+    place = ', '.join(p for p in (data.get('city'), data.get('governorate')) if p) or 'Tunisia'
+    size_m2 = data.get('size_m2')
+    bedrooms = data.get('bedrooms')
+    estimated = int(prediction.get('estimated_price', 0) or 0)
+    ppm2 = float(prediction.get('price_per_m2', 0) or 0)
+    rent = str(data.get('transaction_type') or 'sale').lower() == 'rent'
+    conf_word = _CONFIDENCE_WORDS.get(str(confidence.get('confidence_level', 'Medium')).lower(), 'moderate')
 
-    prop_type    = (data.get('property_type') or 'property').title()
-    model_type   = (data.get('model_property_type') or prediction.get('model_info', {}).get('property_scope') or data.get('property_type') or 'property')
-    model_type   = str(model_type).strip()
-    size_m2      = data.get('size_m2')
-    governorate  = data.get('governorate') or 'Tunisia'
-    city         = data.get('city') or ''
-    condition    = (data.get('condition') or 'good').lower()
-    transaction  = (data.get('transaction_type') or 'sale').lower()
-    bedrooms     = data.get('bedrooms')
-    estimated    = int(prediction.get('estimated_price', 0))
-    ppm2         = float(prediction.get('price_per_m2', 0))
-    conf_level   = confidence.get('confidence_level', 'Medium')
-    conf_score   = confidence.get('confidence', 50)
-    mode         = prediction.get('prediction_mode', 'heuristic')
-
-    mapped_from = data.get('property_type') or 'property'
-    mapped_to = model_type or mapped_from
-
-    # Sentence 0 — model source and signal note (concise)
-    model_source_text = "the CatBoost serving bundle" if prediction_source == 'catboost_bundle' else (
-        'the fallback tabular model' if prediction_source == 'fallback_tabular' else 'the valuation engine'
-    )
-    signals_applied = []
-    if cv_signals is not None:
-        signals_applied.append('computer vision analysis')
-    if text_signals is not None:
-        signals_applied.append('sentiment analysis')
-    signal_part = f" with {' and '.join(signals_applied)}" if signals_applied else ''
-
-    lines.append(f"Using {model_source_text}{signal_part} for this valuation.")
-
-    # Sentence 1 — main estimate
-    loc_str = f"{city}, {governorate}" if city else governorate
-    tx_str  = 'rental value' if transaction == 'rent' else 'market value'
-    size_str = f"{size_m2:.0f} m²" if size_m2 else ''
-    room_str = f"{bedrooms}-bedroom " if bedrooms else ''
+    described = ' '.join(filter(None, [f"{bedrooms}-bedroom" if bedrooms else '', kind]))
+    size_part = f" of {float(size_m2):.0f} m²" if size_m2 else ''
     lines.append(
-        f"Based on your {room_str}{prop_type.lower()}"
-        + (f" of {size_str}" if size_str else '')
-        + f" in {loc_str}, the estimated {tx_str} is "
-        + f"**{estimated:,} TND** (≈ {ppm2:,.0f} TND/m²), "
-        + f"with {conf_level.lower()} confidence ({conf_score}/100)."
+        f"We estimate your {described}{size_part} in {place} at **{_fmt(estimated)} TND**"
+        f"{' per month' if rent else ''} (about {_fmt(ppm2)} TND/m²), with {conf_word} confidence."
     )
 
-    # Sentence 2 — top driver
-    features = shap_result.get('features_impact', [])
-    if features:
-        top = features[0]
-        direction_word = 'driven up' if top['direction'] == 'positive' else 'pulled down'
-        lines.append(
-            f"The primary value driver is **{top['feature']}** ({direction_word} by "
-            f"≈{top['impact']:,} TND, ~{top['percent']:.1f}% of the estimate)."
-        )
+    drivers = [d for d in shap_result.get('features_impact', []) if 'not provided' not in d.get('feature', '')]
+    if drivers:
+        phrases = [f"{d['feature'].lower()} ({'+' if d['percent'] >= 0 else ''}{d['percent']:.0f}%)" for d in drivers[:2]]
+        lines.append(f"What moved this estimate most: {' and '.join(phrases)}, compared with an average listing.")
 
-    # Sentence 3 — condition + amenities
-    cond_notes = []
-    if condition in ('new', 'excellent'):
-        cond_notes.append(f"the {condition} condition commands a premium")
-    elif condition == 'needs renovation':
-        cond_notes.append("the renovation needs reduce the estimate")
-    amenities = prediction.get('active_amenities', [])
-    if amenities:
-        labels = {'has_pool': 'pool', 'has_garden': 'garden', 'has_parking': 'parking',
-                  'sea_view': 'sea view', 'elevator': 'elevator'}
-        amenity_str = ', '.join(labels.get(a, a) for a in amenities[:3])#type:ignore
-        cond_notes.append(f"premium features ({amenity_str}) add to the valuation")
-    if cond_notes:
-        lines.append(f"Additionally, {' and '.join(cond_notes)}.")
-
-    # Sentence 4 — comparables
-    n_comp = len(comparables)
-    market_trend = market.get('market_trend', 'stable')
     avg_ppm2 = market.get('avg_price_per_m2')
-    if n_comp > 0 and avg_ppm2:
-        diff = ppm2 - avg_ppm2
-        pos_word = 'above' if diff >= 0 else 'below'
+    if comparables and avg_ppm2:
+        gap = (ppm2 - float(avg_ppm2)) / float(avg_ppm2) * 100 if avg_ppm2 else 0
+        position = 'in line with' if abs(gap) < 5 else (f"{abs(gap):.0f}% {'above' if gap > 0 else 'below'}")
         lines.append(
-            f"Compared against {n_comp} similar listings, your estimate sits "
-            f"{abs(diff):,.0f} TND/m² {pos_word} the local average of {avg_ppm2:,} TND/m². "
-            f"The market shows a **{market_trend}** trend."
+            f"Similar listings nearby average {_fmt(avg_ppm2)} TND/m²; this estimate is {position} that level."
         )
     else:
-        lines.append(
-            "No directly comparable listings were found in the database — "
-            "the estimate relies fully on market priors for this area."
-        )
+        lines.append("We found no closely comparable listings nearby, so the estimate relies on the model alone.")
 
-    # Sentence 5 — text and image signals
-    tq = text_analysis.get('description_quality', '')
-    if tq and tq != 'None':
-        sentiment = text_analysis.get('description_sentiment_label', text_analysis.get('sentiment_label', 'neutral'))
-        sentiment_mode = text_analysis.get('sentiment_mode', 'not_used')
-        lines.append(
-            f"The description signal is **{tq.lower()}** quality with a {sentiment} tone from the {sentiment_mode} text model, "
-            f"which {'supports' if sentiment == 'positive' else 'keeps the narrative conservative for'} the listing value."
-        )
+    trend = str(market.get('market_trend') or '').lower()
+    if trend in ('rising', 'up', 'growing'):
+        lines.append("Prices in this area are expected to rise over the next year.")
+    elif trend in ('falling', 'down', 'declining'):
+        lines.append("Prices in this area are expected to ease over the next year.")
+    elif trend:
+        lines.append("Prices in this area are expected to stay broadly stable.")
 
-    if image_analysis:
-        cv_mode = image_analysis.get('cv_mode', 'not_used')
-        image_count = int(image_analysis.get('image_count', 0) or 0)
-        if image_count > 0:
-            predicted_type = image_analysis.get('property_type_predicted', 'unknown')
-            lines.append(
-                f"Uploaded imagery was processed by the {cv_mode} CV path across {image_count} image(s), "
-                f"with a predicted property type of {predicted_type}."
-            )
-        else:
-            lines.append("No images were uploaded, so the CV path did not contribute to this valuation.")
+    if text_analysis.get('description_quality') == 'insufficient':
+        lines.append("Your description was too short or unclear to analyse.")
+    elif text_analysis.get('sentiment_label') or text_analysis.get('description_sentiment_label'):
+        tone = text_analysis.get('description_sentiment_label') or text_analysis.get('sentiment_label')
+        lines.append(f"Your description reads as {tone} in tone; this is shown for information and does not "
+                     "change the estimate.")
 
-    # Sentence 6 — model note
-    if mode == 'heuristic':
-        lines.append(
-            "**Note:** This estimate uses calibrated market priors. Upload property images and add a detailed description to improve coverage."
-        )
-    elif mode == 'market_data':
-        lines.append(
-            "**Note:** This estimate is data-driven, using real Tunisian listing medians for this area."
-        )
-    elif mode.startswith(('catboost', 'fallback_model')):
-        lines.append(
-            "**Note:** The price engine is driven by the mapped CatBoost serving bundle, with fallback tabular models used only when needed."
-        )
+    if image_analysis and int(image_analysis.get('image_count', 0) or 0) > 0:
+        lines.append("Your photos were reviewed for information only; they do not change the estimate.")
 
-    # Sentence 7 — bounds
-    lb = confidence.get('lower_bound', 0)
-    ub = confidence.get('upper_bound', 0)
-    lines.append(
-        f"The plausible price range is **{lb:,} – {ub:,} TND** "
-        f"(±{int(confidence.get('uncertainty_ratio', 0.14) * 100)}%)."
-    )
-
+    lb, ub = confidence.get('lower_bound'), confidence.get('upper_bound')
+    if lb and ub:
+        lines.append(f"A realistic range is **{_fmt(lb)} – {_fmt(ub)} TND**.")
     return ' '.join(lines)
+
+
+def technical_details(prediction: dict, model_version, shap_result: dict, text_analysis: dict,
+                      image_analysis: dict | None, prediction_source: str | None, climate_source: str | None,
+                      confidence: dict) -> list[dict]:
+    """Label/value pairs for the 'Show technical details' section."""
+    info = prediction.get('model_info', {}) or {}
+    rows = [
+        ('Model', model_label(getattr(model_version, 'model_name', None) or info.get('name'),
+                              getattr(model_version, 'version', None) or info.get('version'),
+                              getattr(model_version, 'training_date', None))),
+        ('Model registry entry', ' / '.join(filter(None, [getattr(model_version, 'model_name', None),
+                                                          getattr(model_version, 'version', None)]))),
+        ('Prediction path', {'catboost_bundle': 'CatBoost bundle (per property type)',
+                             'fallback_tabular': 'Fallback tabular model'}.get(prediction_source or '', prediction_source)),
+        ('Price drivers', 'CatBoost SHAP values for this prediction' if shap_result.get('drivers_available')
+         else 'Not available for this model'),
+        ('Description analysis', 'Character TF-IDF sentiment model; information only, not applied to the price'
+         if text_analysis.get('description_quality') != 'insufficient' else 'Skipped: not enough readable text'),
+        ('Photo analysis', 'ResNet50 image classifier; information only, not applied to the price'
+         if image_analysis and int(image_analysis.get('image_count', 0) or 0) > 0 else 'No photos uploaded'),
+        ('Climate data', {'delegation_composite_score': 'Local delegation climate score',
+                          'national_average_fallback': 'National average (no local score)'}.get(climate_source or '',
+                                                                                              climate_source)),
+        ('Uncertainty method', confidence.get('uncertainty_mode')),
+    ]
+    return [{'label': label, 'value': value} for label, value in rows if value]

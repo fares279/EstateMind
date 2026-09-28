@@ -88,6 +88,21 @@ class PredictionResult:
     feature_frame: pd.DataFrame | None = None
     uncertainty_reasons: list[str] = field(default_factory=list)
     ood_flags: list[str] = field(default_factory=list)
+    # CatBoost SHAP values for this prediction, in log-price space:
+    # {'base_log': expected log1p(price), 'phi': {feature: contribution}}; None if unavailable
+    attributions: dict[str, Any] | None = None
+
+
+def _shap_attributions(estimator, features: pd.DataFrame, cat_feature_indices: list[int]) -> dict | None:
+    """Exact per-feature contributions to this prediction (CatBoost ShapValues)."""
+    try:
+        from catboost import Pool
+        values = estimator.get_feature_importance(Pool(features, cat_features=cat_feature_indices or None),
+                                                  type="ShapValues")[0]
+    except Exception:  # pragma: no cover - attribution is optional
+        return None
+    return {"base_log": float(values[-1]),
+            "phi": {col: float(v) for col, v in zip(features.columns, values[:-1])}}
 
 
 def _raw_text_key(value: Any) -> str:
@@ -591,6 +606,7 @@ class InferenceBundle:
             feature_frame=features,
             uncertainty_reasons=sorted(set(uncertainty_reasons)),
             ood_flags=sorted(set(ood_flags)),
+            attributions=_shap_attributions(self.estimator, features, cat_feature_indices),
         )
 
 

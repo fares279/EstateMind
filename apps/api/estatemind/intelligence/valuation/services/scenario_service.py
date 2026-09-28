@@ -1,6 +1,12 @@
 """
-What-if scenario simulator — generates actionable upgrade scenarios.
-Ported from Scrapper agent and adapted for the Django pipeline.
+What-if scenarios: typical premiums for common upgrades.
+
+These are fixed rules of thumb (e.g. a garden adds about 5%), not predictions of
+the valuation model, which has no amenity or condition inputs. They are labelled
+as such (method 'rule_of_thumb') and carry no confidence score. Scenarios that
+claimed a description rewrite or 'reinforcing the top driver' would raise the
+price were removed: the model does not use the description, and the driver boost
+was an invented +25%.
 """
 from __future__ import annotations
 
@@ -38,7 +44,6 @@ def _amenity_scenarios(data: dict, estimated_price: int, comparables: list, conf
         'sea_view':    0.09,
         'elevator':    0.025,
     }
-    n_comp = len(comparables)
     results = []
     for field, weight in weights.items():
         if bool(data.get(field)):
@@ -52,11 +57,10 @@ def _amenity_scenarios(data: dict, estimated_price: int, comparables: list, conf
             'predicted_price':      max(1, estimated_price + boost),
             'price_delta':          boost,
             'delta_percentage':     _pct(estimated_price, boost),
-            'confidence':           round(conf, 2),
-            'why': (
-                f'Properties with {label} in this market typically command a premium. '
-                f'Based on {n_comp} comparable listing(s).'
-            ),
+            'confidence':           None,
+            'method':               'rule_of_thumb',
+            'why': (f'A typical premium for a {label} (a fixed rule of thumb of about {weight:.0%}); '
+                    'the valuation model does not take this feature into account.'),
         })
     return results
 
@@ -77,24 +81,9 @@ def _condition_scenario(data: dict, estimated_price: int, conf: float) -> dict |
         'predicted_price':      max(1, estimated_price + boost),
         'price_delta':          boost,
         'delta_percentage':     _pct(estimated_price, boost),
-        'confidence':           round(conf, 2),
+        'confidence':           None,
+        'method':               'rule_of_thumb',
         'why': 'Improving condition aligns the listing with stronger comparables and raises buyer willingness.',
-    }
-
-
-def _description_scenario(estimated_price: int, description_score: float, conf: float) -> dict:
-    target = 0.82
-    lift   = max(target - description_score, 0.0)
-    boost  = int(round(estimated_price * lift * 0.12))
-    return {
-        'scenario_name':        'Improve description quality',
-        'scenario_description': 'Write a richer, clearer description with stronger marketing language.',
-        'modified_features':    {'description_score': round(target, 2)},
-        'predicted_price':      max(1, estimated_price + boost),
-        'price_delta':          boost,
-        'delta_percentage':     _pct(estimated_price, boost),
-        'confidence':           round(conf, 2),
-        'why': 'Clearer descriptions typically improve engagement and support a stronger buyer perception.',
     }
 
 
@@ -112,7 +101,6 @@ def generate(
     recommendations — concise summaries for display.
     """
     conf       = _confidence_from(confidence_result)
-    desc_score = float((text_analysis or {}).get('description_score', 0.5))
 
     scenarios = []
     scenarios.extend(_amenity_scenarios(data, estimated_price, comparables, conf))
@@ -121,25 +109,6 @@ def generate(
     if cond:
         scenarios.append(cond)
 
-    scenarios.append(_description_scenario(estimated_price, desc_score, conf))
-
-    # Top feature reinforcement
-    if features_impact:
-        top = max(features_impact, key=lambda f: abs(f.get('impact', 0) or 0))
-        impact_val = int(top.get('impact', 0) or 0)
-        if impact_val > 0 and top.get('direction') == 'positive':
-            label = top.get('feature', 'key driver')
-            boost = int(round(impact_val * 0.25))
-            scenarios.append({
-                'scenario_name':        f'Reinforce {label}',
-                'scenario_description': f'Double down on {label.lower()}, the strongest value driver.',
-                'modified_features':    {'focus_feature': label},
-                'predicted_price':      max(1, estimated_price + boost),
-                'price_delta':          boost,
-                'delta_percentage':     _pct(estimated_price, boost),
-                'confidence':           round(conf, 2),
-                'why': f'{label} is already the primary driver — enhancing it gives the highest upside.',
-            })
 
     # Sort by delta desc, cap at 5
     ordered = sorted(scenarios, key=lambda s: s['price_delta'], reverse=True)[:5]
@@ -151,6 +120,7 @@ def generate(
             'predicted_impact_tnd':   s['price_delta'],
             'predicted_impact_pct':   s['delta_percentage'],
             'confidence':             s['confidence'],
+            'method':                 s.get('method'),
             'justification':          s['why'],
         }
         for s in ordered
