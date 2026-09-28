@@ -56,6 +56,84 @@ FEATURES = ['transaction_type', 'property_type', 'surface_m2', 'rooms', 'bedroom
             'size_x_local_price']
 CATEGORICAL = ['transaction_type', 'property_type', 'governorate', 'city', 'city_governorate']
 
+# Scraper default for listings it could not geocode: the geographic centre of
+# Tunisia. 23% of listings.csv sits exactly here.
+COUNTRY_CENTROID = (33.8439408, 9.400138)
+
+
+@dataclass(frozen=True)
+class Options:
+    """Cleaning choices. The defaults rebuild the v2 (estate_v2_20260927) data exactly.
+
+    location: 'v1' reads governorate/city as labelled. 'v2' decides per row
+        which column holds the town (see derive_location): the columns are
+        swapped in most rows, but not all.
+    drop_cross_town_duplicates: drop listings whose exact (type, price, surface)
+        appears in more than one town: filled-in values, not listings.
+    drop_fractional_surfaces: drop surfaces with decimals (a 2-room flat at
+        217.4 m2): generated upstream, not scraped.
+    coordinates: 'keep'; 'centroid_missing' blanks the not-geocoded default;
+        'none' blanks all coordinates (serving never receives any).
+    holdout_ids: record_ids forced into the test split, so models built with
+        different options are compared on the same unseen listings.
+    """
+    location: str = 'v1'
+    drop_cross_town_duplicates: bool = False
+    drop_fractional_surfaces: bool = False
+    coordinates: str = 'keep'
+    holdout_ids: frozenset | None = None
+
+
+V1 = Options()
+
+
+def _governorate_names() -> set[str]:
+    from estatemind.intelligence.valuation.inference.location import _reference
+    return set(_reference()[0])
+
+
+def _town(text) -> str | None:
+    """Town from a location string: 'Borj Louzir à La Soukra' -> 'la soukra',
+    "L'Aouina, La Marsa, Tunis" -> 'la marsa'. None for 'Autres villes' or a
+    governorate name (no town given)."""
+    text = str(text or '')
+    if ' à ' in text:
+        text = text.rsplit(' à ', 1)[1]
+    elif ',' in text:
+        govs = _governorate_names()
+        parts = [p for p in text.split(',') if plain(p) and plain(p) not in govs]
+        text = parts[-1] if parts else ''
+    town = plain(text)
+    if not town or town in ('autres villes', 'grand tunis') or town in _governorate_names():
+        return None
+    return town
+
+
+def derive_location(governorate_col, city_col) -> tuple[str, str | None, str]:
+    """(governorate, town or None, pattern) for one listing, by which column
+    holds a governorate name. Counted per pattern in the data card."""
+    govs = _governorate_names()
+    g, c = plain(governorate_col), plain(city_col)
+    g_is = g in govs or g == 'grand tunis'
+    c_is = c in govs or c == 'grand tunis'
+    if g_is and not c_is:
+        town = _town(city_col)
+        # 'Grand Tunis' is a region, not a governorate: take it from the town
+        gov = normalize_governorate(None, town) if g == 'grand tunis' and town else normalize_governorate(g, c)
+        return gov, town, 'correct'
+    if c_is and not g_is:
+        town = _town(governorate_col)
+        gov = normalize_governorate(None, town) if c == 'grand tunis' and town else normalize_governorate(c, g)
+        return gov, town, 'swapped' if town else 'swapped_no_town'
+    if g_is and c_is:
+        if g == c or 'grand tunis' in (g, c):
+            gov = normalize_governorate(c if g == 'grand tunis' else g)
+            return gov, None, 'no_town'
+        # e.g. 'Tunis' + 'Mahdia': the description says Mahdia; 'Tunis' is a default
+        return normalize_governorate(c), None, 'conflict_city_column'
+    town = _town(city_col) or _town(governorate_col)
+    return normalize_governorate(governorate_col, city_col), town, 'neither'
+
 
 @dataclass
 class Dataset:
@@ -76,8 +154,8 @@ DUPLICATE_KEY = ['property_type', 'price_tnd', 'surface_m2', 'city', 'latitude',
 _LISTED_KEY = [c if c != 'rooms' else 'rooms_listed' for c in DUPLICATE_KEY]
 
 
-def clean(raw: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
-    card = {'input_rows': len(raw), 'removed': {}}
+def clean(raw: pd.DataFrame, options: Options = V1) -> tuple[pd.DataFrame, dict]:
+    card = {'input_rows': len(raw), 'removed': {}, 'changed': {}}
 
     def drop(mask, rule, df):
         card['removed'][rule] = int((~mask).sum())
@@ -111,6 +189,29 @@ def clean(raw: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
     # same derivation so the feature means the same thing at serving time.
     df['rooms_listed'] = df['rooms']
     df['rooms'] = df['bedrooms'] + (df['property_type'] != 'terrain').astype(int)
+
+    if options.location == 'v2':
+        derived = [derive_location(g, c) for g, c in zip(df['governorate_raw'], df['city_raw'])]
+        df['governorate'] = [d[0] for d in derived]
+        # no town given: the governorate name stands for "unspecified", as when a
+        # user enters the governorate as the city
+        df['city'] = [d[1] or d[0] for d in derived]
+        df['location_pattern'] = [d[2] for d in derived]
+        card['location_patterns'] = df['location_pattern'].value_counts().to_dict()
+        card['changed']['town_taken_from_governorate_column'] = int(df['location_pattern'].eq('swapped').sum())
+        card['changed']['governorate_from_city_column_on_conflict'] = int(
+            df['location_pattern'].eq('conflict_city_column').sum())
+    if options.drop_cross_town_duplicates:
+        towns = df.groupby(['property_type', 'price_tnd', 'surface_m2'])['city'].transform('nunique')
+        df = drop(towns <= 1, 'same_price_and_surface_in_several_towns', df)
+    if options.drop_fractional_surfaces:
+        df = drop(df['surface_m2'] % 1 == 0, 'surface_with_decimals', df)
+    if options.coordinates in ('centroid_missing', 'none'):
+        at_centroid = df['latitude'].eq(COUNTRY_CENTROID[0]) & df['longitude'].eq(COUNTRY_CENTROID[1])
+        blank = at_centroid if options.coordinates == 'centroid_missing' else pd.Series(True, index=df.index)
+        card['changed'][f'coordinates_blanked_{options.coordinates}'] = int(blank.sum())
+        df.loc[blank, ['latitude', 'longitude']] = np.nan
+
     card['output_rows'] = len(df)
     card['by_type'] = df['property_type'].value_counts().to_dict()
     card['governorates'] = int(df['governorate'].nunique())
@@ -118,7 +219,10 @@ def clean(raw: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
     return df.reset_index(drop=True), card
 
 
-def split(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+def split(df: pd.DataFrame, holdout_ids: frozenset | None = None) -> tuple[pd.DataFrame, pd.DataFrame]:
+    if holdout_ids is not None:
+        is_test = df['record_id'].isin(holdout_ids)
+        return df[~is_test].copy(), df[is_test].copy()
     test_idx = []
     for _, part in df.groupby('property_type'):
         test_idx.extend(part.sample(frac=TEST_SHARE, random_state=SEED).index)
@@ -155,10 +259,10 @@ def add_features(df: pd.DataFrame, priors: dict[str, dict]) -> pd.DataFrame:
     return df
 
 
-def build(csv_path: Path = LISTINGS_CSV) -> Dataset:
+def build(csv_path: Path = LISTINGS_CSV, options: Options = V1) -> Dataset:
     raw = pd.read_csv(csv_path)
-    df, card = clean(raw)
-    train, test = split(df)
+    df, card = clean(raw, options)
+    train, test = split(df, options.holdout_ids)
     priors = fit_priors(train)
     train, test = add_features(train, priors), add_features(test, priors)
     card.update({
@@ -169,6 +273,11 @@ def build(csv_path: Path = LISTINGS_CSV) -> Dataset:
         'test_by_type': test['property_type'].value_counts().to_dict(),
         'listings_in_both_splits': int(len(train.merge(test, on=_LISTED_KEY))),
         'location_normalization': LOCATION_NORMALIZATION,
+        'options': {'location': options.location, 'drop_cross_town_duplicates': options.drop_cross_town_duplicates,
+                    'drop_fractional_surfaces': options.drop_fractional_surfaces, 'coordinates': options.coordinates,
+                    'holdout_ids': len(options.holdout_ids) if options.holdout_ids is not None else None},
+        'rows_where_town_differs_from_governorate': int(
+            (pd.concat([train, test])['city'] != pd.concat([train, test])['governorate']).sum()),
         'rules': {'price_range': PRICE_RANGE, 'surface_range': SURFACE_RANGE, 'ppm_range': PPM_RANGE,
                   'prior_min_count': PRIOR_MIN_COUNT, 'test_share': TEST_SHARE, 'seed': SEED},
     })

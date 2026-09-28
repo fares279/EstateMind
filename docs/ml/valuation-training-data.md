@@ -95,3 +95,70 @@ filled-in values so that future training data can exclude them.
 4. Should the town-column fix be applied before any promotion decision? I recommend yes.
 5. Should cross-town duplicate values be dropped, and should the non-integer-surface rows be tested
    for exclusion? I recommend yes to both, with the effect measured before anything is promoted.
+
+## Update: fixes applied and compared (not promoted)
+
+The fixes above are now options in `ml/shared/listings_dataset.py` (`Options`). The defaults still
+rebuild the v2 data exactly. Each change is counted in the data card. To reproduce the comparison,
+run `python -m ml.valuation.compare_data_fixes`.
+
+### The town/governorate columns: decided per row, not swapped wholesale
+
+The swap turned out not to be systematic. Rows were grouped by which column holds a governorate
+name:
+
+| Pattern (all 10,055 rows) | Rows | Rule |
+| --- | ---: | --- |
+| Swapped: governorate column holds the town | 5,703 | Town from the governorate column ("Borj Louzir à La Soukra" becomes La Soukra); "Autres villes" (1,069) means no town |
+| Correct orientation | 2,278 | Town from the city column |
+| Both columns name the same governorate, or "Grand Tunis" | 1,754 | No town given |
+| Two different governorates, e.g. "Tunis" + "Mahdia" | 244 | Governorate from the city column: the listing text names it in 236 of 236 kept rows (the governorate column in 3) |
+| Neither column is a governorate name (encoding damage, e.g. "Gabs") | 76 | Town from the city column |
+
+When no town is given, the governorate name stands in, as it does when a user types the
+governorate as the city. In the 5,513 cleaned rows, the share with a real town rose from 27%
+(1,510) to 66% (3,616). Apartments with a town-level price prior rose from 66 towns to 110.
+
+### Coordinates: a train/serve mismatch
+
+- 23% of all rows have coordinates at the geographic centre of Tunisia (33.844, 9.400), the scraper's
+  "not geocoded" default.
+- The valuation API never receives coordinates, so in production every model sees them as missing.
+  The models were all trained with coordinates on every row.
+- So every model is scored twice below: with coordinates (as in training) and without (as served).
+  **The served numbers are the ones that matter.** The current champion also loses accuracy when
+  served: its house error goes from 31% with coordinates to 38% without.
+
+### Results (served, no coordinates)
+
+Held-out set: the 1,102 listings in the previous v2's test set, minus those removed by the new
+cleaning, leaving 833. No model was trained on them, except that the current champions' training data
+is unknown and may include them. Intervals are 95% bootstrap intervals on the difference in median
+error; a negative difference means E is better.
+
+| Median error | Champion | Previous v2 | A: location fix | B: +cross-town dups dropped | C: +decimal surfaces dropped | D: +centroid coords missing | E: +no coords |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Apartment (n=398) | 25.5% | 26.4% | 23.6% | 23.9% | 23.7% | 23.3% | **22.5%** |
+| House (n=350) | 37.8% | 39.8% | 33.8% | 32.4% | 33.3% | 33.0% | **31.5%** |
+| Land (n=85) | 36.0% | 43.5% | 36.4% | 38.9% | 38.1% | 38.1% | **35.5%** |
+
+- **E vs previous v2**: apartment −3.9 points [−6.5, −0.9], house −8.3 [−12.7, −3.1], land −8.0
+  [−12.8, +1.5].
+- **E vs champion**: apartment −3.1 [−7.0, +0.7], house −6.3 [−11.3, −1.8], land −0.5 [−24.5,
+  +11.0]. Land has too few held-out rows to tell.
+- **Price bias** (median predicted ÷ actual) for E: 0.99 / 1.01 / 0.94. For the champion: 1.01 /
+  0.96 / 1.31. For the previous v2: 1.04 / 1.20 / 1.17.
+- **Most of the gain comes from the location fix (A) and from training without coordinates (E).**
+  Dropping the 516 cross-town duplicates and the 785 decimal surfaces does not clearly change
+  accuracy on this held-out set. Keep or drop them on principle (they look generated), not for
+  accuracy.
+- **The town feature now carries signal.** The importance of town, town+governorate and the local
+  price prior for apartments rose from 6.7 (previous v2) to 20.6 (E). Error on rows with a known town
+  is 19.9% for E, against 24.8% for v2 and 21.4% for the champion.
+- **By town, the results are mixed.** Apartments, E vs v2: La Soukra 25% → 14%, Menzah 29% → 16%,
+  Hammamet 42% → 33%, Sousse Jawhara 22% → 16%; but Sousse 38% → 45%, Ariana 28% → 37% and La Marsa
+  27% → 32%. "Sousse", "Ariana" and similar here are mostly rows with no town given.
+
+Nothing was written to the artifacts or the registry. Variant E is the candidate if you want a
+challenger. Training it for real (`train_catboost_bundle.py` with these options) would be the next
+step, still at 0% traffic.
