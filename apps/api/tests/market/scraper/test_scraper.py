@@ -90,3 +90,15 @@ class ScraperAdminEndpointTests(TestCase):
             self.assertEqual(getattr(self.client, method)(url).status_code, 401, url)
             self.client.force_authenticate(self.user)
             self.assertEqual(getattr(self.client, method)(url).status_code, 403, url)
+
+
+class ScraperHealthEndpointTests(TestCase):
+    def test_health_reports_work_for_staff(self):
+        # both raised NameError (timezone was only imported inside other functions)
+        staff = get_user_model().objects.create_user(email='s@example.com', password='pw12345!x', full_name='S',
+                                                     is_staff=True)
+        client = APIClient()
+        client.force_authenticate(staff)
+        for url in ('/api/scraper/health/incidents/', '/api/scraper/health/scraper-agents/',
+                    '/api/scraper/health/dashboard/', '/api/scraper/health/data-quality/'):
+            self.assertEqual(client.get(url).status_code, 200, url)
