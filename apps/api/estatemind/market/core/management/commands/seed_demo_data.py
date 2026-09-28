@@ -74,6 +74,9 @@ class Command(BaseCommand):
         for task in (materialize_daily_market_analytics, materialize_daily_forecast_summary,
                      materialize_daily_investor_summary):
             self.stdout.write(f'{task.name}: {task()}')
+        # register the valuation models that artifact discovery serves (never promotes a challenger)
+        from estatemind.intelligence.valuation.tasks import sync_registry_from_artifacts
+        self.stdout.write(f'valuation registry sync: {sync_registry_from_artifacts()}')
         self.stdout.write(self.style.SUCCESS(
             f'Done: {len(regions)} regions, {len(delegations)} delegations, {real} real listings, '
             f'{synthetic} synthetic listings (Property.source="synthetic").'))

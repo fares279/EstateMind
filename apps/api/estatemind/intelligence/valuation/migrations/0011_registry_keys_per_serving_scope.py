@@ -3,8 +3,8 @@
 Rows were named after the model family ('catboost', 'et') or 'CatBoost_<Type>'
 while serving looked up 'CatBoost_<Type>' from the French property type, so
 serving never used the registry. Each row gets the key of the scope its
-artifact serves. Each scope keeps one champion: an existing champion if there
-is one, otherwise the CatBoost artifact (what artifact discovery serves).
+artifact serves. A scope keeps its existing champion, if any; nothing is
+promoted (sync_registry_from_artifacts registers what discovery serves).
 Other versions become 0%-traffic challengers — none of them was ever served.
 """
 from pathlib import Path
@@ -37,13 +37,12 @@ def rekey(apps, schema_editor):
         by_key.setdefault(row.model_name, []).append((row, family))
 
     for key, entries in by_key.items():
+        # Never promote here: a scope without a champion keeps none, and serving falls
+        # back to artifact discovery (the same files the old champions were). Promoting
+        # 'the CatBoost row' turned unapproved 0%-traffic challengers into champions.
         champions = [r for r, _ in entries if r.status == 'champion']
-        if champions:
-            keep = max(champions, key=lambda r: (r.promoted_at is not None, r.promoted_at, r.created_at))
-        else:
-            live = [(r, f) for r, f in entries if r.status in ('champion', 'challenger')]
-            catboost = [r for r, f in live if f == 'catboost']
-            keep = (catboost or [r for r, _ in live] or [None])[0]
+        keep = max(champions, key=lambda r: (r.promoted_at is not None, r.promoted_at, r.created_at)) \
+            if champions else None
         for row, _ in entries:
             if row is keep:
                 row.status, row.ab_traffic_pct = 'champion', 100

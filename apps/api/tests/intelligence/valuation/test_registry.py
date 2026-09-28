@@ -142,3 +142,35 @@ class RegistryColumnWidthTests(SimpleTestCase):
             for model, field in ((V, 'version'), (ValuationPredictionLog, 'model_version_label'),
                                  (ValuationRequest, 'model_version')):
                 self.assertLessEqual(len(value), model._meta.get_field(field).max_length, (value, model.__name__, field))
+
+
+class RekeyMigrationTests(TestCase):
+    """Migration 0011 must never promote: it once turned 0%-traffic challengers into champions."""
+
+    def _rekey(self):
+        import importlib
+        from types import SimpleNamespace
+        from django.apps import apps
+        from django.db import connection
+        migration = importlib.import_module(
+            'estatemind.intelligence.valuation.migrations.0011_registry_keys_per_serving_scope')
+        migration.rekey(apps, SimpleNamespace(connection=connection))
+
+    def _row(self, name, path, status, traffic):
+        return V.objects.create(model_name=name, version=path.rsplit('/', 1)[-1][:60], artifact_path=path, status=status,
+                                ab_traffic_pct=traffic, training_date=dt.date(2026, 9, 1), training_data_hash='',
+                                training_samples=0, eval_rmse=0, eval_r2=0, eval_mape=0, eval_holdout_size=0)
+
+    def test_challengers_without_a_champion_stay_challengers(self):
+        self._row('valuation:appartement', 'valuation/models/estate_v2/bytype__appartement__catboost.joblib',
+                  'challenger', 0)
+        self._rekey()
+        self.assertFalse(V.objects.filter(status='champion').exists())
+
+    def test_existing_champion_is_kept_and_other_traffic_zeroed(self):
+        self._row('catboost', 'valuation/models/m/bytype__maison__catboost.joblib', 'champion', 100)
+        self._row('et', 'valuation/models/m/bytype__maison__et.joblib', 'challenger', 10)
+        self._rekey()
+        self.assertEqual(list(V.objects.filter(status='champion').values_list('artifact_path', flat=True)),
+                         ['valuation/models/m/bytype__maison__catboost.joblib'])
+        self.assertEqual(V.objects.get(artifact_path__endswith='__et.joblib').ab_traffic_pct, 0)
