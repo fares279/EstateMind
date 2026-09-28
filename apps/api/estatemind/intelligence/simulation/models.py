@@ -31,6 +31,9 @@ class SimulationRun(models.Model):
 
     # Basic identification
     run_id                = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    # Who started the run; runs without an owner (older ones) can only be deleted by staff
+    owner                 = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
+                                              on_delete=models.SET_NULL, related_name='simulation_runs')
     user                  = models.ForeignKey(settings.AUTH_USER_MODEL,
                                              on_delete=models.SET_NULL, null=True, blank=True)
     

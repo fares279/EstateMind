@@ -2,17 +2,19 @@ import json
 import uuid
 from unittest import mock
 
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from rest_framework.test import APIClient
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from estatemind.intelligence.simulation.engine.simulator import TunisiaRealEstateSimulator
 from estatemind.intelligence.simulation.models import SimulationRun
 
 
-def _run(months=6, seed=1, scenario='baseline'):
+def _run(months=6, seed=1, scenario='baseline', owner=None):
     run_id = str(uuid.uuid4())
     SimulationRun.objects.create(run_id=run_id, scenario_name=scenario, agent_scale='tiny', num_months=months,
-                                 status=SimulationRun.STATUS_PENDING)
+                                 status=SimulationRun.STATUS_PENDING, owner=owner)
     TunisiaRealEstateSimulator(run_id=run_id, scenario_name=scenario, num_months=months, agent_scale='tiny',
                                seed=seed, policy_overrides={}).run()
     return SimulationRun.objects.get(run_id=run_id)
@@ -30,9 +32,20 @@ class SimulatorEngineTests(TestCase):
         self.assertEqual([s['avg_price'] for s in a.monthly_states], [s['avg_price'] for s in b.monthly_states])
 
 
+def _user(email, **extra):
+    return get_user_model().objects.create_user(email=email, password='pw12345!x', full_name='U', **extra)
+
+
+def _login(client, user):
+    # these views read the JWT header themselves (plain Django views)
+    client.credentials(HTTP_AUTHORIZATION=f'Bearer {RefreshToken.for_user(user).access_token}')
+
+
 class SimulationApiTests(TestCase):
     def setUp(self):
         self.client = APIClient()
+        self.user = _user('sim@example.com')
+        _login(self.client, self.user)
 
     def _start(self, body):
         return self.client.post('/api/simulate/start/', data=json.dumps(body), content_type='application/json')
@@ -57,7 +70,7 @@ class SimulationApiTests(TestCase):
         body = response.json()
         self.assertEqual(body['num_months'], 60)
         self.assertEqual(body['policy_overrides'], {'bct_rate': 0.09})
-        self.assertTrue(SimulationRun.objects.filter(run_id=body['run_id']).exists())
+        self.assertEqual(SimulationRun.objects.get(run_id=body['run_id']).owner, self.user)
         thread.return_value.start.assert_called_once()
 
     def test_results_endpoints_for_a_finished_run(self):
@@ -71,3 +84,46 @@ class SimulationApiTests(TestCase):
 
     def test_unknown_run_is_404(self):
         self.assertEqual(self.client.get(f'/api/simulate/runs/{uuid.uuid4()}/').status_code, 404)
+
+
+@mock.patch('estatemind.intelligence.simulation.views.threading.Thread')
+class SimulationPermissionTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.owner, self.other = _user('owner@example.com'), _user('other@example.com')
+        self.staff = _user('staff@example.com', is_staff=True)
+        self.run = _run(owner=self.owner)
+        self.orphan = _run(owner=None)
+
+    def _delete(self, run):
+        return self.client.delete(f'/api/simulate/runs/{run.run_id}/')
+
+    def test_start_requires_login(self, _thread):
+        response = self.client.post('/api/simulate/start/', data='{}', content_type='application/json')
+        self.assertEqual(response.status_code, 401)
+        self.assertIn('Log in', response.json()['error'])
+
+    def test_bad_token_is_treated_as_anonymous(self, _thread):
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer not-a-token')
+        self.assertEqual(self.client.post('/api/simulate/start/', data='{}',
+                                          content_type='application/json').status_code, 401)
+
+    def test_reads_stay_public(self, _thread):
+        self.assertEqual(self.client.get(f'/api/simulate/runs/{self.run.run_id}/').status_code, 200)
+        self.assertEqual(self.client.get('/api/simulate/runs/').status_code, 200)
+
+    def test_delete_rules(self, _thread):
+        self.assertEqual(self._delete(self.run).status_code, 401)              # anonymous
+        _login(self.client, self.other)
+        self.assertEqual(self._delete(self.run).status_code, 403)              # someone else's run
+        self.assertEqual(self._delete(self.orphan).status_code, 403)           # ownerless: staff only
+        _login(self.client, self.owner)
+        self.assertEqual(self._delete(self.run).status_code, 200)              # owner
+        _login(self.client, self.staff)
+        self.assertEqual(self._delete(self.orphan).status_code, 200)           # staff
+        self.assertFalse(SimulationRun.objects.exists())
+
+    def test_list_says_who_can_delete(self, _thread):
+        _login(self.client, self.owner)
+        flags = {r['run_id']: r['can_delete'] for r in self.client.get('/api/simulate/runs/').json()['runs']}
+        self.assertEqual(flags, {str(self.run.run_id): True, str(self.orphan.run_id): False})

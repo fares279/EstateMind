@@ -1004,9 +1004,11 @@ export default function SimulatePage() {
                           style={{background:statusColor+'15',color:statusColor}}>
                           {statusLabel}
                         </span>
-                        <button onClick={e=>deleteRun(e,r.run_id)} className="text-gray-700 hover:text-red-400 transition-colors p-1 flex-shrink-0">
-                          <Trash2 size={12}/>
-                        </button>
+                        {r.can_delete && (
+                          <button onClick={e=>deleteRun(e,r.run_id)} className="text-gray-700 hover:text-red-400 transition-colors p-1 flex-shrink-0">
+                            <Trash2 size={12}/>
+                          </button>
+                        )}
                       </div>
                     );
                   })}

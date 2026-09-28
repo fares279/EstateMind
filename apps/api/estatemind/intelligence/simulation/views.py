@@ -46,6 +46,25 @@ def _err(msg: str, status: int = 400) -> JsonResponse:
     return _json({"error": msg}, status)
 
 
+def _user(request):
+    """The logged-in user from the JWT bearer token, or None.
+    These are plain Django views, so DRF's authentication does not run here."""
+    from rest_framework.exceptions import AuthenticationFailed
+    from rest_framework_simplejwt.authentication import JWTAuthentication
+    from rest_framework_simplejwt.exceptions import InvalidToken
+    try:
+        result = JWTAuthentication().authenticate(request)
+    except (InvalidToken, AuthenticationFailed):
+        return None
+    return result[0] if result else None
+
+
+def _can_delete(user, run: SimulationRun) -> bool:
+    if user is None:
+        return False
+    return bool(user.is_staff or (run.owner_id is not None and run.owner_id == user.id))
+
+
 # ── Scenario catalogue ─────────────────────────────────────────────────────────
 def scenarios_view(request):
     if request.method == "OPTIONS":
@@ -60,6 +79,10 @@ def start_view(request):
         return _preflight()
     if request.method != "POST":
         return _err("Method not allowed", 405)
+
+    user = _user(request)
+    if user is None:
+        return _err("Log in to run a simulation.", 401)
 
     try:
         body = json.loads(request.body or "{}")
@@ -102,6 +125,7 @@ def start_view(request):
     try:
         run = SimulationRun.objects.create(
             run_id        = run_id,
+            owner         = user,
             scenario_name = scenario_name,
             agent_scale   = agent_scale,
             num_months    = num_months,
@@ -148,6 +172,7 @@ def runs_list_view(request):
     if request.method == "OPTIONS":
         return _preflight()
 
+    user = _user(request)
     runs_qs = SimulationRun.objects.order_by("-created_at")[:100]
     runs = []
     for r in runs_qs:
@@ -164,6 +189,7 @@ def runs_list_view(request):
             "created_at":         r.created_at.isoformat() if r.created_at else None,
             "completed_at":       r.completed_at.isoformat() if r.completed_at else None,
             "error_message":      r.error_message,
+            "can_delete":         _can_delete(user, r),
         })
 
     return _json({"runs": runs, "count": len(runs)})
@@ -181,6 +207,11 @@ def run_detail_view(request, run_id):
         return _err("Run not found", 404)
 
     if request.method == "DELETE":
+        user = _user(request)
+        if user is None:
+            return _err("Log in to delete a run.", 401)
+        if not _can_delete(user, run):  # owner or staff; ownerless runs: staff only
+            return _err("Only the run's owner or staff can delete it.", 403)
         run.delete()
         return _json({"message": "Deleted", "run_id": str(run_id)})
 
