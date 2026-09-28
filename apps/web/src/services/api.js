@@ -78,22 +78,17 @@ export const simGetZones        = (runId)      => api.get(`/simulate/runs/${runI
 // Features API calls
 export const getListings = (params) => api.get('/listings/', { params });
 export const getPropertyDetails = (id) => api.get(`/listings/${id}/`);
-export const getValuation = (id) => api.get(`/valuations/${id}/`);
 export const getPricePredictor = (data) => api.post('/valuations/predict/', data);
 export const getValuationModelRegistry = (params) => api.get('/valuations/registry/', { params });
 export const getValuationCalibration = (params) => api.get('/valuations/calibration/', { params });
 export const getValuationDrift = (params) => api.get('/valuations/drift/', { params });
 export const getValuationAuditLog = () => api.get('/valuations/audit/');
-export const getMarketTrends = (params) => api.get('/forecasts/trends/', { params });
 export const getClimateRiskMap = () => api.get('/climate/');
 export const getClimateDashboard = () => api.get('/climate/dashboard/');
 export const getClimateWeather = (governorate) => api.get(`/climate/weather/${encodeURIComponent(governorate)}/`);
 export const getClimateCompare = (cities) => api.get('/climate/compare/', { params: { cities: cities.join(',') } });
 export const getClimateScenarios = () => api.get('/climate/scenarios/');
 export const getClimateRegionalHeatmap = () => api.get('/climate/regional_heatmap/');
-export const getPortfolio = () => api.get('/portfolio/');
-export const getScope = () => api.get('/scanner/opportunities/');
-export const getMarketSimulation = (data) => api.post('/simulations/', data);
 export const getCampaignStats = () => api.get('/campaign/stats/');
 
 // Interactive map endpoints (Phase 4)
