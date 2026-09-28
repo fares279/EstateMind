@@ -18,6 +18,7 @@ from estatemind.market.core.models import (
     Delegation,
     DelegationMarketSegment,
     DelegationMarketSnapshot,
+    SYNTHETIC_SOURCE,
     PriceTrend,
     Property,
     Region,
@@ -182,6 +183,38 @@ def _trend_for_region(region: Region, property_type: str | None = None) -> Price
     return queryset.order_by("-date").first()
 
 
+def _forecast_trend(delegation: Delegation, property_type: str | None, median_ppm: float | None):
+    """Trend fields from the delegation's own price forecast (forecast.DelegationForecast),
+    used when no PriceTrend row exists (nothing in the codebase writes PriceTrend).
+
+    The forecast series gives relative growth; it is applied to this snapshot's median
+    price per m2, so consumers comparing forecast_6m with the median see the forecast
+    growth rather than the gap between benchmark and listing price levels."""
+    from types import SimpleNamespace
+
+    from estatemind.intelligence.forecast.models import DelegationForecast
+
+    if not median_ppm:
+        return None
+    ptype = property_type if property_type and property_type != "all" else "apartment"
+    series = dict(
+        DelegationForecast.objects.filter(
+            delegation_name=delegation.name, governorate=delegation.region.governorate, property_type=ptype,
+        ).order_by("-forecast_origin", "horizon_idx").values_list("horizon_idx", "predicted_price_per_m2")[:12]
+    )
+    if 1 not in series or 12 not in series or not series[1]:
+        return None
+    monthly = (series[12] / series[1]) ** (1 / 11)  # h=1..12: 11 monthly steps
+    growth = {m: monthly ** m for m in (3, 6, 12)}
+    direction = "up" if growth[12] > 1.005 else "down" if growth[12] < 0.995 else "stable"
+    return SimpleNamespace(
+        trend_direction=direction,
+        forecast_3m=round(median_ppm * growth[3], 2),
+        forecast_6m=round(median_ppm * growth[6], 2),
+        forecast_12m=round(median_ppm * growth[12], 2),
+    )
+
+
 def _climate_for_region(region: Region) -> ClimateRisk | None:
     return ClimateRisk.objects.filter(region=region).first()
 
@@ -318,12 +351,14 @@ def rebuild_market_snapshots(as_of_date: date | None = None) -> dict[str, int]:
 
         sale_properties = [p for p in properties if p.transaction_type == "sale"]
         rent_properties = [p for p in properties if p.transaction_type == "rent"]
-        price_per_sqm_values = [p.price_per_sqm for p in properties if p.price_per_sqm]
+        # sale listings only: monthly rents per m2 (~6 TND) used to drag this median down
+        price_per_sqm_values = [p.price_per_sqm for p in sale_properties if p.price_per_sqm]
         days_on_market = [_days_on_market(p) for p in properties]
         days_on_market = [d for d in days_on_market if d is not None]
 
         climate = _climate_for_region(delegation.region)
-        trend = _trend_for_region(delegation.region)
+        trend = _trend_for_region(delegation.region) or _forecast_trend(
+            delegation, None, _safe_median(price_per_sqm_values))
         population = delegation.population or 0
         supply_pressure = (len(properties) / population * 1000.0) if population else 0.0
 
@@ -332,6 +367,8 @@ def rebuild_market_snapshots(as_of_date: date | None = None) -> dict[str, int]:
             as_of_date=as_of_date,
             defaults={
                 "listing_count": len(properties),
+                "real_listing_count": sum(1 for p in properties if p.source != SYNTHETIC_SOURCE),
+                "synthetic_listing_count": sum(1 for p in properties if p.source == SYNTHETIC_SOURCE),
                 "sale_listing_count": len(sale_properties),
                 "rent_listing_count": len(rent_properties),
                 "median_sale_price": _safe_median([p.price for p in sale_properties]),
@@ -375,7 +412,8 @@ def rebuild_market_snapshots(as_of_date: date | None = None) -> dict[str, int]:
             segment_trend = _trend_for_region(
                 delegation.region,
                 None if property_type == "all" else property_type,
-            )
+            ) or (_forecast_trend(delegation, property_type, _safe_median(segment_price_per_sqm))
+                  if transaction_type == "sale" else None)
 
             DelegationMarketSegment.objects.create(
                 snapshot=snapshot,

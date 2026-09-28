@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, MapPin, Ruler, Bed, Bath, Check, TrendingUp, Tag } from 'lucide-react';
+import SampleBadge from './SampleBadge';
 
 const DEAL_META = {
   good:  { icon: '🟢', label: 'Good Deal',    desc: 'Below typical market price',    border: 'border-emerald-500/30', bg: 'from-emerald-500/10 to-emerald-500/5' },
@@ -125,6 +126,15 @@ export default function PropertyDetailModal({ property, isOpen, onClose }) {
                       </div>
                     </div>
                     <p className="text-gray-400 text-sm leading-snug pl-6 line-clamp-2">{property.title}</p>
+                    {property.isSample && (
+                      <div className="pl-6 mt-2 space-y-1">
+                        <SampleBadge />
+                        <p className="text-xs text-gray-500">
+                          Generated from EstateMind's price benchmarks for this area because no real listing is on
+                          record. It is not a property on the market.
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   {/* Specs */}

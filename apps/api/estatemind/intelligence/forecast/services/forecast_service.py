@@ -583,6 +583,9 @@ def list_delegations_for_governorate(governorate: str):
     return sorted(
         DelegationPriceData.objects
         .filter(q)
+        # order by the selected column only: the model's default ordering adds
+        # governorate/property_type to DISTINCT and repeated each name 4 times
+        .order_by('delegation_name')
         .values_list('delegation_name', flat=True)
         .distinct()
     )

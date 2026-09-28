@@ -131,6 +131,8 @@ function normalizeProperty(raw, delegationKpis) {
     lat,
     lng,
     source:        raw.source,
+    // generated from price benchmarks where no real listing exists (see seed_demo_data)
+    isSample:      raw.source === 'synthetic',
     governorate:   raw.governorate,
     delegationName: raw.delegation_name,
     image:         '/images/property_listing_placeholder.png',

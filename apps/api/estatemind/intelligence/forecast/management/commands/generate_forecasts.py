@@ -19,10 +19,13 @@ from django.core.management.base import BaseCommand
 
 logger = logging.getLogger(__name__)
 
-# delegations.csv lives two levels above the outer EstateMind directory
-from config.paths import EXTERNAL_DATA_DIR
+from config.paths import DATA_DIR, EXTERNAL_DATA_DIR
 
-CSV_PATH = EXTERNAL_DATA_DIR / 'delegations' / 'delegations.csv'
+# The copy in the repo (data/delegations.csv); the external folder the original
+# backend read from is not part of this repository.
+CSV_PATH = DATA_DIR / 'delegations.csv'
+if not CSV_PATH.exists():
+    CSV_PATH = EXTERNAL_DATA_DIR / 'delegations' / 'delegations.csv'
 
 FORECAST_ORIGIN = date(2026, 1, 1)
 

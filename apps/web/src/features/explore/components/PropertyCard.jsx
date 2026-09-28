@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { MapPin, Ruler, Bed, Bath, TrendingUp, ChevronRight } from 'lucide-react';
+import SampleBadge from './SampleBadge';
 
 export default function PropertyCard({ property, isSelected, onViewDetails }) {
   const getDealIcon = (deal) => {
@@ -71,6 +72,7 @@ export default function PropertyCard({ property, isSelected, onViewDetails }) {
           <div>
             <p className="text-white text-sm font-semibold">{property.title}</p>
             <p className="text-gray-300 text-sm font-medium">{property.location}</p>
+            {property.isSample && <SampleBadge />}
           </div>
         </div>
 

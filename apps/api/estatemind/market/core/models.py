@@ -73,6 +73,10 @@ class TimeSeriesBase(models.Model):
         ordering = ['-date']
 
 
+# Property.source for generated sample listings; everything else is real data.
+SYNTHETIC_SOURCE = 'synthetic'
+
+
 class Property(models.Model):
     """Core property listing (Real-Time Scraping)"""
     PROPERTY_TYPES = [
@@ -256,6 +260,10 @@ class DelegationMarketSnapshot(models.Model):
     forecast_3m = models.FloatField(null=True, blank=True)
     forecast_6m = models.FloatField(null=True, blank=True)
     forecast_12m = models.FloatField(null=True, blank=True)
+    # Provenance of the listings behind this snapshot: real (scraped / listings.csv)
+    # versus synthetic sample listings (Property.source == 'synthetic').
+    real_listing_count = models.IntegerField(default=0)
+    synthetic_listing_count = models.IntegerField(default=0)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

@@ -1,0 +1,279 @@
+governorate,delegation,latitude,longitude,is_coastal,coordinate_source
+Ariana,Ariana Ville,36.8656931,10.1687265,1,original_db
+Ariana,Ettadhamen,36.8338386,10.106146,1,original_db
+Ariana,Kalâat el-Andalous,37.0624508,10.118145,1,original_db
+Ariana,La Soukra,36.8749751,10.2454267,1,original_db
+Ariana,Mnihla,36.8533475,10.1169734,1,original_db
+Ariana,Raoued,36.9535973,10.1891941,1,original_db
+Ariana,Sidi Thabet,36.9085108,10.0425496,1,original_db
+Béja,Amdoun,36.7686376,9.0894667,0,original_db
+Béja,Béja Nord,36.804235,9.2431375,0,original_db
+Béja,Béja Sud,36.635975,9.1759623,0,original_db
+Béja,Goubellat,36.5400128,9.6632166,0,original_db
+Béja,Medjez el-Bab,36.6471499,9.616516,0,original_db
+Béja,Nefza,36.9748659,9.0748388,0,original_db
+Béja,Téboursouk,36.4615073,9.2426211,0,original_db
+Béja,Testour,36.5520138,9.4418606,0,original_db
+Béja,Thibar,36.5218222,9.1049848,0,original_db
+Ben Arous,Ben Arous,36.7516855,10.2245072,1,original_db
+Ben Arous,Bou Mhel el-Bassatine,36.7244212,10.3010512,1,original_db
+Ben Arous,El Mourouj,36.719825,10.2192362,1,original_db
+Ben Arous,Ezzahra,36.7404497,10.3029461,1,original_db
+Ben Arous,Fouchana,36.6987224,10.1693582,1,original_db
+Ben Arous,Hammam Chott,36.7189536,10.3642733,1,original_db
+Ben Arous,Hammam Lif,36.7313788,10.3363985,1,original_db
+Ben Arous,Medina Jedida,36.742946,10.2507635,1,original_db
+Ben Arous,Mégrine,36.7703354,10.2315885,1,original_db
+Ben Arous,Mohamedia,36.6796879,10.1570438,1,original_db
+Ben Arous,Mornag,36.5872133,10.2437597,1,original_db
+Ben Arous,Radès,36.767891,10.2724617,1,original_db
+Bizerte,Bizerte Nord,37.1738473,9.9657588,1,original_db
+Bizerte,Bizerte Sud,37.2573838,9.6676776,1,original_db
+Bizerte,El Alia,37.1689041,10.0338705,1,original_db
+Bizerte,Ghar El Melh,37.1454311,10.0938723,1,original_db
+Bizerte,Ghezala,37.0835462,9.5346429,1,original_db
+Bizerte,Joumine,36.8783116,9.4474129,1,original_db
+Bizerte,Mateur,37.0385985,9.6676974,1,original_db
+Bizerte,Menzel Bourguiba,37.1549472,9.7925864,1,original_db
+Bizerte,Menzel Jemil,37.239323,9.9129702,1,original_db
+Bizerte,Ras Jebel,37.2146189,10.1245603,1,original_db
+Bizerte,Sejnane,37.1368875,9.2440025,1,original_db
+Bizerte,Tinja,37.1289797,9.6631862,1,original_db
+Bizerte,Utique,37.0345742,9.9599024,1,original_db
+Bizerte,Zarzouna,37.2555974,9.8752753,1,original_db
+Gabès,El Hamma,33.8894378,9.7997111,0,original_db
+Gabès,El Hamma Ouest,33.82092,9.835402,0,original_db
+Gabès,Gabès Médina,35.8261374,10.6391774,0,original_db
+Gabès,Gabès Ouest,33.87806,9.9980741,0,original_db
+Gabès,Gabès Sud,33.77955,10.0525203,0,original_db
+Gabès,Ghannouch,33.939816,10.0650345,0,original_db
+Gabès,Mareth-Dkhila,33.5401559,10.1422953,0,original_db
+Gabès,Matmata,33.5086751,9.9786093,0,original_db
+Gabès,Menzel El Habib,34.1537399,9.5882657,0,original_db
+Gabès,Métouia,33.9589064,10.0014342,0,original_db
+Gabès,Nouvelle Matmata,33.6688822,10.0144336,0,original_db
+Gabès,Oudhref,33.9840486,9.9677051,0,original_db
+Gabès,Toujane,33.4657996,10.1310669,0,original_db
+Gafsa,Belkhir,34.335225,9.4181429,0,original_db
+Gafsa,El Guettar,34.271655,8.9658772,0,original_db
+Gafsa,El Ksar,34.41212,8.9186003,0,original_db
+Gafsa,Gafsa Nord,34.577085,8.8632768,0,original_db
+Gafsa,Gafsa Sud,34.44377,8.6766983,0,original_db
+Gafsa,Mdhilla,34.286879,8.7480284,0,original_db
+Gafsa,Métlaoui,34.315723,8.4018294,0,original_db
+Gafsa,Moularès,34.485737,8.2733836,0,original_db
+Gafsa,Redeyef,34.3843201,8.1538874,0,original_db
+Gafsa,Sened,34.540278,9.2513281,0,original_db
+Gafsa,Sidi Aïch,34.7328584,8.7827624,0,original_db
+Gafsa,Sidi Boubaker,34.63991,8.4446032,0,original_db
+Gafsa,Zannouch,34.4702009,9.0515131,0,original_db
+Jendouba,Aïn Draham,36.7774877,8.6879509,1,original_db
+Jendouba,Balta-Bou Aouane,36.694108,8.9177144,1,original_db
+Jendouba,Bou Salem,36.607408,8.9696535,1,original_db
+Jendouba,Fernana,36.6556629,8.6957875,1,original_db
+Jendouba,Ghardimaou,36.4505903,8.4425342,1,original_db
+Jendouba,Jendouba,36.4967177,8.775699,1,original_db
+Jendouba,Jendouba Nord,36.5353489,8.670946,1,original_db
+Jendouba,Oued Meliz,36.4678121,8.5500007,1,original_db
+Jendouba,Tabarka,36.9545614,8.7573829,1,original_db
+Kairouan,Aïn Djeloula,35.79866,9.8028151,0,original_db
+Kairouan,Bou Hajla,35.3830738,10.0421945,0,original_db
+Kairouan,Chebika,35.65887,9.9276484,0,original_db
+Kairouan,Echrarda,35.118169,10.0336505,0,original_db
+Kairouan,El Alâa,35.6292,9.4923726,0,original_db
+Kairouan,Haffouz,35.6165,9.7359149,0,original_db
+Kairouan,Hajeb El Ayoun,35.395434,9.5424162,0,original_db
+Kairouan,Kairouan Nord,35.7424899,10.0929696,0,original_db
+Kairouan,Kairouan Sud,35.5760755,10.158929,0,original_db
+Kairouan,Menzel Mehiri,35.4269243,9.8542649,0,original_db
+Kairouan,Nasrallah,35.337675,9.8126685,0,original_db
+Kairouan,Oueslatia,35.8476563,9.5932661,0,original_db
+Kairouan,Sbikha,35.9519497,10.0296673,0,original_db
+Kasserine,El Ayoun,35.5402671,8.8836602,0,original_db
+Kasserine,Ezzouhour,35.15881,8.8307812,0,original_db
+Kasserine,Fériana,34.9466476,8.5663107,0,original_db
+Kasserine,Foussana,35.349686,8.6255718,0,original_db
+Kasserine,Haïdra,35.5646147,8.4457377,0,original_db
+Kasserine,Hassi El Ferid,34.9627568,8.9102101,0,original_db
+Kasserine,Jedelienne,35.656625,8.8862576,0,original_db
+Kasserine,Kasserine Nord,35.215785,8.7698874,0,original_db
+Kasserine,Kasserine Sud,35.09787,8.7906505,0,original_db
+Kasserine,Majel Bel Abbès,34.750428,8.5231276,0,original_db
+Kasserine,Sbeïtla,35.2422672,9.0575954,0,original_db
+Kasserine,Sbiba,35.5405583,9.0732696,0,original_db
+Kasserine,Thala,35.576715,8.6607061,0,original_db
+Kébili,Douz Nord,33.2461003,9.551361,0,original_db
+Kébili,Douz Sud,33.0696325,9.2584073,0,original_db
+Kébili,Faouar,33.1517725,8.4410401,0,original_db
+Kébili,Kébili Nord,33.893822,9.1030268,0,original_db
+Kébili,Kébili Sud,33.6030308,9.2739875,0,original_db
+Kébili,Rjim Maatoug,33.3200444,8.0329992,0,original_db
+Kébili,Souk Lahad,33.7783142,8.8525855,0,original_db
+La Manouba,Borj El Amri,36.712968,9.8830314,0,original_db
+La Manouba,Djedeida,36.8492607,9.9353189,0,original_db
+La Manouba,Douar Hicher,36.8237415,10.0960637,0,original_db
+La Manouba,El Batan,36.770577,9.746086,0,original_db
+La Manouba,La Manouba,36.8113307,10.0947037,0,original_db
+La Manouba,Mornaguia,36.7571648,10.014927,0,original_db
+La Manouba,Oued Ellil,36.8297587,10.0128966,0,original_db
+La Manouba,Tebourba,36.8220386,9.8590159,0,original_db
+Le Kef,Dahmani,35.9424417,8.8284346,0,original_db
+Le Kef,El Ksour,35.8985897,8.880736,0,original_db
+Le Kef,Jérissa,35.8450091,8.6310155,0,original_db
+Le Kef,Kalâat Khasba,35.6654639,8.5877785,0,original_db
+Le Kef,Kalaat Senan,35.7672773,8.3438119,0,original_db
+Le Kef,Kef Est,36.1840479,8.8665702,0,original_db
+Le Kef,Kef Ouest,36.15364,8.6082924,0,original_db
+Le Kef,Nebeur,36.3050927,8.7713168,0,original_db
+Le Kef,Sakiet Sidi Youssef,36.2220401,8.3547342,0,original_db
+Le Kef,Sers,36.0734659,9.0192905,0,original_db
+Le Kef,Tajerouine,35.8913691,8.5530477,0,original_db
+Le Kef,Touiref,36.3398873,8.5798302,0,original_db
+Mahdia,Bou Merdes,35.4240787,10.6968229,1,original_db
+Mahdia,Chebba,35.2365477,11.1129712,1,original_db
+Mahdia,Chorbane,35.2267527,10.4355341,1,original_db
+Mahdia,El Bradâa,35.316125,10.9978643,1,original_db
+Mahdia,El Jem,35.2966435,10.71284,1,original_db
+Mahdia,Essouassi,35.34081,10.5030844,1,original_db
+Mahdia,Hebira,35.1660029,10.232194,1,original_db
+Mahdia,Ksour Essef,35.4162835,10.9987172,1,original_db
+Mahdia,Mahdia,35.503642,11.0682429,1,original_db
+Mahdia,Melloulèche,35.165461,11.0355373,1,original_db
+Mahdia,Ouled Chamekh,35.4796101,10.2973873,1,original_db
+Mahdia,Rejiche,35.4655214,11.0416985,1,original_db
+Mahdia,Sidi Alouane,35.3750157,10.9378385,1,original_db
+Médenine,Ben Gardane,32.8123428,11.3041784,0,original_db
+Médenine,Beni Khedache,33.240657,10.0967538,0,original_db
+Médenine,Djerba - Ajim,33.7383472,10.8014768,0,original_db
+Médenine,Djerba - Houmt Souk,33.8509343,10.8680497,0,original_db
+Médenine,Djerba - Midoun,33.7536409,10.9352661,0,original_db
+Médenine,Médenine Nord,33.3638818,10.3930425,0,original_db
+Médenine,Médenine Sud,33.4192417,10.6543094,0,original_db
+Médenine,Sidi Makhlouf,33.5063363,10.479706,0,original_db
+Médenine,Zarzis,33.5036797,11.1097173,0,original_db
+Monastir,Bekalta,35.6172948,10.9891336,1,original_db
+Monastir,Bembla,35.6919328,10.7921125,1,original_db
+Monastir,Beni Hassen,35.5670718,10.8080266,1,original_db
+Monastir,Jemmal,35.6239297,10.7592359,1,original_db
+Monastir,Ksar Hellal,35.6443898,10.8891403,1,original_db
+Monastir,Ksibet el-Médiouni,35.6884928,10.8420125,1,original_db
+Monastir,Moknine,35.628257,10.9001327,1,original_db
+Monastir,Monastir,35.7707582,10.8280511,1,original_db
+Monastir,Ouerdanine,35.7010667,10.6772096,1,original_db
+Monastir,Sahline,35.7413734,10.7219503,1,original_db
+Monastir,Sayada-Lamta-Bou Hajar,35.6672661,10.8859475,1,original_db
+Monastir,Téboulba,35.6417897,10.9658372,1,original_db
+Monastir,Zéramdine,35.576512,10.7312435,1,original_db
+Nabeul,Béni Khalled,36.6250666,10.6352796,1,original_db
+Nabeul,Béni Khiar,36.4693627,10.7809776,1,original_db
+Nabeul,Bou Argoub,36.5342202,10.5498743,1,original_db
+Nabeul,Dar Chaâbane El Fehri,36.4666209,10.7478479,1,original_db
+Nabeul,El Haouaria,37.0498089,11.0116492,1,original_db
+Nabeul,El Mida,36.7211712,10.8580023,1,original_db
+Nabeul,Grombalia,36.5984231,10.4990402,1,original_db
+Nabeul,Hammam Ghezèze,36.9335323,11.0681213,1,original_db
+Nabeul,Hammamet,,,1,missing
+Nabeul,Kélibia,36.8456561,11.0935701,1,original_db
+Nabeul,Korba,36.5728862,10.857624,1,original_db
+Nabeul,Menzel Bouzelfa,36.7032107,10.6012254,1,original_db
+Nabeul,Menzel Temime,36.7807127,10.9939105,1,original_db
+Nabeul,Nabeul,36.4512897,10.7355915,1,original_db
+Nabeul,Soliman,36.6944327,10.4865924,1,original_db
+Nabeul,Takelsa,36.7932113,10.6750977,1,original_db
+Sfax,Agareb,34.7421056,10.5274044,1,original_db
+Sfax,Bir Ali Ben Khalifa,34.7406664,10.0958949,1,original_db
+Sfax,El Hencha,35.1228878,10.7415421,1,original_db
+Sfax,Graïba,34.4847867,10.2018091,1,original_db
+Sfax,Jebiniana,35.0351327,10.9090537,1,original_db
+Sfax,Kerkennah,34.6434456,11.0375795,1,original_db
+Sfax,Mahrès,34.5218412,10.4984421,1,original_db
+Sfax,Menzel Chaker,35.0283419,10.3837478,1,original_db
+Sfax,Sakiet Eddaïer,34.7896235,10.7800417,1,original_db
+Sfax,Sakiet Ezzit,34.8023823,10.7613107,1,original_db
+Sfax,Sfax Ouest,34.7382869,10.7187076,1,original_db
+Sfax,Sfax Sud,34.8440835,10.6515204,1,original_db
+Sfax,Sfax Ville,34.7361691,10.7662357,1,original_db
+Sfax,Skhira,34.347068,9.9753024,1,original_db
+Sfax,Thyna,34.688015,10.7075059,1,original_db
+Sidi Bouzid,Bir El Hafey,34.932087,9.1960034,0,original_db
+Sidi Bouzid,Cebbala Ouled Asker,35.228365,9.3127941,0,original_db
+Sidi Bouzid,Essaïda,34.9655457,9.9526056,0,original_db
+Sidi Bouzid,Hichria,34.895,9.4095704,0,original_db
+Sidi Bouzid,Jilma,35.32943,9.3945095,0,original_db
+Sidi Bouzid,Meknassy,34.6047708,9.6022455,0,original_db
+Sidi Bouzid,Menzel Bouzaiane,34.628505,9.3872099,0,original_db
+Sidi Bouzid,Mezzouna,34.4626576,9.6898354,0,original_db
+Sidi Bouzid,Ouled Haffouz,35.09971,9.8607338,0,original_db
+Sidi Bouzid,Regueb,34.8541995,9.8015595,0,original_db
+Sidi Bouzid,Sidi Ali Ben Aoun,34.8241566,9.0998724,0,original_db
+Sidi Bouzid,Sidi Bouzid Est,35.1055697,9.5373403,0,original_db
+Sidi Bouzid,Sidi Bouzid Ouest,35.0346541,9.4926811,0,original_db
+Sidi Bouzid,Souk Jedid,34.86709,9.5490339,0,original_db
+Siliana,Bargou,36.0914446,9.5667337,0,original_db
+Siliana,Bou Arada,36.3510552,9.6241481,0,original_db
+Siliana,El Aroussa,36.3538128,9.4490496,0,original_db
+Siliana,El Krib,36.3270919,9.1352778,0,original_db
+Siliana,Gaâfour,36.2531776,9.3301663,0,original_db
+Siliana,Kesra,35.8131579,9.3648314,0,original_db
+Siliana,Makthar,35.8558974,9.2057475,0,original_db
+Siliana,Rouhia,35.651431,9.0563411,0,original_db
+Siliana,Sidi Bou Rouis,36.1768979,9.1259108,0,original_db
+Siliana,Siliana Nord,36.0301045,9.2255281,0,original_db
+Siliana,Siliana Sud,35.9690326,9.4325958,0,original_db
+Sousse,Akouda,35.9052411,10.5620745,1,original_db
+Sousse,Bouficha,36.274533,10.4260047,1,original_db
+Sousse,Enfida,36.1175276,10.335474,1,original_db
+Sousse,Hammam Sousse,35.8749788,10.5935183,1,original_db
+Sousse,Hergla,36.0317203,10.5064796,1,original_db
+Sousse,Kalâa Kebira,35.868456,10.4532999,1,original_db
+Sousse,Kalâa Seghira,35.7988366,10.4717293,1,original_db
+Sousse,Kondar,35.9034362,10.2439285,1,original_db
+Sousse,M'saken,35.6736817,10.5384878,1,original_db
+Sousse,Sidi Bou Ali,35.9702281,10.4252468,1,original_db
+Sousse,Sidi El Hani,35.6991807,10.3184468,1,original_db
+Sousse,Sousse Jawhara,35.8278637,10.6120584,1,original_db
+Sousse,Sousse Médina,35.8361829,10.6323674,1,original_db
+Sousse,Sousse Riadh,35.8046068,10.5960395,1,original_db
+Sousse,Sousse Sidi Abdelhamid,35.7963519,10.6575205,1,original_db
+Sousse,Zaouiet Ksibet Thrayet,35.7681283,10.6380674,1,original_db
+Tataouine,Beni Mhira,32.8634378,10.8172175,0,original_db
+Tataouine,Bir Lahmar,33.1445722,10.4393699,0,original_db
+Tataouine,Dehiba,31.9629128,10.4661198,0,original_db
+Tataouine,Ghomrassen,33.0598991,10.3390575,0,original_db
+Tataouine,Remada,32.3146481,10.3987008,0,original_db
+Tataouine,Smâr,32.7034273,10.9733297,0,original_db
+Tataouine,Tataouine Nord,32.7034273,10.6231939,0,original_db
+Tataouine,Tataouine Sud,32.7775261,10.1861387,0,original_db
+Tozeur,Degache,33.9841058,8.2154584,0,original_db
+Tozeur,El Hamma du Jérid,34.07814,8.1034267,0,original_db
+Tozeur,Hazoua,33.7404313,7.6038545,0,original_db
+Tozeur,Nefta,33.820495,7.8724512,0,original_db
+Tozeur,Tameghza,34.3863938,7.9334946,0,original_db
+Tozeur,Tozeur,33.9239001,8.1370639,0,original_db
+Tunis,Bab El Bhar,36.8008217,10.199351,1,original_db
+Tunis,Bab Souika,36.8059497,10.1624584,1,original_db
+Tunis,Carthage,36.8548083,10.3309924,1,original_db
+Tunis,Cité El Khadra,36.832165,10.192716,1,original_db
+Tunis,Djebel Jelloud,36.7655556,10.2075916,1,original_db
+Tunis,El Kabaria,36.7422859,10.191811,1,original_db
+Tunis,El Menzah,36.8356133,10.1583615,1,original_db
+Tunis,El Omrane,36.8212581,10.1531771,1,original_db
+Tunis,El Omrane supérieur,36.8346533,10.1298579,1,original_db
+Tunis,El Ouardia,36.7720813,10.1820551,1,original_db
+Tunis,Ettahrir,36.8270836,10.126886,1,original_db
+Tunis,Ezzouhour,36.7943966,10.1355863,1,original_db
+Tunis,Hraïria,36.7818973,10.0617881,1,original_db
+Tunis,La Goulette,36.8159278,10.3042378,1,original_db
+Tunis,La Marsa,36.8790882,10.327678,1,original_db
+Tunis,Le Bardo,36.8142752,10.1374251,1,original_db
+Tunis,Le Kram,36.8348312,10.3181518,1,original_db
+Tunis,Médina,36.7986935,10.1717399,1,original_db
+Tunis,Séjoumi,36.7847164,10.1662852,1,original_db
+Tunis,Sidi El Béchir,36.7847055,10.1800669,1,original_db
+Tunis,Sidi Hassine,36.7708432,10.1102505,1,original_db
+Zaghouan,Bir Mcherga,36.5180792,9.9544161,1,original_db
+Zaghouan,El Fahs,36.2697603,9.8423429,1,original_db
+Zaghouan,Nadhour,36.1117279,9.9897638,1,original_db
+Zaghouan,Saouaf,36.2158324,10.152733,1,original_db
+Zaghouan,Zaghouan,36.3994751,10.1446349,1,original_db
+Zaghouan,Zriba,36.3512115,10.207921,1,original_db
