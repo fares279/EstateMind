@@ -23,9 +23,21 @@ match is rejected, and nothing is written. The API container runs `verify` at st
 3. `pack` and upload the bundle.
 4. Point `ESTATEMIND_ARTIFACTS_URL` (deployments, and the CI secret) at the new bundle.
 
-## Where to store the bundle (decision pending)
+## Where to store the bundle: GitHub Releases (decided)
 
-The script works with any HTTPS URL. Options:
+One GitHub Release per locked bundle, tagged `artifacts-YYYYMMDD`, with the `.tar.gz` as its
+asset. Nothing is published yet: the repository has no remote. Once it does:
+
+```bash
+python scripts/artifacts.py pack estatemind-artifacts-YYYYMMDD.tar.gz
+gh release create artifacts-YYYYMMDD estatemind-artifacts-YYYYMMDD.tar.gz --notes "lock: <commit>"
+```
+
+Then set `ESTATEMIND_ARTIFACTS_URL` to the asset's download URL. For a private repository the
+download needs authentication, e.g. a pre-signed or token-bearing URL; `fetch` only accepts
+`https://`.
+
+The other options, if the needs change:
 
 | Option | Fits when | Notes |
 | --- | --- | --- |
@@ -34,7 +46,6 @@ The script works with any HTTPS URL. Options:
 | Hugging Face Hub (private model repo) | Models may be shared later | Built for large binaries; bundles can also be split per model |
 | Git LFS | Everything should stay in git | Bandwidth quotas; every clone pulls large files |
 
-Recommendation: a GitHub Release per locked bundle (`artifacts-YYYYMMDD`) while the team is small.
 Move to object storage if bundles become frequent or large.
 
 ## What is in the bundle

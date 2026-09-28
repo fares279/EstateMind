@@ -49,10 +49,12 @@ Web: `API_BASE_URL` (runtime). `REACT_APP_API_URL` (build time) is an optional d
       hard-coded in the original `settings.py`; they are blank defaults now.
 - [ ] Set `SECRET_KEY` and `SIMPLE_JWT_SIGNING_KEY` to new random values.
 - [ ] Configure the Stripe webhook endpoint `/api/billing/webhook/stripe/` with its signing secret.
-- [ ] Choose where the artifact bundle lives, and set `ESTATEMIND_ARTIFACTS_URL` (artifacts.md).
+- [ ] Publish the artifact bundle as a GitHub Release and set `ESTATEMIND_ARTIFACTS_URL`
+      (artifacts.md).
 - [ ] Postgres backups.
-- [ ] Rate limiting. DRF throttling is not configured: OTP, password reset, chatbot, legal and
-      simulator endpoints are open to repeated calls.
-- [ ] Decide who may start and delete simulator runs (known-issues.md).
+- [ ] Set `CACHE_URL` to Redis. The rate-limit counters and chatbot memory must be shared by
+      all gunicorn workers.
+- [ ] Behind a load balancer or proxy, set `NUM_PROXIES`, so rate limits count per client IP and
+      not per proxy.
 - [ ] After deploying, run `sync_registry_from_artifacts` once (beat also schedules it), so the
       valuation registry has its rows.

@@ -14,8 +14,8 @@ project. Fixed issues are in the git history.
 - "Which delegations will grow fastest?" is classified as a greeting (confidence 0.98).
 - Locations are only recognized if the delegation exists in the database.
 - The investment ranking by zone is not implemented. The chatbot now says so.
-- Feedback can be sent for any response log id, with no session check. Anyone could skew the
-  ratings the reward model trains on.
+- The chat widget users see (`AIChatWidget`) never sends feedback, so the reward model gets no
+  chatbot ratings from the web app. The unmounted `ChatInterface` is dead code.
 
 ## Legal assistant
 
@@ -58,6 +58,13 @@ See [ml/valuation-training-data.md](ml/valuation-training-data.md):
 - Base, pessimistic and optimistic IRR are identical in portfolio analysis, because growth is a
   0% placeholder (labelled).
 
+## Valuation serving
+
+- The valuation API never receives coordinates, but every model, the current champions included,
+  was trained with them. Served error is higher than measured with coordinates (champion, houses:
+  31% → 38%). Variant E, trained without coordinates, avoids this; see
+  [ml/valuation-training-data.md](ml/valuation-training-data.md).
+
 ## Forecast
 
 - There is no price history, so forecast levels can't be backtested. Current forecasts sit at
@@ -67,15 +74,14 @@ See [ml/valuation-training-data.md](ml/valuation-training-data.md):
 
 ## Simulator
 
-- Anyone, without logging in, can start runs, and each run is a thread in the web process. Anyone
-  can also delete any run: runs have no owner. The decision needed is who may start and delete
-  runs (for example login to start, owner or staff to delete), and whether runs move to Celery.
+- Runs execute in a thread inside the web process, not in Celery. A burst of runs competes with
+  web requests. Moving them to Celery is a separate project.
 - RL backtesting and calibration are `not_implemented`.
 
 ## Platform
 
-- No request throttling is configured. OTP allows 5 guesses per code, but resending resets the
-  counter, and OTPs use `random` rather than `secrets`.
+- Rate limits exist (see settings `DEFAULT_THROTTLE_RATES`). They need `CACHE_URL` (shared Redis)
+  to hold across several processes, and `NUM_PROXIES` behind a proxy.
 - `checkout.session.completed` webhooks handle subscriptions, but checkout creates one-off
   PaymentIntents. Real upgrades go through `confirm-payment`, and renewals aren't automatic.
 - Frontend test coverage is thin (see frontend.md).
