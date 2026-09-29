@@ -78,8 +78,6 @@ See [ml/valuation-training-data.md](ml/valuation-training-data.md):
   0.63× listing prices; the archived set is at 0.32×.
 - The scraper assigns catch-all "X Ville" delegations.
 - Conformal intervals under-cover after regime changes.
-- `features/forecast/components/ForecastChart.jsx` and `UncertaintyBadge.jsx` are not imported
-  anywhere (the only user of ForecastChart was the deleted AnalyzeTrendsPage).
 
 ## Simulator
 
