@@ -56,6 +56,26 @@
    "size": 15935611,
    "sha256": "aa780aeffb1423f94ba3555e5592c9c4865f66c9a648f843841bc333e8ea712a"
   },
+  "valuation/models/estate_e_20260929/bytype__appartement__catboost.joblib": {
+   "size": 907601,
+   "sha256": "cc4c8da14fc76dcb891bcda687c0a9dcb66cc5a6f12390938880934945e4e323"
+  },
+  "valuation/models/estate_e_20260929/bytype__maison__catboost.joblib": {
+   "size": 468198,
+   "sha256": "dae96c5db446f6cda168c5a875b9b777c645194884985229c1b20aa95220ffb4"
+  },
+  "valuation/models/estate_e_20260929/bytype__terrain__catboost.joblib": {
+   "size": 101487,
+   "sha256": "a5b7c3f9dd3f02028053431be856c07ae6d41df3000487232b71d49d1afcf1d6"
+  },
+  "valuation/models/estate_e_20260929/global__catboost.joblib": {
+   "size": 355391,
+   "sha256": "a2c394bf1c01975039d0b823fbd3442bb2d3a01a785548eec1ad782c660e4c59"
+  },
+  "valuation/models/estate_e_20260929/priors.json": {
+   "size": 13274,
+   "sha256": "7baa3a2003f2cf0ec3464a5d3febbd995378aca5fd2ceadc5d275de73fec3c50"
+  },
   "valuation/models/estate_v2_20260927/bytype__appartement__catboost.joblib": {
    "size": 209154,
    "sha256": "5a3c9e30f4d5c3fa0b3bf325965d4307495140bc45fa209e07b3add54225fc20"

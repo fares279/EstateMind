@@ -99,11 +99,16 @@ def main():
                         help="'v2': the default cleaning. 'e': variant E from docs/ml/valuation-training-data.md "
                              "(per-row location fix, generated-looking rows dropped, no coordinates), with the "
                              "previous v2 test listings held out so evaluate_served compares on unseen rows.")
+    parser.add_argument('--register-existing', action='store_true',
+                        help='Register the already-trained --version from its priors.json; no training.')
     args = parser.parse_args()
 
     import os
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
     os.environ.setdefault('PRELOAD_LEGAL_EMBEDDING_MODEL', 'False')
+    if args.register_existing:
+        register_existing(args.version)
+        return
     from config.paths import ARTIFACTS_DIR
     from ml.shared.listings_dataset import FEATURES, build
 
@@ -137,22 +142,45 @@ def main():
     }, indent=1, default=str), encoding='utf-8')
 
     if args.register:
-        from config.paths import to_artifact_ref
-        from estatemind.intelligence.valuation.services.model_registry import ValuationModelRegistry, registry_key
-        reg = ValuationModelRegistry()
-        for ptype, entry in report['models'].items():
-            t = entry['test']
-            reg.register_challenger(
-                artifact_path=to_artifact_ref(out_dir / entry['artifact']), model_name=registry_key(ptype),
-                version=args.version[-20:], training_date=date.today(),
-                training_data_hash=ds.card['source_sha256'], training_samples=ds.card['train_rows'],
-                eval_rmse=t['rmse_tnd'], eval_r2=t['r2'] or 0, eval_mape=t['mape'], eval_holdout_size=t['n'],
-                status='challenger', ab_traffic_pct=0,
-                notes=f"ml.valuation.train_catboost_bundle; test median APE {t['median_ape']}, "
-                      f"within 20% {t['within_20pct']}; not promoted (pending review)",
-            )
-        print('registered as 0%-traffic challengers')
+        register(out_dir, args.version, report)
     print(f'artifacts: {out_dir}')
+
+
+def register(out_dir: Path, version: str, report: dict, training_date: date | None = None) -> None:
+    """Add each model to the registry as a 0%-traffic challenger. A version that is
+    already registered is left alone, so re-running never demotes a champion."""
+    from config.paths import to_artifact_ref
+    from estatemind.intelligence.valuation.models import ValuationModelVersion
+    from estatemind.intelligence.valuation.services.model_registry import ValuationModelRegistry, registry_key
+    reg = ValuationModelRegistry()
+    card = report['data_card']
+    for ptype, entry in report['models'].items():
+        existing = ValuationModelVersion.objects.filter(model_name=registry_key(ptype), version=version[-20:]).first()
+        if existing:
+            print(f'{registry_key(ptype)} {version}: already registered ({existing.status}), left unchanged')
+            continue
+        t = entry['test']
+        reg.register_challenger(
+            artifact_path=to_artifact_ref(out_dir / entry['artifact']), model_name=registry_key(ptype),
+            version=version[-20:], training_date=training_date or date.today(),
+            training_data_hash=card['source_sha256'], training_samples=card['train_rows'],
+            eval_rmse=t['rmse_tnd'], eval_r2=t['r2'] or 0, eval_mape=t['mape'], eval_holdout_size=t['n'],
+            status='challenger', ab_traffic_pct=0,
+            notes=f"ml.valuation.train_catboost_bundle; test median APE {t['median_ape']}, "
+                  f"within 20% {t['within_20pct']}; not promoted (pending review)",
+        )
+    print('registration done')
+
+
+def register_existing(version: str) -> None:
+    """Register an already-trained version from its priors.json (e.g. after
+    `artifacts.py fetch` on another machine), without retraining."""
+    import django
+    django.setup()
+    from config.paths import ARTIFACTS_DIR
+    out_dir = ARTIFACTS_DIR / 'valuation' / 'models' / version
+    report = json.loads((out_dir / 'priors.json').read_text(encoding='utf-8'))['report']
+    register(out_dir, version, report)
 
 
 if __name__ == '__main__':
