@@ -215,6 +215,12 @@ export default function AIChatWidget() {
     setMessages(prev => [...prev, { id: Date.now() + Math.random(), ts: Date.now(), ...msg }]);
   }, []);
 
+  // Back to the input once a reply has arrived: the textarea is disabled while
+  // waiting, which drops focus, so the user had to click back into it.
+  useEffect(() => {
+    if (!loading && open) requestAnimationFrame(() => inputRef.current?.focus());
+  }, [loading, open]);
+
   const sendMessage = useCallback(async (text) => {
     const trimmed = text.trim();
     if (!trimmed || loading) return;

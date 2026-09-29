@@ -411,9 +411,14 @@ export default function LegalAIPage() {
       }
     } finally {
       setLoading(false);
-      textareaRef.current?.focus();
     }
   }, [input, loading, sessionId]);
+
+  // Refocus after the reply has rendered (focusing inside the request handler ran
+  // before the re-render, so focus was lost).
+  useEffect(() => {
+    if (!loading) requestAnimationFrame(() => textareaRef.current?.focus());
+  }, [loading]);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
