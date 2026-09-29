@@ -103,7 +103,7 @@ const TABS = [
 
 /* ─── Helpers ───────────────────────────────────────────────────────────── */
 function fmt(n) {
-  if (n == null || isNaN(n)) return '—';
+  if (n == null || isNaN(n)) return 'No data';
   if (n >= 1_000_000) return `${(n/1_000_000).toFixed(2)}M`;
   if (n >= 1_000)     return `${(n/1_000).toFixed(0)}K`;
   return Number(n).toLocaleString();
@@ -509,7 +509,7 @@ export default function SimulatePage() {
               </div>
               <div className="space-y-2.5">
                 {Object.entries(AGENT_COLORS).map(([type, color]) => {
-                  const count = scaleObj.agents[type] ?? '—';
+                  const count = scaleObj.agents[type] ?? 0;
                   return (
                     <div key={type} className="flex items-center justify-between py-1 border-b border-white/[0.04] last:border-0">
                       <div className="flex items-center gap-2.5">
@@ -594,9 +594,9 @@ export default function SimulatePage() {
                 {[
                   {label:'Month',        value:`${liveKpis.month??0} / ${months}`},
                   {label:'Transactions', value:fmt(liveKpis.transactions)},
-                  {label:'Avg Price',    value:liveKpis.avgPrice?`${fmt(liveKpis.avgPrice)} TND`:'—'},
-                  {label:'BCT Rate',     value:liveKpis.bct!=null?`${liveKpis.bct.toFixed(1)}%`:'—'},
-                  {label:'Price Δ',      value:liveKpis.growth!=null?`${liveKpis.growth>=0?'+':''}${liveKpis.growth.toFixed(2)}%`:'—'},
+                  {label:'Avg Price',    value:liveKpis.avgPrice?`${fmt(liveKpis.avgPrice)} TND`:'Waiting'},
+                  {label:'BCT Rate',     value:liveKpis.bct!=null?`${liveKpis.bct.toFixed(1)}%`:'Waiting'},
+                  {label:'Price Δ',      value:liveKpis.growth!=null?`${liveKpis.growth>=0?'+':''}${liveKpis.growth.toFixed(2)}%`:'Waiting'},
                 ].map(k=>(
                   <div key={k.label} className="bg-white/[0.03] rounded-2xl px-4 py-3 text-center">
                     <p className="text-[10px] text-gray-600 uppercase tracking-wider mb-1">{k.label}</p>
@@ -629,11 +629,11 @@ export default function SimulatePage() {
             {/* KPI row */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
               <KpiCard label="Total Transactions" value={fmt(metrics?.total_transactions??liveKpis?.transactions)}/>
-              <KpiCard label="Final Avg Price"    value={lastTs.price?`${fmt(lastTs.price)} TND`:'—'}/>
+              <KpiCard label="Final Avg Price"    value={lastTs.price?`${fmt(lastTs.price)} TND`:'No data'}/>
               <KpiCard label="Price Change"
-                value={priceChg!=null?`${priceChg>0?'+':''}${priceChg}%`:'—'}
+                value={priceChg!=null?`${priceChg>0?'+':''}${priceChg}%`:'No data'}
                 trend={priceChg>0?'up':priceChg<0?'down':'neutral'}/>
-              <KpiCard label="Affordability Ratio" value={lastTs.affordability?`${lastTs.affordability}×`:'—'} subtitle="Price ÷ annual income"/>
+              <KpiCard label="Affordability Ratio" value={lastTs.affordability?`${lastTs.affordability}×`:'No data'} subtitle="Price ÷ annual income"/>
             </div>
 
             {/* Tabbed results */}
@@ -842,7 +842,7 @@ export default function SimulatePage() {
                                 <td className="py-3.5 px-5 text-right text-gray-500 font-mono text-xs">{ag.total_actions?.toLocaleString()}</td>
                                 <td className="py-3.5 px-5 text-right font-mono text-xs font-bold text-[#FF6B35]">{ag.success_rate}%</td>
                                 <td className="py-3.5 px-5 text-right text-gray-500 font-mono text-xs">
-                                  {ag.avg_utility!=null?(ag.avg_utility>=0?'+':'')+ag.avg_utility.toFixed(0):'—'}
+                                  {ag.avg_utility!=null?(ag.avg_utility>=0?'+':'')+ag.avg_utility.toFixed(0):'No data'}
                                 </td>
                               </tr>
                             ))}
@@ -901,8 +901,8 @@ export default function SimulatePage() {
                               </div>
                               {[
                                 {label:'Price Change',   value:`${pct>=0?'+':''}${pct}%`, color:pct>=0?'#22c55e':'#ef4444'},
-                                {label:'Initial Price',  value:`${fmt(s.initial_avg_price)} TND`},
-                                {label:'Final Price',    value:`${fmt(s.final_avg_price)} TND`},
+                                {label:'Initial Price',  value:s.initial_avg_price != null ? `${fmt(s.initial_avg_price)} TND` : 'No data'},
+                                {label:'Final Price',    value:s.final_avg_price != null ? `${fmt(s.final_avg_price)} TND` : 'No data'},
                                 {label:'Transactions',   value:fmt(run.total_transactions)},
                                 {label:'Affordability',  value:`${s.avg_affordability}×`},
                                 {label:'Liquidity',      value:`${(s.avg_liquidity*100).toFixed(1)}%`},

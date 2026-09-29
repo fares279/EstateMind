@@ -39,7 +39,7 @@ function KpiCard({ label, value, sub, color = ORANGE, icon: Icon, delta, freshne
           </div>
         )}
       </div>
-      <p className="text-2xl font-black leading-none" style={{ color: isStale ? '#6b7280' : color }}>{isStale ? '—' : value}</p>
+      <p className="text-2xl font-black leading-none" style={{ color: isStale ? '#6b7280' : color }}>{isStale ? 'Out of date' : value}</p>
       {sub && <p className="mt-2 text-xs text-gray-500">{sub}</p>}
       {freshness && (
         <p className={`mt-2 text-[10px] font-semibold ${freshnessColor}`}>
@@ -115,7 +115,7 @@ export default function InvestDashboard() {
     value: Math.round(e.asset?.current_value_tnd || e.asset?.acquisition_price_tnd || 0),
   }));
 
-  const riskLabel = p.avg_risk_score == null ? '—'
+  const riskLabel = p.avg_risk_score == null ? 'Not scored'
     : p.avg_risk_score < 35 ? 'Low' : p.avg_risk_score < 65 ? 'Moderate' : 'Elevated';
   const riskColor = p.avg_risk_score == null ? ORANGE
     : p.avg_risk_score < 35 ? '#22c55e' : p.avg_risk_score < 65 ? '#f59e0b' : '#ef4444';
@@ -152,7 +152,7 @@ export default function InvestDashboard() {
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
         <KpiCard
           label="Portfolio Value"
-          value={p.total_value_tnd ? `${(p.total_value_tnd / 1000).toFixed(0)}k TND` : '—'}
+          value={p.total_value_tnd ? `${(p.total_value_tnd / 1000).toFixed(0)}k TND` : 'No holdings'}
           sub={hasAssets ? `Cost ${Math.round((p.total_cost_tnd || 0) / 1000)}k TND` : 'No assets yet'}
           icon={DollarSign}
           freshness={freshness?.national_listing_volume}
@@ -160,7 +160,7 @@ export default function InvestDashboard() {
         <KpiCard
           label="Total Return"
           value={p.total_return_pct != null
-            ? `${p.total_return_pct > 0 ? '+' : ''}${p.total_return_pct}%` : '—'}
+            ? `${p.total_return_pct > 0 ? '+' : ''}${p.total_return_pct}%` : 'Not enough data'}
           sub={p.total_gain_tnd
             ? `${Math.round(p.total_gain_tnd) >= 0 ? '+' : ''}${Math.round(p.total_gain_tnd).toLocaleString()} TND unrealised`
             : 'No return data yet'}
@@ -172,7 +172,7 @@ export default function InvestDashboard() {
         />
         <KpiCard
           label="Avg Annual Yield"
-          value={p.avg_gross_yield_pct != null ? `${p.avg_gross_yield_pct}%` : '—'}
+          value={p.avg_gross_yield_pct != null ? `${p.avg_gross_yield_pct}%` : 'No rent data'}
           sub={p.avg_irr_pct != null ? `${p.avg_irr_pct}% estimated IRR` : 'Add assets to calculate'}
           icon={ArrowUpRight}
           freshness={freshness?.top_yield_delegations}
@@ -349,7 +349,7 @@ export default function InvestDashboard() {
                     </div>
                     <div className="text-right flex-shrink-0 ml-4">
                       <p className="text-sm font-semibold" style={{ color: ORANGE }}>
-                        {s.yield?.gross_yield_pct != null ? `${s.yield.gross_yield_pct}%` : '—'}
+                        {s.yield?.gross_yield_pct != null ? `${s.yield.gross_yield_pct}%` : 'No rent data'}
                       </p>
                       <p className={`text-xs ${gain >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                         {gain > 0 ? '+' : ''}{gain}%

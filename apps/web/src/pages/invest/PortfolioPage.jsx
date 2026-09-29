@@ -304,7 +304,7 @@ function AssetRow({ asset: a, score: s, onDelete, onScore, scoring }) {
         {/* Yield */}
         <td className="px-4 py-4 text-right">
           <span className="text-sm font-semibold" style={{ color: ORANGE }}>
-            {s?.yield?.gross_yield_pct != null ? `${s.yield.gross_yield_pct}%` : '—'}
+            {s?.yield?.gross_yield_pct != null ? `${s.yield.gross_yield_pct}%` : 'No rent data'}
           </span>
         </td>
 
@@ -366,14 +366,14 @@ function AssetRow({ asset: a, score: s, onDelete, onScore, scoring }) {
               <div>
                 <p className="text-gray-500 mb-1 uppercase tracking-wider">Est. IRR</p>
                 <p className="font-bold text-blue-400">
-                  {s.irr?.irr_pct != null ? `${s.irr.irr_pct}%` : '—'}
+                  {s.irr?.irr_pct != null ? `${s.irr.irr_pct}%` : 'Not enough data'}
                 </p>
               </div>
               {/* Risk */}
               <div>
                 <p className="text-gray-500 mb-1 uppercase tracking-wider">Risk Level</p>
                 <p className="font-bold" style={{ color: RISK_COLOR[s.risk?.risk_level] || '#9ca3af' }}>
-                  {s.risk?.risk_level || '—'}
+                  {s.risk?.risk_level || 'Not scored'}
                 </p>
               </div>
               {/* 6m forecast */}

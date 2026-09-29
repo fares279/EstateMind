@@ -311,10 +311,10 @@ export default function RiskPage() {
                       </div>
                     </td>
                     <td className="px-5 py-4 text-sm font-semibold" style={{ color: ORANGE }}>
-                      {a.yield_pct != null ? `${a.yield_pct}%` : '—'}
+                      {a.yield_pct != null ? `${a.yield_pct}%` : 'No rent data'}
                     </td>
                     <td className="px-5 py-4 text-sm font-semibold text-blue-400">
-                      {a.irr_pct != null ? `${a.irr_pct}%` : '—'}
+                      {a.irr_pct != null ? `${a.irr_pct}%` : 'Not enough data'}
                     </td>
                   </tr>
                 );

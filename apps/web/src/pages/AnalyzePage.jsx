@@ -891,7 +891,9 @@ function DashboardSection() {
           </div>
           <p className="text-xs uppercase tracking-widest text-gray-500">National Avg</p>
           <p className={`text-2xl font-black ${isNationalStale ? 'text-gray-500' : 'text-white'}`}>
-            {isNationalStale ? '—' : Math.round(kpis.natAvg||0).toLocaleString()} <span className="text-sm font-normal text-gray-500">TND/m²</span>
+            {isNationalStale
+              ? <span className="text-base">Data out of date</span>
+              : <>{Math.round(kpis.natAvg||0).toLocaleString()} <span className="text-sm font-normal text-gray-500">TND/m²</span></>}
           </p>
           <p className="text-xs text-gray-500">{kpis.total} delegations shown</p>
           <FreshnessPill freshness={nationalFreshness} />
@@ -902,7 +904,7 @@ function DashboardSection() {
           </div>
           <p className="text-xs uppercase tracking-widest text-gray-500">Growing Markets</p>
           <p className={`text-2xl font-black ${growthFreshness?.status === 'stale' ? 'text-gray-500' : 'text-green-400'}`}>
-            {growthFreshness?.status === 'stale' ? '—' : kpis.growing}
+            {growthFreshness?.status === 'stale' ? <span className="text-base">Data out of date</span> : kpis.growing}
           </p>
           <p className="text-xs text-gray-500">{kpis.declining} declining · {(kpis.total||0)-(kpis.growing||0)-(kpis.declining||0)} stable</p>
           <FreshnessPill freshness={growthFreshness} />
@@ -912,8 +914,8 @@ function DashboardSection() {
             <Star size={14} className="text-yellow-400" />
           </div>
           <p className="text-xs uppercase tracking-widest text-gray-500">Highest Priced</p>
-          <p className={`text-base font-black leading-tight truncate ${nationalFreshness?.status === 'stale' ? 'text-gray-500' : 'text-white'}`}>{nationalFreshness?.status === 'stale' ? '—' : (kpis.topP?.delegation || '—')}</p>
-          <p className="text-xs text-gray-500">{nationalFreshness?.status === 'stale' ? 'Data stale' : (kpis.topP ? `${Math.round(kpis.topP.price_avg).toLocaleString()} TND/m² · ${kpis.topP.governorate}` : '—')}</p>
+          <p className={`text-base font-black leading-tight truncate ${nationalFreshness?.status === 'stale' ? 'text-gray-500' : 'text-white'}`}>{nationalFreshness?.status === 'stale' ? 'Data out of date' : (kpis.topP?.delegation || 'No price data')}</p>
+          <p className="text-xs text-gray-500">{nationalFreshness?.status === 'stale' ? 'Waiting for a data refresh' : (kpis.topP ? `${Math.round(kpis.topP.price_avg).toLocaleString()} TND/m² · ${kpis.topP.governorate}` : 'No delegation has a price yet')}</p>
           <FreshnessPill freshness={nationalFreshness} />
         </div>
         <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/8 p-5 flex flex-col gap-1">
@@ -921,8 +923,8 @@ function DashboardSection() {
             <Zap size={14} className="text-cyan-400" />
           </div>
           <p className="text-xs uppercase tracking-widest text-gray-500">Fastest Growing</p>
-          <p className={`text-base font-black leading-tight truncate ${growthFreshness?.status === 'stale' ? 'text-gray-500' : 'text-white'}`}>{growthFreshness?.status === 'stale' ? '—' : (kpis.topG?.delegation || '—')}</p>
-          <p className="text-xs text-gray-500">{growthFreshness?.status === 'stale' ? 'Data stale' : (kpis.topG ? `+${kpis.topG.annual_trend_pct}% · ${kpis.topG.governorate}` : 'No growth data')}</p>
+          <p className={`text-base font-black leading-tight truncate ${growthFreshness?.status === 'stale' ? 'text-gray-500' : 'text-white'}`}>{growthFreshness?.status === 'stale' ? 'Data out of date' : (kpis.topG?.delegation || 'No growth data')}</p>
+          <p className="text-xs text-gray-500">{growthFreshness?.status === 'stale' ? 'Waiting for a data refresh' : (kpis.topG ? `+${kpis.topG.annual_trend_pct}% · ${kpis.topG.governorate}` : 'No growth data')}</p>
           <FreshnessPill freshness={growthFreshness} />
         </div>
       </div>
@@ -930,13 +932,13 @@ function DashboardSection() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="rounded-2xl border border-white/10 bg-white/5 p-5 flex flex-col gap-1">
           <p className="text-xs uppercase tracking-widest text-gray-500">Most Affordable</p>
-          <p className="text-base font-black text-white leading-tight truncate">{kpis.cheapest?.delegation || '—'}</p>
-          <p className="text-xs text-gray-500">{kpis.cheapest ? `${Math.round(kpis.cheapest.price_avg).toLocaleString()} TND/m²` : '—'}</p>
+          <p className="text-base font-black text-white leading-tight truncate">{kpis.cheapest?.delegation || 'No price data'}</p>
+          <p className="text-xs text-gray-500">{kpis.cheapest ? `${Math.round(kpis.cheapest.price_avg).toLocaleString()} TND/m²` : 'No delegation has a price yet'}</p>
           <FreshnessPill freshness={nationalFreshness} />
         </div>
         <div className="rounded-2xl border border-white/10 bg-white/5 p-5 flex flex-col gap-1">
           <p className="text-xs uppercase tracking-widest text-gray-500">Coastal Premium</p>
-          <p className="text-2xl font-black text-[#4ECDC4]">{kpis.coastalPremium !== '—' ? `+${kpis.coastalPremium}%` : '—'}</p>
+          <p className="text-2xl font-black text-[#4ECDC4]">{kpis.coastalPremium !== '—' ? `+${kpis.coastalPremium}%` : <span className="text-base">Not enough data</span>}</p>
           <p className="text-xs text-gray-500">vs inland avg</p>
           <FreshnessPill freshness={nationalFreshness} />
         </div>
@@ -949,9 +951,11 @@ function DashboardSection() {
         <div className="rounded-2xl border border-white/10 bg-white/5 p-5 flex flex-col gap-1">
           <p className="text-xs uppercase tracking-widest text-gray-500">Price Spread</p>
           <p className="text-sm font-black text-white leading-tight">
-            {filtered.length ? `${Math.round(Math.min(...filtered.map(d=>d.price_avg||0).filter(p=>p>0))).toLocaleString()}` : '—'}
-            <span className="text-gray-500 font-normal"> – </span>
-            {filtered.length ? `${Math.round(Math.max(...filtered.map(d=>d.price_avg||0))).toLocaleString()}` : '—'}
+            {filtered.length ? <>
+              {Math.round(Math.min(...filtered.map(d=>d.price_avg||0).filter(p=>p>0))).toLocaleString()}
+              <span className="text-gray-500 font-normal"> – </span>
+              {Math.round(Math.max(...filtered.map(d=>d.price_avg||0))).toLocaleString()}
+            </> : 'No delegations in view'}
           </p>
           <p className="text-xs text-gray-500">TND/m² range</p>
           <FreshnessPill freshness={nationalFreshness} />

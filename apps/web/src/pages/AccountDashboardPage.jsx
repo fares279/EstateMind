@@ -145,7 +145,7 @@ export default function AccountDashboardPage() {
           <p className="text-sm uppercase tracking-wider text-[#FFB38F]">Account Dashboard</p>
           <h1 className="mt-1 text-3xl font-black text-white">My Account</h1>
           <p className="mt-2 text-gray-400">
-            Signed in as <span className="font-semibold text-white">{user?.email || '—'}</span>
+            Signed in as <span className="font-semibold text-white">{user?.email || 'your account'}</span>
           </p>
           <p className="mt-1 text-gray-400">
             Current plan: <span className="font-semibold text-white">{PLAN_META[currentPlan]?.label || currentPlan}</span>

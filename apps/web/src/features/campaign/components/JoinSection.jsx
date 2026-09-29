@@ -305,7 +305,7 @@ function RegistrationModal({ isOpen, onClose, preselectedRole }) {
                         </div>
                         <div className="flex justify-between text-gray-300">
                           <span className="text-gray-500">Role:</span>
-                          <span>{ROLES.find(r => r.value === formData.role)?.label || '—'}</span>
+                          <span>{ROLES.find(r => r.value === formData.role)?.label || 'Not selected'}</span>
                         </div>
                       </div>
                     </motion.div>

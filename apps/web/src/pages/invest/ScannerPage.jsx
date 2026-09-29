@@ -485,7 +485,7 @@ export default function ScannerPage() {
                   return (
                     <tr key={i} className="hover:bg-white/[0.02] transition-colors">
                       <td className="px-5 py-3.5 text-sm text-white font-medium">
-                        {h.delegation || h.governorate || '—'}
+                        {h.delegation || h.governorate || 'Location not given'}
                       </td>
                       <td className="px-5 py-3.5 text-sm text-gray-400 capitalize">
                         {h.property_type}

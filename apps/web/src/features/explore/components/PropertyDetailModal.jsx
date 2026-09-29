@@ -141,17 +141,17 @@ export default function PropertyDetailModal({ property, isOpen, onClose }) {
                   <div className="grid grid-cols-3 gap-3 p-4 bg-slate-800/40 rounded-xl border border-slate-700/40">
                     <div className="text-center">
                       <Ruler className="w-4 h-4 text-[#FF6B35] mx-auto mb-1.5" />
-                      <p className="text-base font-black text-white">{property.area || '—'}</p>
+                      <p className="text-base font-black text-white">{property.area || 'Not listed'}</p>
                       <p className="text-xs text-gray-500">m²</p>
                     </div>
                     <div className="text-center">
                       <Bed className="w-4 h-4 text-[#FF6B35] mx-auto mb-1.5" />
-                      <p className="text-base font-black text-white">{property.rooms || '—'}</p>
+                      <p className="text-base font-black text-white">{property.rooms || 'Not listed'}</p>
                       <p className="text-xs text-gray-500">Rooms</p>
                     </div>
                     <div className="text-center">
                       <Bath className="w-4 h-4 text-[#FF6B35] mx-auto mb-1.5" />
-                      <p className="text-base font-black text-white">{property.bathrooms || '—'}</p>
+                      <p className="text-base font-black text-white">{property.bathrooms || 'Not listed'}</p>
                       <p className="text-xs text-gray-500">Bath</p>
                     </div>
                   </div>

@@ -125,8 +125,15 @@ export const ForecastFanChart = ({ delegation, propertyType }) => {
   const forecast12m = forecast?.forecast_12m?.price ?? summary.price_12m ?? chartData[11]?.p50 ?? forecast6m;
   const forecast6mChange = forecast?.forecast_6m?.pct_change ?? summary.growth_pct_6m ?? 0;
   const forecast12mChange = forecast?.forecast_12m?.pct_change ?? summary.growth_pct_12m ?? 0;
-  const modelBadge = forecast?.model_badge || forecast?.model_version || 'Forecast';
-  const confidenceMethod = forecast?.confidence_method || forecast?.uncertainty_method || 'Conformal';
+  // model_version is an internal code (e.g. csv_v2); show a readable name instead
+  const modelBadge = forecast?.model_badge || 'Delegation price forecast';
+  const METHOD_LABELS = {
+    conformal_prediction: 'Conformal interval',
+    fixed_mape: 'Range from past forecast error',
+    native_quantiles: 'Model quantile range',
+  };
+  const methodCode = forecast?.confidence_method || forecast?.uncertainty_method;
+  const confidenceMethod = METHOD_LABELS[methodCode] || 'Forecast range';
   const calibrationCoverage = forecast?.calibration_coverage_pct ?? forecast?.conformal_calibration?.coverage ?? null;
   const trainedMonths = forecast?.trained_months ?? forecast?.model_registry?.history_months ?? null;
   const lastUpdated = forecast?.last_updated ?? forecast?.model_registry?.trained_at ?? null;
@@ -172,7 +179,7 @@ export const ForecastFanChart = ({ delegation, propertyType }) => {
               🧠 {modelBadge}
             </span>
             <span className="px-2 py-0.5 bg-orange-900/50 text-orange-300 rounded text-xs">
-              {confidenceMethod} Conformal
+              {confidenceMethod}
             </span>
           </div>
         </div>
@@ -215,9 +222,9 @@ export const ForecastFanChart = ({ delegation, propertyType }) => {
       {/* Provenance */}
       <ProvenanceBlock
         modelName={modelBadge}
-        trainedDate={trainedMonths != null ? `${trainedMonths} months` : 'N/A'}
-        dataSnapshot={lastUpdated || 'N/A'}
-        method={mapePct != null ? `MAPE: ${Number(mapePct).toFixed(1)}%` : confidenceMethod}
+        trainedDate={trainedMonths != null ? `${trainedMonths} months` : 'Not recorded'}
+        dataSnapshot={lastUpdated || 'Not recorded'}
+        method={mapePct != null ? `Typical error ${Number(mapePct).toFixed(1)}%` : confidenceMethod}
       />
     </div>
   );

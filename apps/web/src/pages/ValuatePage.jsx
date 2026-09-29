@@ -393,13 +393,13 @@ function ComparablesTable({ rows }) {
           {rows.map((c, i) => (
             <tr key={i} className="hover:bg-white/5 transition-colors">
               <td className="py-2.5 pr-4">
-                <p className="text-white font-medium line-clamp-1">{c.title || '—'}</p>
+                <p className="text-white font-medium line-clamp-1">{c.title || 'Untitled listing'}</p>
                 <p className="text-xs text-gray-500">{c.city ? `${c.city}, ` : ''}{c.governorate}</p>
                 {c.difference && <p className="text-xs text-gray-600 italic">{c.difference}</p>}
               </td>
               <td className="py-2.5 text-right text-white">{(c.price||0).toLocaleString()}</td>
               <td className="py-2.5 text-right text-gray-300">{c.size_m2}</td>
-              <td className="py-2.5 text-right text-gray-300">{c.price_per_m2?.toLocaleString() || '—'}</td>
+              <td className="py-2.5 text-right text-gray-300">{c.price_per_m2?.toLocaleString() || 'Not listed'}</td>
               <td className="py-2.5 text-right">
                 <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${
                   c.similarity >= 70 ? 'bg-green-500/15 text-green-400'
@@ -418,18 +418,20 @@ function ComparablesTable({ rows }) {
 function MarketContext({ market }) {
   if (!market) return null;
   const posColor = { above_market:'text-orange-400', below_market:'text-green-400', at_market:'text-blue-400', unknown:'text-gray-400' };
+  const posLabel = { above_market:'Above market', below_market:'Below market', at_market:'In line with market' };
+  const trendLabel = { rising:'Rising', falling:'Falling', stable:'Stable' };
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
-          { l:'Avg Price/m²', v: market.avg_price_per_m2 ? `${market.avg_price_per_m2.toLocaleString()} TND` : 'N/A' },
+          { l:'Avg Price/m²', v: market.avg_price_per_m2 ? `${market.avg_price_per_m2.toLocaleString()} TND` : 'Not enough listings' },
           { l:'Comparables',  v: market.comparable_count ?? 0 },
-          { l:'Market Trend', v: (market.market_trend||'stable').replace('_',' ') },
-          { l:'Position',     v: (market.price_position||'unknown').replace(/_/g,' '), col: posColor[market.price_position] },
+          { l:'12-month Forecast', v: trendLabel[market.market_trend] || 'No forecast', col: trendLabel[market.market_trend] ? null : 'text-gray-400' },
+          { l:'Position',     v: posLabel[market.price_position] || 'Not enough listings', col: posColor[market.price_position] || 'text-gray-400' },
         ].map(({ l, v, col }) => (
           <div key={l} className="rounded-xl border border-white/10 bg-white/5 p-3 text-center">
             <p className="text-xs uppercase tracking-wider text-gray-500">{l}</p>
-            <p className={`mt-1 text-base font-bold capitalize ${col||'text-white'}`}>{v}</p>
+            <p className={`mt-1 text-base font-bold ${col||'text-white'}`}>{v}</p>
           </div>
         ))}
       </div>
@@ -768,7 +770,7 @@ function Results({ result, txType }) {
               </p>
             )}
             <div className="mt-4 flex flex-wrap gap-2">
-              <Badge label={result.prediction_mode?.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())||'Heuristic'}
+              <Badge label={result.model_display_name || 'Model estimate'}
                 cls="bg-blue-500/20 text-blue-300 border-blue-500/30" />
               <Badge label={`${result.confidence_level} Confidence`}
                 cls={result.confidence>=80?'bg-green-500/20 text-green-300 border-green-500/30'
@@ -1069,11 +1071,11 @@ function FunctionalMode() {
             {!isLand && (
               <>
                 <Field label="Bedrooms" hint="Optional">
-                  <input className={inputCls} type="number" min="0" max="20" placeholder="—"
+                  <input className={inputCls} type="number" min="0" max="20" placeholder="Optional"
                     value={form.bedrooms} onChange={e => set('bedrooms', e.target.value)} />
                 </Field>
                 <Field label="Bathrooms" hint="Optional">
-                  <input className={inputCls} type="number" min="0" max="10" placeholder="—"
+                  <input className={inputCls} type="number" min="0" max="10" placeholder="Optional"
                     value={form.bathrooms} onChange={e => set('bathrooms', e.target.value)} />
                 </Field>
               </>

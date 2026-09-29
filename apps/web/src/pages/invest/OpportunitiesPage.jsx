@@ -243,8 +243,8 @@ export default function OpportunitiesPage() {
                 </thead>
                 <tbody className="divide-y divide-white/[0.04]">
                   {sorted.map((d, i) => {
-                    const pos    = POSITION[d.undervaluation] || { label: d.undervaluation || '—', color: '#9ca3af' };
-                    const signal = SIGNAL[d.buy_signal]       || { label: d.buy_signal || '—',     color: '#9ca3af' };
+                    const pos    = POSITION[d.undervaluation] || { label: 'Not assessed', color: '#9ca3af' };
+                    const signal = SIGNAL[d.buy_signal]       || { label: 'No signal', color: '#9ca3af' };
                     const gc     = GRADE_COLOR[d.investment_grade];
                     const gl     = GRADE_LABEL[d.investment_grade] || d.investment_grade;
                     const trend  = d.annual_trend_pct || 0;
