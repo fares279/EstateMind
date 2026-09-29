@@ -120,7 +120,7 @@ Each fix was measured before and after; the commit messages carry the numbers.
 
 | Component | Status |
 | --- | --- |
-| Valuation | Serving. A better candidate exists (variant E) and is **not promoted**; see below |
+| Valuation | Serving. Variant E serves apartments since 2026-09-29; houses and land keep the old champion (blocked by the stability gate); see below |
 | Description sentiment | Shown to users, not applied to price: it added +4–10% with no accuracy gain |
 | Image classifier | **Not retrained: no training data available.** It loads, but predicts "appartement" for any image, including a map. Price effect off |
 | Forecast | Intervals cover less than their nominal level (about 81% overall for a 90% target, 70% at month 12). There is no price history, so forecast *levels* can't be backtested |
@@ -130,20 +130,25 @@ Each fix was measured before and after; the commit messages carry the numbers.
 | Chatbot | Works offline. Known issues in §7 |
 | Legal assistant | Retrieval and grounding measured. Answer quality unmeasured. See §6 |
 
-**Valuation decision pending.** The training data had the town and governorate columns swapped in
-most rows, but not all, so the rows were fixed one by one. With that fix, the removal of
-generated-looking rows, and training without coordinates (the API never sends them), variant E
-compares as follows on 833 held-out listings, under production conditions:
+**Valuation: variant E serves apartments (2026-09-29).** The training data had the town and
+governorate columns swapped in most rows, but not all, so the rows were fixed one by one. Variant E
+adds that fix, drops generated-looking rows, and trains without coordinates (the API never sends
+them). Scored through the serving code on 833 held-out listings, with the governorate and town a
+user picks in the form:
 
-| Median error | Current champion | Previous v2 | Variant E |
-| --- | ---: | ---: | ---: |
-| Apartment | 25.5% | 26.4% | 22.5% |
-| House | 37.8% | 39.8% | 31.5% |
-| Land | 36.0% | 43.5% | 35.5% |
+| Median error | Current champion | Variant E | Difference [95% interval] |
+| --- | ---: | ---: | --- |
+| Apartment (398) | 34.5% | 22.5% | −12.0 points [−16.5, −7.3] |
+| House (350) | 49.6% | 31.5% | −18.1 [−24.9, −12.1] |
+| Land (85) | 59.2% | 35.5% | −23.7 [−52.0, −3.2] |
 
-Against the champion, E is better for houses with a 95% interval that excludes zero. For
-apartments and land the intervals include zero, so the difference isn't established. Nothing is
-promoted. Full details are in [ml/valuation-training-data.md](ml/valuation-training-data.md).
+(The champions do worse here than the 25–38% measured earlier because they were trained on the
+swapped columns: given a correct governorate and town, they are further off.) E passed the
+accuracy rule for all three types. The promotion gate's explanation-stability check was broken
+(it never tested the model); once fixed, it passes E for apartments (0.87) and blocks E for houses
+(0.72) and land (0.67), against a 0.75 threshold. So only apartments were promoted. Whether to
+relax that check is a decision for later. Full details are in
+[ml/valuation-training-data.md](ml/valuation-training-data.md).
 
 ## 6. Legal assistant: the corpus is a hard ceiling
 
@@ -195,11 +200,13 @@ Everything else that is open is in [known-issues.md](known-issues.md).
 
 ## 9. Your to-dos
 
-1. **Rotate the keys:** the LLM key, the Gmail app password and the Stripe test keys. When you do,
-   check Stripe's webhook delivery log: webhooks never took effect before this fix. You said you'll
-   tell me before rotating.
-2. **Decide on variant E:** review [ml/valuation-training-data.md](ml/valuation-training-data.md),
-   then either train it as a 0%-traffic challenger or leave things as they are.
+1. **Rotate the provider keys:** the LLM key, the Gmail app password and the Stripe test keys.
+   They need your provider accounts; steps and a check command are in
+   [deployment.md](deployment.md#rotating-keys). Then check Stripe's webhook delivery log: webhooks
+   never took effect before this fix. (`SECRET_KEY` and the JWT key are already rotated in the
+   local `.env`.)
+2. **Variant E for houses and land:** decide whether the stability check should compare the top
+   features as a set rather than in exact order (see ml/valuation-training-data.md).
 3. **Measure the legal assistant** with a reachable LLM (§6).
 4. **Add a git remote** when ready. That lets the CI run, and lets the artifact bundle be published
    as a GitHub Release ([artifacts.md](artifacts.md)).

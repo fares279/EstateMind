@@ -66,10 +66,11 @@ See [ml/valuation-training-data.md](ml/valuation-training-data.md):
 
 ## Valuation serving
 
-- The valuation API never receives coordinates, but every model, the current champions included,
-  was trained with them. Served error is higher than measured with coordinates (champion, houses:
-  31% → 38%). Variant E, trained without coordinates, avoids this; see
-  [ml/valuation-training-data.md](ml/valuation-training-data.md).
+- The house and land champions were trained with coordinates and on the swapped location
+  columns, but the API sends no coordinates and a correct governorate and town. Served error on
+  that input: houses 49.6%, land 59.2%. Variant E (31.5%, 35.5%) is registered at 0% traffic;
+  the stability gate blocks it (see [ml/valuation-training-data.md](ml/valuation-training-data.md)).
+  Apartments are served by E since 2026-09-29.
 
 ## Forecast
 
@@ -93,6 +94,9 @@ See [ml/valuation-training-data.md](ml/valuation-training-data.md):
 - `checkout.session.completed` webhooks handle subscriptions, but checkout creates one-off
   PaymentIntents. Real upgrades go through `confirm-payment`, and renewals aren't automatic.
 - Frontend test coverage is thin (see frontend.md).
+- Chroma rewrites the legal vector store files (`artifacts/chroma/legal/`) when it is used, so
+  `scripts/artifacts.py verify` then reports them as changed, and the container entrypoint
+  re-fetches the whole bundle on the next start when `ESTATEMIND_ARTIFACTS_URL` is set.
 - The dev database starts empty by design; run `migrate` then `seed_demo_data`. Only about half
   of the real listings match a delegation; listing coordinates are delegation centroids.
 - API Keys is parked: `pages/AccountApiKeysPage.jsx` is a mock-up with no backend. It is kept but

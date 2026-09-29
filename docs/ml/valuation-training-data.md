@@ -159,6 +159,55 @@ error; a negative difference means E is better.
   Hammamet 42% → 33%, Sousse Jawhara 22% → 16%; but Sousse 38% → 45%, Ariana 28% → 37% and La Marsa
   27% → 32%. "Sousse", "Ariana" and similar here are mostly rows with no town given.
 
-Nothing was written to the artifacts or the registry. Variant E is the candidate if you want a
-challenger. Training it for real (`train_catboost_bundle.py` with these options) would be the next
-step, still at 0% traffic.
+Nothing was written to the artifacts or the registry by this comparison.
+
+### Variant E trained, scored through serving, promoted for apartments (2026-09-29)
+
+`python -m ml.valuation.train_catboost_bundle --options e --version estate_e_20260929 --register`
+trained E with the same held-out listings and registered it at 0% traffic. It reproduces the
+numbers above (22.5% / 31.5% / 35.5%).
+
+`python -m ml.valuation.evaluate_served --version estate_e_20260929` then scored E and the
+champions through the serving code (registry → `InferenceBundle.predict`), without coordinates,
+on two kinds of input. The promotion rule was written down before the results were seen (module
+docstring): lower median error, the 95% interval ruling out being more than a point worse, median
+predicted/actual within 0.90–1.10, no failed predictions, all on user-style input.
+
+| Median error | Input | Champion | E | E − champion [95% interval] |
+| --- | --- | ---: | ---: | --- |
+| Apartment (398) | user-style | 34.5% | 22.5% | −12.0 points [−16.5, −7.3] |
+| | raw columns | 25.5% | 27.5% | +1.9 [−2.4, +5.9] |
+| House (350) | user-style | 49.6% | 31.5% | −18.1 [−24.9, −12.1] |
+| | raw columns | 37.8% | 36.5% | −1.4 [−6.6, +3.5] |
+| Land (85) | user-style | 59.2% | 35.5% | −23.7 [−52.0, −3.2] |
+| | raw columns | 36.0% | 51.2% | +15.2 [−18.3, +26.5] |
+
+- **User-style** is the corrected governorate and town, which is what the form sends (both are
+  dropdowns). **Raw columns** are the listing's own, swapped in most rows; the champions were
+  trained on those, which is why they do better there and much worse on correct input.
+- E's served numbers equal its numbers from the training script, so serving builds the same
+  features E was trained on.
+- Median predicted/actual for E: 0.99 / 1.02 / 0.94. For the champions: 1.16 / 1.11 / 1.48.
+- E passed the accuracy rule for all three types.
+
+**Stability gate.** `promote_model` runs a SHAP stability gate. It was broken: it passed form
+fields as numbers to the estimator (text fields became 0) and received a model handle, not a
+model, so the SHAP call always failed and the fallback ranked the input numbers themselves. Every
+model scored about 25% and nothing could be promoted. It now runs the canonical property for the
+model's type plus 100 copies with the surface varied by about 5% through serving, and compares
+the top three features by |SHAP|. The threshold is unchanged (0.75 to pass).
+
+| Top-3 stability | Champion | E |
+| --- | ---: | ---: |
+| Apartment | 0.50 | **0.87** (pass) |
+| House | 0.85 | 0.72 |
+| Land | 0.49 | 0.67 |
+
+**Result: E serves apartments; houses and land keep the old champion.** E's house and land
+"instability" is the three size features (surface, size × local price, local price) swapping
+order within the top three; no single feature's rank varies much. The champions' top features
+are latitude and longitude, which the API never sends. Relaxing the check (for example comparing
+the top three as a set) was not done, because it would change the rule after seeing the results.
+
+Rollback: `python manage.py promote_model --version-id <id>` with the previous `catboost-artifact`
+apartment row (id 5 in the dev database).
