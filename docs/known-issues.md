@@ -49,6 +49,12 @@ See [ml/valuation-training-data.md](ml/valuation-training-data.md):
   comes out VERY_LOW.
 - The flood factor is mocked: it takes two fixed values, set only by `is_coastal`.
 - Djerba is marked as not coastal.
+- Climate does not change served valuations: the CatBoost models have no climate input, and
+  `climate_adjusted_price` is never set. The page shows climate as context only.
+- The `ClimateRisk` table is empty (the ClimaTN CSVs are not in the repo), so the climate layer
+  on the Explore map is empty. `seed_demo_data` fills the delegation-level scores only.
+- Coastal flags come from a governorate-level rule, and Hammamet has no coordinates in the source
+  geography.
 - Weights: flood 0.30, heat 0.25, coastal erosion 0.20, wildfire 0.10, infrastructure resilience
   −0.15.
 
@@ -57,6 +63,8 @@ See [ml/valuation-training-data.md](ml/valuation-training-data.md):
 - Scores come from fixed rules (labelled); the 7 designed models don't exist.
 - Base, pessimistic and optimistic IRR are identical in portfolio analysis, because growth is a
   0% placeholder (labelled).
+- The Risk page radar chart is partly invented: "Volatility" is `risk × 0.75 + 12`, and
+  "Asset Mix", "Liquidity" and "Income Risk" use fixed values (70/40/18, fallback 30, 58/28).
 
 ## Valuation serving
 
@@ -71,6 +79,7 @@ See [ml/valuation-training-data.md](ml/valuation-training-data.md):
   0.63× listing prices; the archived set is at 0.32×.
 - The scraper assigns catch-all "X Ville" delegations.
 - Conformal intervals under-cover after regime changes.
+- `pages/AnalyzeTrendsPage.jsx` is not routed or imported anywhere (dead code).
 
 ## Simulator
 
@@ -85,3 +94,7 @@ See [ml/valuation-training-data.md](ml/valuation-training-data.md):
 - `checkout.session.completed` webhooks handle subscriptions, but checkout creates one-off
   PaymentIntents. Real upgrades go through `confirm-payment`, and renewals aren't automatic.
 - Frontend test coverage is thin (see frontend.md).
+- The dev database starts empty by design; run `migrate` then `seed_demo_data`. Only about half
+  of the real listings match a delegation; listing coordinates are delegation centroids.
+- The API Keys and Property Alerts pages are static mock-ups with no backend (decision pending).
+- Valuation scenarios (renovation, extra bedroom, ...) are rules of thumb, labelled as such.
