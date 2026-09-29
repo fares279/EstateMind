@@ -32,7 +32,6 @@ export { ForecastFanChart } from '../features/forecast/components/PriceForecastC
 export { InvestmentGradeCard, PortfolioRiskPanel } from '../features/invest/components/InvestmentGradeCard';
 
 // Climate Risk Intelligence
-export { ClimateRiskPanel } from '../features/climate/components/ClimateRiskPanel';
 
 // AI Advisor
 export { ChatMessage, ChatInterface } from '../features/advisor/components/AdvisorChatWidget';

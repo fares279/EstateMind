@@ -84,11 +84,6 @@ export const getValuationCalibration = (params) => api.get('/valuations/calibrat
 export const getValuationDrift = (params) => api.get('/valuations/drift/', { params });
 export const getValuationAuditLog = () => api.get('/valuations/audit/');
 export const getClimateRiskMap = () => api.get('/climate/');
-export const getClimateDashboard = () => api.get('/climate/dashboard/');
-export const getClimateWeather = (governorate) => api.get(`/climate/weather/${encodeURIComponent(governorate)}/`);
-export const getClimateCompare = (cities) => api.get('/climate/compare/', { params: { cities: cities.join(',') } });
-export const getClimateScenarios = () => api.get('/climate/scenarios/');
-export const getClimateRegionalHeatmap = () => api.get('/climate/regional_heatmap/');
 export const getCampaignStats = () => api.get('/campaign/stats/');
 
 // Interactive map endpoints (Phase 4)

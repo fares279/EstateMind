@@ -2,36 +2,28 @@
  * AnalyzePage — Market Intelligence Hub
  * Tab 1: Market Dashboard — all 278 delegations, real prices from CSV
  * Tab 2: Price Forecast — 12-month forecasts per delegation (Jan–Dec 2026)
- * Tab 3: Climate Risk Intelligence — full Tunisia climate risk analysis
  */
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   AreaChart, Area, BarChart, Bar, ScatterChart, Scatter,
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell, Legend,
   PieChart, Pie, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
-  Treemap, RadialBarChart, RadialBar, ComposedChart, Line, ReferenceLine,
+  Treemap, RadialBarChart, RadialBar, ComposedChart, ReferenceLine,
 } from 'recharts';
 import {
   AlertTriangle, BarChart3, LayoutDashboard, Building2, Loader2,
   TrendingUp, TrendingDown, Minus, MapPin, Globe, ChevronRight,
-  ChevronUp, ChevronDown, Info, Search, ArrowUpDown, Home, Store, Trees,
-  Waves, DollarSign, Activity, Filter, X, RefreshCw, Star, Zap,
-  Thermometer, Droplets, Wind, Shield, CloudRain, Sun, FlameKindling,
+  ChevronUp, ChevronDown, Info, Search, ArrowUpDown, Home, Store, Trees, Filter, X, Star, Zap,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { KPIGrid } from '../features/dashboard/components/MarketKPIGrid';
 import { ForecastFanChart } from '../features/forecast/components/PriceForecastChart';
-import { ClimateRiskPanel } from '../features/climate/components/ClimateRiskPanel';
 import {
   getForecastGovernorateList,
   getForecastDelegationList,
   getForecastDelegation,
   getForecastNational,
   getForecastMarket,
-  getClimateDashboard,
-  getClimateScenarios,
-  getClimateRegionalHeatmap,
-  getClimateWeather,
   getKpiFreshness,
   getMarketDashboard,
 } from '../services/api';
@@ -61,6 +53,26 @@ const SEL_CLS =
 
 const fmt = (n) => (n ?? 0).toLocaleString('fr-TN', { maximumFractionDigits: 0 });
 const fmtP = (n) => `${n > 0 ? '+' : ''}${(n ?? 0).toFixed(2)}%`;
+
+// Why a request failed, in words: the server's own message, or that it was unreachable.
+function loadErrorReason(err) {
+  if (!err?.response) return 'The server could not be reached. Check your connection.';
+  return err.response.data?.error || `The server returned an error (${err.response.status}).`;
+}
+
+function LoadError({ message, onRetry }) {
+  return (
+    <div className="flex flex-wrap items-center gap-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+      <AlertTriangle size={15} className="flex-shrink-0" />
+      <span className="flex-1">{message}</span>
+      {onRetry && (
+        <button type="button" onClick={onRetry} className="rounded-lg border border-red-400/40 px-3 py-1 text-xs font-semibold hover:bg-red-500/10">
+          Try again
+        </button>
+      )}
+    </div>
+  );
+}
 
 function FreshnessPill({ freshness }) {
   if (!freshness) return null;
@@ -110,22 +122,6 @@ function MetricCard({ label, value, sub, highlight }) {
   );
 }
 
-function KpiCard({ label, value, sub, color = ORANGE, icon: Icon }) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-5 flex flex-col gap-2">
-      {Icon && (
-        <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-1"
-          style={{ background: `${color}20`, border: `1px solid ${color}30` }}>
-          <Icon size={16} style={{ color }} />
-        </div>
-      )}
-      <p className="text-xs uppercase tracking-widest text-gray-500">{label}</p>
-      <p className="text-xl font-black text-white leading-tight">{value}</p>
-      {sub && <p className="text-xs text-gray-500">{sub}</p>}
-    </div>
-  );
-}
-
 function PropTypePills({ value, onChange }) {
   return (
     <div className="flex flex-wrap gap-2">
@@ -169,22 +165,6 @@ function ForecastTooltip({ active, payload, label }) {
   );
 }
 
-function DashTooltip({ active, payload, label }) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="rounded-xl border border-white/20 bg-[#111827] px-4 py-3 shadow-2xl text-xs space-y-1">
-      <p className="font-bold text-white mb-1">{label}</p>
-      {payload.map((p, i) => (
-        <p key={i} style={{ color: p.color || p.fill }}>
-          {p.name}: <strong>{typeof p.value === 'number'
-            ? p.value.toLocaleString('fr-TN', { maximumFractionDigits: 2 })
-            : p.value}</strong>
-        </p>
-      ))}
-    </div>
-  );
-}
-
 // ── Price Forecast Tab ─────────────────────────────────────────────────────────
 function PriceForecastSection() {
   const [propType,     setPropType]     = useState('apartment');
@@ -206,14 +186,16 @@ function PriceForecastSection() {
   }, []);
 
   // Load national top-movers when propType changes or no delegation selected
+  const [reloadKey, setReloadKey] = useState(0);
   useEffect(() => {
     if (selDel) return;
     setLoading(true);
+    setError('');
     getForecastNational(propType)
       .then(r => setNationalData(r.data))
-      .catch(() => setError('Could not load national forecast data.'))
+      .catch((err) => setError(`National forecast data could not be loaded. ${loadErrorReason(err)}`))
       .finally(() => setLoading(false));
-  }, [propType, selDel]);
+  }, [propType, selDel, reloadKey]);
 
   const handlePropTypeChange = useCallback((pt) => {
     setPropType(pt);
@@ -337,9 +319,7 @@ function PriceForecastSection() {
         </div>
       )}
       {!loading && error && (
-        <div className="flex items-center gap-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-          <AlertTriangle size={15} className="flex-shrink-0" />{error}
-        </div>
+        <LoadError message={error} onRetry={selDel ? null : () => setReloadKey(k => k + 1)} />
       )}
 
       {/* Forecast Fan Chart Module */}
@@ -652,7 +632,7 @@ function DashboardSection() {
     setLoading(true); setError('');
     getForecastMarket(pt)
       .then(r => setMarketData(r.data))
-      .catch(() => setError('Unable to load market data.'))
+      .catch((err) => setError(`Market data could not be loaded. ${loadErrorReason(err)}`))
       .finally(() => setLoading(false));
   }, []);
 
@@ -812,11 +792,7 @@ function DashboardSection() {
       <Loader2 size={24} className="animate-spin" /><span className="text-sm">Loading market data…</span>
     </div>
   );
-  if (error) return (
-    <div className="flex items-center gap-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-      <AlertTriangle size={15} />{error}
-    </div>
-  );
+  if (error) return <LoadError message={error} onRetry={() => loadMarket(propType)} />;
 
   return (
     <section className="space-y-8">
@@ -1512,526 +1488,10 @@ function DashboardSection() {
   );
 }
 
-// ── Climate Risk Tab ──────────────────────────────────────────────────────────
-const RISK_COLORS = {
-  Low: { bg: 'bg-emerald-500/15', border: 'border-emerald-500/30', text: 'text-emerald-400', hex: '#10b981' },
-  Moderate: { bg: 'bg-yellow-500/15', border: 'border-yellow-500/30', text: 'text-yellow-400', hex: '#f59e0b' },
-  High: { bg: 'bg-orange-500/15', border: 'border-orange-500/30', text: 'text-orange-400', hex: '#f97316' },
-  'Very High': { bg: 'bg-red-500/15', border: 'border-red-500/30', text: 'text-red-400', hex: '#ef4444' },
-};
-const RISK_ORDER_NUM = { Low: 1, Moderate: 2, High: 3, 'Very High': 4 };
-const SUSTAIN_GRADE_COLOR = { A: '#10b981', B: '#3b82f6', C: '#f59e0b', D: '#f97316', F: '#ef4444' };
-
-function RiskBadge({ level }) {
-  const c = RISK_COLORS[level] || RISK_COLORS.Moderate;
-  return (
-    <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold border ${c.bg} ${c.border} ${c.text}`}>
-      {level}
-    </span>
-  );
-}
-
-function ClimateKpiCard({ icon: Icon, label, value, sub, color }) {
-  return (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-4 flex flex-col gap-1.5">
-      <div className="flex items-center gap-2 mb-1">
-        <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${color}20`, border: `1px solid ${color}30` }}>
-          <Icon size={13} style={{ color }} />
-        </div>
-        <p className="text-xs uppercase tracking-widest text-gray-500">{label}</p>
-      </div>
-      <p className="text-lg font-black text-white leading-tight">{value}</p>
-      {sub && <p className="text-xs text-gray-500">{sub}</p>}
-    </div>
-  );
-}
-
-function ClimateRiskSection() {
-  const [dashboard, setDashboard] = useState(null);
-  const [scenarios, setScenarios] = useState(null);
-  const [regional, setRegional]   = useState(null);
-  const [loading, setLoading]     = useState(true);
-  const [error, setError]         = useState('');
-  const [search, setSearch]       = useState('');
-  const [sortKey, setSortKey]     = useState('combined_risk_score');
-  const [sortDir, setSortDir]     = useState('asc');
-  const [activeView, setActiveView] = useState('overview');
-  const [selectedGov, setSelectedGov] = useState(null);
-  const [weather, setWeather]     = useState(null);
-  const [weatherLoading, setWeatherLoading] = useState(false);
-
-  useEffect(() => {
-    setLoading(true);
-    Promise.all([
-      getClimateDashboard(),
-      getClimateScenarios(),
-      getClimateRegionalHeatmap(),
-    ])
-      .then(([d, s, r]) => {
-        setDashboard(d.data);
-        setScenarios(s.data);
-        setRegional(r.data);
-      })
-      .catch(() => setError('Could not load climate data.'))
-      .finally(() => setLoading(false));
-  }, []);
-
-  const handleSelectGov = useCallback(async (gov) => {
-    setSelectedGov(gov);
-    setWeather(null);
-    if (!gov) return;
-    setWeatherLoading(true);
-    try {
-      const res = await getClimateWeather(gov.governorate);
-      setWeather(res.data);
-    } catch { /* no live weather */ }
-    finally { setWeatherLoading(false); }
-  }, []);
-
-  const govRows = useMemo(() => {
-    const rows = dashboard?.results || [];
-    const q = search.trim().toLowerCase();
-    const filtered = q ? rows.filter(r => r.governorate?.toLowerCase().includes(q)) : rows;
-    return [...filtered].sort((a, b) => {
-      let av = a[sortKey] ?? 0, bv = b[sortKey] ?? 0;
-      if (typeof av === 'string') av = RISK_ORDER_NUM[av] ?? 0;
-      if (typeof bv === 'string') bv = RISK_ORDER_NUM[bv] ?? 0;
-      return sortDir === 'asc' ? av - bv : bv - av;
-    });
-  }, [dashboard, search, sortKey, sortDir]);
-
-  const toggleSort = useCallback((key) => {
-    setSortKey(prev => { if (prev === key) { setSortDir(d => d === 'asc' ? 'desc' : 'asc'); return key; } setSortDir('asc'); return key; });
-  }, []);
-
-  const riskDist = useMemo(() => {
-    const rows = dashboard?.results || [];
-    const counts = { Low: 0, Moderate: 0, High: 0, 'Very High': 0 };
-    rows.forEach(r => { if (counts[r.risk_category] !== undefined) counts[r.risk_category]++; });
-    return Object.entries(counts).map(([name, value]) => ({ name, value, color: RISK_COLORS[name]?.hex || '#888' }));
-  }, [dashboard]);
-
-  const scenarioRows = useMemo(() => {
-    const rows = scenarios?.results || [];
-    return [...rows].sort((a, b) => (a.delta_4c ?? 0) - (b.delta_4c ?? 0));
-  }, [scenarios]);
-
-  const regionalRows = useMemo(() => regional?.regions || [], [regional]);
-
-  if (loading) return (
-    <div className="flex items-center justify-center py-32">
-      <Loader2 className="w-8 h-8 text-[#FF6B35] animate-spin" />
-    </div>
-  );
-  if (error) return (
-    <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-6 text-red-400 text-sm">{error}</div>
-  );
-
-  const govCount = dashboard?.count || 0;
-  const avgRisk = govRows.length ? (govRows.reduce((s, r) => s + (r.combined_risk_score || 0), 0) / govRows.length).toFixed(1) : '—';
-  const safest = [...(dashboard?.results || [])].sort((a, b) => (a.combined_risk_score || 0) - (b.combined_risk_score || 0))[0]?.governorate || '—';
-  const riskiest = [...(dashboard?.results || [])].sort((a, b) => (b.combined_risk_score || 0) - (a.combined_risk_score || 0))[0]?.governorate || '—';
-
-  return (
-    <section className="space-y-8">
-      {/* Header */}
-      <div>
-        <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-blue-300 mb-3">
-          <Shield size={11} /> Climate Risk Intelligence
-        </div>
-        <h2 className="text-2xl font-black text-white mb-1">Tunisia Climate Risk Analysis</h2>
-        <p className="text-gray-400 text-sm">Comprehensive climate risk assessment for all 24 governorates — flood, heat, drought, and long-term scenario projections.</p>
-      </div>
-
-      {/* Climate Risk Panel Module */}
-      <ClimateRiskPanel />
-
-      {/* Sub-navigation */}
-      <div className="flex gap-1 rounded-xl border border-white/10 bg-white/5 p-1">
-        {[
-          { id: 'overview', label: 'Risk Overview' },
-          { id: 'compare', label: 'Governorate Table' },
-          { id: 'scenarios', label: '+2°C / +4°C Scenarios' },
-          { id: 'regional', label: 'Regional Heatmap' },
-        ].map(v => (
-          <button key={v.id} onClick={() => setActiveView(v.id)}
-            className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-all ${
-              activeView === v.id ? 'bg-blue-600/80 text-white' : 'text-gray-400 hover:text-gray-200'
-            }`}>
-            {v.label}
-          </button>
-        ))}
-      </div>
-
-      {/* ── OVERVIEW ── */}
-      {activeView === 'overview' && (
-        <div className="space-y-6">
-          {/* KPI row */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <ClimateKpiCard icon={Globe} label="Governorates" value={govCount} sub="All of Tunisia" color="#3b82f6" />
-            <ClimateKpiCard icon={Activity} label="Avg Risk Score" value={avgRisk} sub="Out of 10" color="#f97316" />
-            <ClimateKpiCard icon={Shield} label="Safest Region" value={safest} sub="Lowest risk score" color="#10b981" />
-            <ClimateKpiCard icon={AlertTriangle} label="Highest Risk" value={riskiest} sub="Highest risk score" color="#ef4444" />
-          </div>
-
-          {/* Risk distribution pie + regional bar */}
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className={CARD}>
-              <p className="text-sm font-bold text-white mb-1">Risk Distribution</p>
-              <p className="text-xs text-gray-500 mb-4">Governorates by climate risk category</p>
-              <ResponsiveContainer width="100%" height={220}>
-                <PieChart>
-                  <Pie data={riskDist} cx="50%" cy="50%" outerRadius={80} dataKey="value" label={({ name, value }) => `${name}: ${value}`}>
-                    {riskDist.map((e, i) => <Cell key={i} fill={e.color} />)}
-                  </Pie>
-                  <Tooltip content={({ active, payload }) => active && payload?.length ? (
-                    <div className="rounded-lg border border-white/20 bg-[#111827] px-3 py-2 text-xs">
-                      <p className="font-bold text-white">{payload[0].name}</p>
-                      <p className="text-gray-400">{payload[0].value} governorates</p>
-                    </div>
-                  ) : null} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-
-            <div className={CARD}>
-              <p className="text-sm font-bold text-white mb-1">Top Risk Governorates</p>
-              <p className="text-xs text-gray-500 mb-4">Combined risk score (higher = more risk)</p>
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={[...govRows].sort((a,b)=>(b.combined_risk_score||0)-(a.combined_risk_score||0)).slice(0,8)}
-                  layout="vertical" margin={{ left: 8, right: 12 }}>
-                  <XAxis type="number" domain={[0,10]} tick={{ fill:'#9ca3af', fontSize:10 }} />
-                  <YAxis type="category" dataKey="governorate" tick={{ fill:'#9ca3af', fontSize:10 }} width={80} />
-                  <Tooltip content={<DashTooltip />} />
-                  <Bar dataKey="combined_risk_score" radius={4}>
-                    {[...govRows].sort((a,b)=>(b.combined_risk_score||0)-(a.combined_risk_score||0)).slice(0,8).map((r, i) => (
-                      <Cell key={i} fill={RISK_COLORS[r.risk_category]?.hex || '#888'} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* Sustainability vs Risk scatter */}
-          <div className={CARD}>
-            <p className="text-sm font-bold text-white mb-1">Sustainability vs Risk Score</p>
-            <p className="text-xs text-gray-500 mb-4">Ideal: low risk (left) + high sustainability (top)</p>
-            <ResponsiveContainer width="100%" height={280}>
-              <ScatterChart margin={{ top: 10, right: 20, bottom: 10, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
-                <XAxis dataKey="combined_risk_score" name="Risk Score" type="number" domain={[0,10]}
-                  tick={{ fill:'#9ca3af', fontSize:10 }} label={{ value:'Risk Score', position:'insideBottom', offset:-4, fill:'#6b7280', fontSize:10 }} />
-                <YAxis dataKey="sustainability_score" name="Sustainability" type="number" domain={[0,100]}
-                  tick={{ fill:'#9ca3af', fontSize:10 }} label={{ value:'Sustainability', angle:-90, position:'insideLeft', fill:'#6b7280', fontSize:10 }} />
-                <Tooltip content={({ active, payload }) => {
-                  if (!active || !payload?.length) return null;
-                  const d = payload[0]?.payload;
-                  const c = RISK_COLORS[d?.risk_category] || RISK_COLORS.Moderate;
-                  return (
-                    <div className="rounded-lg border border-white/20 bg-[#111827] px-3 py-2 text-xs space-y-0.5">
-                      <p className="font-bold text-white">{d?.governorate}</p>
-                      <p className="text-gray-400">Risk: <span style={{color: c.hex}}>{d?.combined_risk_score?.toFixed(1)}</span></p>
-                      <p className="text-gray-400">Sustainability: <span className="text-blue-300">{d?.sustainability_score}%</span></p>
-                      {d?.sustainability_grade && <p className="text-gray-400">Grade: <span className="font-bold" style={{color: SUSTAIN_GRADE_COLOR[d.sustainability_grade]}}>{d.sustainability_grade}</span></p>}
-                    </div>
-                  );
-                }} />
-                <Scatter data={govRows} fill="#FF6B35">
-                  {govRows.map((r, i) => <Cell key={i} fill={RISK_COLORS[r.risk_category]?.hex || '#888'} />)}
-                </Scatter>
-              </ScatterChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Price adjustment overview */}
-          <div className={CARD}>
-            <p className="text-sm font-bold text-white mb-1">Climate Price Adjustment by Governorate</p>
-            <p className="text-xs text-gray-500 mb-4">% adjustment to property price driven by climate risk (+premium / −discount)</p>
-            <ResponsiveContainer width="100%" height={240}>
-              <BarChart data={[...govRows].sort((a,b)=>(a.price_adjustment_pct||0)-(b.price_adjustment_pct||0))} margin={{ left:0, right:12 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
-                <XAxis dataKey="governorate" tick={{ fill:'#9ca3af', fontSize:9 }} angle={-35} textAnchor="end" height={52} />
-                <YAxis tick={{ fill:'#9ca3af', fontSize:10 }} tickFormatter={v => `${v}%`} />
-                <Tooltip content={({ active, payload, label }) => active && payload?.length ? (
-                  <div className="rounded-lg border border-white/20 bg-[#111827] px-3 py-2 text-xs">
-                    <p className="font-bold text-white">{label}</p>
-                    <p className="text-gray-400">Adjustment: <span className={payload[0].value >= 0 ? 'text-green-400' : 'text-red-400'}>{payload[0].value?.toFixed(1)}%</span></p>
-                  </div>
-                ) : null} />
-                <ReferenceLine y={0} stroke="#ffffff30" />
-                <Bar dataKey="price_adjustment_pct" radius={3}>
-                  {[...govRows].sort((a,b)=>(a.price_adjustment_pct||0)-(b.price_adjustment_pct||0)).map((r,i) => (
-                    <Cell key={i} fill={(r.price_adjustment_pct||0) >= 0 ? '#10b981' : '#ef4444'} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
-
-      {/* ── GOVERNORATE TABLE ── */}
-      {activeView === 'compare' && (
-        <div className="space-y-5">
-          <div className="flex gap-3 items-center">
-            <div className="relative flex-1 max-w-sm">
-              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search governorate…"
-                className="w-full rounded-xl border border-white/15 bg-black/30 pl-8 pr-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-blue-500/50" />
-            </div>
-            {search && <button onClick={() => setSearch('')} className="text-gray-500 hover:text-white"><X size={14}/></button>}
-          </div>
-
-          {selectedGov && (
-            <div className="rounded-2xl border border-blue-500/30 bg-blue-500/5 p-5 space-y-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="text-lg font-black text-white">{selectedGov.governorate}</h3>
-                  <p className="text-xs text-gray-500">{selectedGov.climate_region} · {selectedGov.is_coastal ? 'Coastal' : 'Inland'}</p>
-                </div>
-                <button onClick={() => setSelectedGov(null)} className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-gray-400">
-                  <X size={14}/>
-                </button>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="rounded-lg border border-white/10 bg-white/5 p-3 text-center">
-                  <p className="text-xs text-gray-500 mb-1">Risk Score</p>
-                  <p className="text-xl font-black" style={{color: RISK_COLORS[selectedGov.risk_category]?.hex}}>{(selectedGov.combined_risk_score||0).toFixed(1)}/10</p>
-                  <RiskBadge level={selectedGov.risk_category} />
-                </div>
-                <div className="rounded-lg border border-white/10 bg-white/5 p-3 text-center">
-                  <p className="text-xs text-gray-500 mb-1">Sustainability</p>
-                  <p className="text-xl font-black text-blue-300">{selectedGov.sustainability_score ?? '—'}%</p>
-                  {selectedGov.sustainability_grade && <span className="text-sm font-bold" style={{color: SUSTAIN_GRADE_COLOR[selectedGov.sustainability_grade]}}>Grade {selectedGov.sustainability_grade}</span>}
-                </div>
-                <div className="rounded-lg border border-white/10 bg-white/5 p-3 text-center">
-                  <p className="text-xs text-gray-500 mb-1">Avg Temp</p>
-                  <p className="text-xl font-black text-orange-400">{selectedGov.avg_temp_c ?? '—'}°C</p>
-                  <p className="text-xs text-gray-600">{selectedGov.days_above_35c ?? '—'} days &gt;35°C/yr</p>
-                </div>
-                <div className="rounded-lg border border-white/10 bg-white/5 p-3 text-center">
-                  <p className="text-xs text-gray-500 mb-1">Rainfall</p>
-                  <p className="text-xl font-black text-cyan-400">{selectedGov.avg_rainfall_mm ?? '—'} mm</p>
-                  <p className="text-xs text-gray-600">annual avg</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {[
-                  { label: 'Flood Risk', val: selectedGov.flood_risk },
-                  { label: 'Heat Stress', val: selectedGov.heat_stress_risk },
-                  { label: 'Drought', val: selectedGov.drought_risk },
-                  { label: 'Earthquake', val: selectedGov.earthquake_risk },
-                ].map(({label, val}) => (
-                  <div key={label} className="rounded-lg border border-white/10 bg-white/5 p-3 text-center">
-                    <p className="text-xs text-gray-500 mb-1.5">{label}</p>
-                    <RiskBadge level={val || 'Low'} />
-                  </div>
-                ))}
-              </div>
-              {weatherLoading && <p className="text-xs text-gray-500 flex items-center gap-1.5"><Loader2 size={11} className="animate-spin"/>Loading live weather…</p>}
-              {weather && (
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs font-bold text-white mb-3">Live Weather · {weather.source === 'live' ? '🟢 Live' : '⚪ Simulated'}</p>
-                  <div className="grid grid-cols-3 md:grid-cols-6 gap-3 text-center">
-                    {[
-                      { label: 'Temperature', val: `${weather.current?.temperature}°C`, icon: Thermometer, color: '#f97316' },
-                      { label: 'Humidity', val: `${weather.current?.humidity}%`, icon: Droplets, color: '#3b82f6' },
-                      { label: 'Wind', val: `${weather.current?.wind_speed} km/h`, icon: Wind, color: '#8b5cf6' },
-                      { label: 'Precipitation', val: `${weather.current?.precipitation} mm`, icon: CloudRain, color: '#06b6d4' },
-                      { label: 'Heat Index', val: weather.heat_index?.level || '—', icon: Sun, color: '#f59e0b' },
-                      { label: 'Drought SPI', val: weather.drought_spi?.level || '—', icon: FlameKindling, color: '#ef4444' },
-                    ].map(({label, val, icon: Ic, color}) => (
-                      <div key={label}>
-                        <Ic size={14} style={{color}} className="mx-auto mb-1" />
-                        <p className="text-xs font-bold text-white">{val}</p>
-                        <p className="text-xs text-gray-500">{label}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          <div className="overflow-x-auto rounded-2xl border border-white/10">
-            <table className="w-full text-sm">
-              <thead className="border-b border-white/10 bg-white/5">
-                <tr>
-                  {[
-                    { label: 'Governorate', key: 'governorate' },
-                    { label: 'Region', key: 'climate_region' },
-                    { label: 'Risk Score', key: 'combined_risk_score' },
-                    { label: 'Category', key: 'risk_category' },
-                    { label: 'Sustainability', key: 'sustainability_score' },
-                    { label: 'Flood', key: 'flood_risk' },
-                    { label: 'Heat', key: 'heat_stress_risk' },
-                    { label: 'Drought', key: 'drought_risk' },
-                    { label: 'Price Adj %', key: 'price_adjustment_pct' },
-                  ].map(({label, key}) => (
-                    <th key={key} onClick={() => toggleSort(key)}
-                      className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 cursor-pointer hover:text-white transition-colors">
-                      <span className="flex items-center gap-1">{label}
-                        {sortKey === key ? (sortDir === 'asc' ? <ChevronUp size={11} className="text-blue-400"/> : <ChevronDown size={11} className="text-blue-400"/>) : <ArrowUpDown size={11} className="text-gray-600"/>}
-                      </span>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {govRows.map((r, i) => (
-                  <tr key={r.governorate || i} onClick={() => handleSelectGov(r)}
-                    className={`cursor-pointer transition-colors hover:bg-white/5 ${selectedGov?.governorate === r.governorate ? 'bg-blue-500/10' : ''}`}>
-                    <td className="px-3 py-2.5 font-semibold text-white">{r.governorate}</td>
-                    <td className="px-3 py-2.5 text-gray-400 text-xs">{r.climate_region || '—'}</td>
-                    <td className="px-3 py-2.5">
-                      <span className="font-bold" style={{color: RISK_COLORS[r.risk_category]?.hex || '#888'}}>{(r.combined_risk_score||0).toFixed(1)}</span>
-                    </td>
-                    <td className="px-3 py-2.5"><RiskBadge level={r.risk_category || 'Low'} /></td>
-                    <td className="px-3 py-2.5 text-blue-300 font-semibold">{r.sustainability_score ?? '—'}{r.sustainability_score ? '%' : ''}</td>
-                    <td className="px-3 py-2.5"><RiskBadge level={r.flood_risk || 'Low'} /></td>
-                    <td className="px-3 py-2.5"><RiskBadge level={r.heat_stress_risk || 'Low'} /></td>
-                    <td className="px-3 py-2.5"><RiskBadge level={r.drought_risk || 'Low'} /></td>
-                    <td className="px-3 py-2.5">
-                      <span className={(r.price_adjustment_pct||0) >= 0 ? 'text-green-400' : 'text-red-400'}>
-                        {(r.price_adjustment_pct||0) >= 0 ? '+' : ''}{(r.price_adjustment_pct||0).toFixed(1)}%
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-                {govRows.length === 0 && (
-                  <tr><td colSpan={9} className="text-center text-gray-500 text-sm py-10">No governorates match search</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-          <p className="text-xs text-gray-600 flex items-center gap-1"><Info size={11}/>Click any row to see full details and live weather.</p>
-        </div>
-      )}
-
-      {/* ── SCENARIOS ── */}
-      {activeView === 'scenarios' && (
-        <div className="space-y-6">
-          <div className={CARD}>
-            <p className="text-sm font-bold text-white mb-1">Climate Scenario Projections</p>
-            <p className="text-xs text-gray-500 mb-4">Sustainability score change under +2°C and +4°C global warming. Negative = worsening conditions.</p>
-            <ResponsiveContainer width="100%" height={320}>
-              <BarChart data={scenarioRows.slice(0, 20)} margin={{ left:0, right:12 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
-                <XAxis dataKey="governorate" tick={{ fill:'#9ca3af', fontSize:9 }} angle={-35} textAnchor="end" height={56} />
-                <YAxis tick={{ fill:'#9ca3af', fontSize:10 }} />
-                <Tooltip content={({ active, payload, label }) => active && payload?.length ? (
-                  <div className="rounded-lg border border-white/20 bg-[#111827] px-3 py-2 text-xs space-y-1">
-                    <p className="font-bold text-white">{label}</p>
-                    {payload.map((p,i) => <p key={i} style={{color: p.color}}>{p.name}: {p.value?.toFixed(2)}</p>)}
-                  </div>
-                ) : null} />
-                <Legend wrapperStyle={{ fontSize: '11px', color: '#9ca3af' }} />
-                <ReferenceLine y={0} stroke="#ffffff30" />
-                <Bar dataKey="delta_2c" name="+2°C Δ" fill="#f59e0b" radius={2} />
-                <Bar dataKey="delta_4c" name="+4°C Δ" fill="#ef4444" radius={2} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-
-          <div className="overflow-x-auto rounded-2xl border border-white/10">
-            <table className="w-full text-sm">
-              <thead className="border-b border-white/10 bg-white/5">
-                <tr>
-                  {['Governorate','Climate Region','Risk Category','Baseline Score','+2°C Score','+4°C Score','Δ +2°C','Δ +4°C'].map(h => (
-                    <th key={h} className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {scenarioRows.map((r, i) => (
-                  <tr key={r.governorate || i} className="hover:bg-white/5 transition-colors">
-                    <td className="px-3 py-2.5 font-semibold text-white">{r.governorate}</td>
-                    <td className="px-3 py-2.5 text-gray-400 text-xs">{r.climate_region || '—'}</td>
-                    <td className="px-3 py-2.5"><RiskBadge level={r.risk_category || 'Low'} /></td>
-                    <td className="px-3 py-2.5 text-gray-300">{r.baseline?.toFixed(1) ?? '—'}</td>
-                    <td className="px-3 py-2.5 text-yellow-300">{r.plus_2c?.toFixed(1) ?? '—'}</td>
-                    <td className="px-3 py-2.5 text-red-300">{r.plus_4c?.toFixed(1) ?? '—'}</td>
-                    <td className="px-3 py-2.5">
-                      <span className={(r.delta_2c||0) >= 0 ? 'text-green-400' : 'text-red-400'}>
-                        {(r.delta_2c||0) >= 0 ? '+' : ''}{(r.delta_2c||0).toFixed(2)}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2.5">
-                      <span className={(r.delta_4c||0) >= 0 ? 'text-green-400' : 'text-red-400'}>
-                        {(r.delta_4c||0) >= 0 ? '+' : ''}{(r.delta_4c||0).toFixed(2)}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <p className="text-xs text-gray-600 flex items-center gap-1"><Info size={11}/>Δ values show change in sustainability score from baseline. Negative = increased climate stress.</p>
-        </div>
-      )}
-
-      {/* ── REGIONAL HEATMAP ── */}
-      {activeView === 'regional' && (
-        <div className="space-y-6">
-          <div className={CARD}>
-            <p className="text-sm font-bold text-white mb-1">Regional Climate Risk Heatmap</p>
-            <p className="text-xs text-gray-500 mb-4">Average risk, sustainability, and price adjustment grouped by climate region</p>
-            <ResponsiveContainer width="100%" height={280}>
-              <RadarChart data={regionalRows} cx="50%" cy="50%" outerRadius={100}>
-                <PolarGrid stroke="#ffffff15" />
-                <PolarAngleAxis dataKey="climate_region" tick={{ fill:'#9ca3af', fontSize:10 }} />
-                <PolarRadiusAxis angle={30} domain={[0,10]} tick={{ fill:'#9ca3af', fontSize:9 }} />
-                <Radar name="Avg Risk" dataKey="avg_risk_score" stroke="#ef4444" fill="#ef4444" fillOpacity={0.25} />
-                <Radar name="Avg Sustainability /10" dataKey="avg_sustainability" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.15} />
-                <Legend wrapperStyle={{ fontSize: '11px', color: '#9ca3af' }} />
-                <Tooltip content={<DashTooltip />} />
-              </RadarChart>
-            </ResponsiveContainer>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-4">
-            {regionalRows.map((r, i) => {
-              const rcat = r.avg_risk_score >= 7.5 ? 'Very High' : r.avg_risk_score >= 5 ? 'High' : r.avg_risk_score >= 2.5 ? 'Moderate' : 'Low';
-              const c = RISK_COLORS[rcat] || RISK_COLORS.Moderate;
-              return (
-                <div key={i} className={`rounded-xl border p-4 ${c.border} ${c.bg}`}>
-                  <div className="flex items-center justify-between mb-3">
-                    <p className="font-bold text-white">{r.climate_region}</p>
-                    <RiskBadge level={rcat} />
-                  </div>
-                  <div className="grid grid-cols-3 gap-3 text-center">
-                    <div>
-                      <p className="text-lg font-black" style={{color: c.hex}}>{(r.avg_risk_score||0).toFixed(1)}</p>
-                      <p className="text-xs text-gray-500">Avg Risk</p>
-                    </div>
-                    <div>
-                      <p className="text-lg font-black text-blue-300">{(r.avg_sustainability||0).toFixed(0)}%</p>
-                      <p className="text-xs text-gray-500">Sustainability</p>
-                    </div>
-                    <div>
-                      <p className={`text-lg font-black ${(r.avg_price_adjustment_pct||0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {(r.avg_price_adjustment_pct||0) >= 0 ? '+' : ''}{(r.avg_price_adjustment_pct||0).toFixed(1)}%
-                      </p>
-                      <p className="text-xs text-gray-500">Price Adj</p>
-                    </div>
-                  </div>
-                  <p className="text-xs text-gray-600 mt-2">{r.governorate_count} governorate{r.governorate_count !== 1 ? 's' : ''}</p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-    </section>
-  );
-}
-
 // ── Page root ──────────────────────────────────────────────────────────────────
 const TABS = [
   { id: 'dashboard', label: 'Market Dashboard', icon: LayoutDashboard },
   { id: 'forecast',  label: 'Price Forecast',   icon: BarChart3       },
-  { id: 'climate',   label: 'Climate Risk',      icon: Shield          },
 ];
 
 export default function AnalyzePage() {
@@ -2049,7 +1509,7 @@ export default function AnalyzePage() {
         <section>
           <h1 className="text-4xl md:text-5xl font-black text-white mb-2">Analyze</h1>
           <p className="text-gray-400 text-lg max-w-2xl">
-            AI-powered market intelligence — real prices, forecasts, and full climate risk analysis for every governorate in Tunisia.
+            Market intelligence for every delegation in Tunisia: current prices and 12-month forecasts.
           </p>
         </section>
 
@@ -2058,9 +1518,7 @@ export default function AnalyzePage() {
             <button key={id} onClick={() => setActiveTab(id)}
               className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-all
                 ${activeTab === id
-                  ? id === 'climate'
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
-                    : 'bg-[#FF6B35] text-white shadow-lg shadow-[#FF6B35]/20'
+                  ? 'bg-[#FF6B35] text-white shadow-lg shadow-[#FF6B35]/20'
                   : 'text-gray-400 hover:text-gray-200'}`}>
               <Icon size={15} />{label}
             </button>
@@ -2069,7 +1527,6 @@ export default function AnalyzePage() {
 
         {activeTab === 'dashboard' && <DashboardSection />}
         {activeTab === 'forecast'  && <PriceForecastSection />}
-        {activeTab === 'climate'   && <ClimateRiskSection />}
 
       </div>
     </main>

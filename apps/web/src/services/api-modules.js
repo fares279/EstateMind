@@ -1,7 +1,5 @@
 import api, {
 	chatSendMessage,
-	getClimateDashboard,
-	getClimateWeather,
 	getForecastDelegation,
 	getForecastGovernorate,
 	getForecastNational,
@@ -28,18 +26,6 @@ export const submitChatFeedback = (responseLogId, sessionId, feedback, feedbackT
 		feedback: feedback === 'helpful' ? 'thumbs_up' : 'thumbs_down',
 		feedback_text: feedbackText,
 	}).then((response) => response.data);
-
-export const getClimateRisk = (lat, lon, delegation) => {
-	if (delegation) {
-		return api.get(`/climate/delegation/${encodeURIComponent(delegation)}/`).then((response) => response.data);
-	}
-
-	if (lat != null && lon != null) {
-		return api.get('/climate/point/', { params: { lat, lon } }).then((response) => response.data);
-	}
-
-	return getClimateDashboard().then((response) => response.data);
-};
 
 export const getForecast = (delegationOrGovernorate, propertyType = 'apartment') => {
 	if (delegationOrGovernorate && typeof delegationOrGovernorate === 'string') {
