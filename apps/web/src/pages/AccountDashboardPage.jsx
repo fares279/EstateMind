@@ -10,6 +10,16 @@ const CARD = 'rounded-2xl border border-white/10 bg-white/5 p-6';
 const INP = 'w-full rounded-xl border border-white/15 bg-black/30 px-3 py-2.5 text-sm text-white ' +
   'placeholder:text-gray-600 focus:outline-none focus:border-[#FF6B35]/60 focus:ring-1 focus:ring-[#FF6B35]/30';
 
+const PLAN_ORDER = ['free', 'pro', 'investor'];
+
+// Label for moving from the current plan to `plan`: moving to a lower tier is a
+// downgrade, never an 'upgrade'.
+export function planActionLabel(currentPlan, plan) {
+  if (plan === currentPlan) return 'Current plan';
+  const lower = PLAN_ORDER.indexOf(plan) < PLAN_ORDER.indexOf(currentPlan);
+  return `${lower ? 'Downgrade' : 'Upgrade'} to ${PLAN_META[plan].label}`;
+}
+
 const PLAN_META = {
   free: { label: 'Free', price: 'Free' },
   pro: { label: 'Pro', price: '$25.00/month' },
@@ -174,25 +184,32 @@ export default function AccountDashboardPage() {
         <section className={CARD}>
           <div className="mb-4 flex items-center gap-2 text-white">
             <Crown size={18} />
-            <h2 className="text-xl font-bold">Upgrade Plan</h2>
+            <h2 className="text-xl font-bold">Your plan</h2>
           </div>
           <p className="mb-4 text-sm text-gray-400">
-            Upgrades use Stripe checkout. In local debug mode, a dev fallback can complete upgrade instantly.
+            Paid plans run for 30 days and are paid securely through Stripe.
+            {currentPlan !== 'free' && user?.plan_expires_at && (
+              <> Your {PLAN_META[currentPlan]?.label || currentPlan} plan returns to Free on{' '}
+                {new Date(user.plan_expires_at).toLocaleDateString()} unless renewed.</>
+            )}
           </p>
           <div className="grid gap-3 md:grid-cols-3">
-            {['free', 'pro', 'investor'].map((plan) => {
+            {PLAN_ORDER.map((plan) => {
               const isCurrent = currentPlan === plan;
+              // there is no downgrade purchase: a lower plan applies when the current one expires
+              const isLower = PLAN_ORDER.indexOf(plan) < PLAN_ORDER.indexOf(currentPlan);
               return (
                 <article key={plan} className="rounded-xl border border-white/10 bg-black/20 p-4">
                   <p className="text-lg font-bold text-white">{PLAN_META[plan].label}</p>
                   <p className="mt-1 text-sm text-gray-400">{PLAN_META[plan].price}</p>
                   <button
                     type="button"
-                    disabled={isCurrent || upgrading === plan || plan === 'free'}
+                    disabled={isCurrent || isLower || upgrading === plan || plan === 'free'}
+                    title={isLower ? 'Your plan changes to this one when the current plan expires.' : undefined}
                     onClick={() => onUpgrade(plan)}
                     className="mt-3 w-full rounded-lg border border-[#FF6B35]/40 px-3 py-2 text-sm font-semibold text-[#FFB38F] hover:bg-[#FF6B35]/10 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {isCurrent ? 'Current Plan' : upgrading === plan ? 'Starting...' : `Upgrade to ${PLAN_META[plan].label}`}
+                    {upgrading === plan ? 'Starting…' : planActionLabel(currentPlan, plan)}
                   </button>
                 </article>
               );
