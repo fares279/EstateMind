@@ -90,8 +90,9 @@ See [ml/valuation-training-data.md](ml/valuation-training-data.md):
 - Automatic renewal needs a monthly Price per plan in the Stripe account (`STRIPE_PRICE_PRO`,
   `STRIPE_PRICE_INVESTOR`); until they exist, a payment gives 30 days of the plan.
 - Frontend test coverage is thin (see frontend.md).
-- The dev database starts empty by design; run `migrate` then `seed_demo_data`. Only about half
-  of the real listings match a delegation; listing coordinates are delegation centroids.
+- 54% of the real listings (2,875 of 5,306) match a delegation. Of the sale listings, 1,554 name
+  no town, and about 700 name neighbourhoods missing from the scraper's town table; those stay at
+  governorate level. Listing coordinates are delegation centroids.
 - API Keys is parked: `pages/AccountApiKeysPage.jsx` is a mock-up with no backend. It is kept but
   not routed or linked, pending a decision on a real API-key feature.
 - Property Alerts has no backend; the page says "Coming soon" instead of showing sample alerts.

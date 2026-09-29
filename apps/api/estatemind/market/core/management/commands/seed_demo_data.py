@@ -131,6 +131,20 @@ class Command(BaseCommand):
         return regions, delegations
 
     # ── 2. real listings ─────────────────────────────────────────────────────
+    @staticmethod
+    def _neighbourhood(row, delegations):
+        """Delegation of a neighbourhood ('l aouina', 'sahloul', ...) from the scraper's
+        curated town table, accepted only when it agrees with the listing's governorate."""
+        from estatemind.intelligence.valuation.inference.location import normalize_governorate, plain
+        from estatemind.market.scraper.pipeline.wrangler import _lookup_city
+
+        if row.city == row.governorate:
+            return None
+        found = _lookup_city(row.city)
+        if not found or normalize_governorate(found[0]) != row.governorate:
+            return None
+        return delegations.get((plain(found[1]), row.governorate))
+
     def _real_listings(self, regions, delegations) -> int:
         from ml.shared.listings_dataset import Options, build
         from estatemind.market.core.models import Property
@@ -148,7 +162,7 @@ class Command(BaseCommand):
                 region = regions.get(r.governorate)
                 if ptype is None or region is None:
                     continue
-                delegation = delegations.get((r.city, r.governorate))
+                delegation = delegations.get((r.city, r.governorate)) or self._neighbourhood(r, delegations)
                 matched += delegation is not None
                 place = delegation.name if delegation else region.governorate
                 lat = (delegation.centroid_lat if delegation and delegation.centroid_lat else region.latitude)

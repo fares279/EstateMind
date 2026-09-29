@@ -1,7 +1,7 @@
 import io
 
 from django.core.management import call_command
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase
 
 from estatemind.intelligence.forecast.models import DelegationForecast
 from estatemind.intelligence.forecast.services.forecast_service import list_delegations_for_governorate
@@ -64,3 +64,18 @@ class SeedDemoDataTests(TestCase):
     def test_rerun_changes_nothing(self):
         call_command('seed_demo_data', synthetic_per_type=1, stdout=io.StringIO())
         self.assertEqual(self._counts(), self.counts)
+
+
+class NeighbourhoodMatchTests(SimpleTestCase):
+    def test_neighbourhood_maps_to_its_delegation_when_governorates_agree(self):
+        from types import SimpleNamespace
+
+        from estatemind.market.core.management.commands.seed_demo_data import Command
+        ariana_ville = object()
+        delegations = {('ariana ville', 'ariana'): ariana_ville}
+        self.assertIs(Command._neighbourhood(SimpleNamespace(city='ennasr', governorate='ariana'), delegations),
+                      ariana_ville)
+        # the table says Ariana; a listing labelled Sousse is not moved there
+        self.assertIsNone(Command._neighbourhood(SimpleNamespace(city='ennasr', governorate='sousse'), delegations))
+        # no town given
+        self.assertIsNone(Command._neighbourhood(SimpleNamespace(city='ariana', governorate='ariana'), delegations))
