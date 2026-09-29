@@ -39,6 +39,7 @@ All are listed with placeholders in `apps/api/.env.example`. The ones that matte
 | `ESTATEMIND_ARTIFACTS_URL` | Bundle to fetch when artifacts are missing |
 | `VALUATION_CV_PRICE_ADJUSTMENT`, `VALUATION_SENTIMENT_PRICE_ADJUSTMENT` | Keep `False` (see ml.md) |
 | `ENABLE_AUTO_SCRAPER` | Keep `False`. Scraping outside sites needs explicit approval |
+| `SIMULATION_BACKEND` | `celery` (runs on the worker; docker-compose sets it) or `thread` (default, inside the web process) |
 | `PRELOAD_LEGAL_EMBEDDING_MODEL` | `True` on web and worker for a faster first answer; `False` on beat |
 
 Web: `API_BASE_URL` (runtime). `REACT_APP_API_URL` (build time) is an optional default.

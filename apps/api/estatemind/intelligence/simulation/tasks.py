@@ -195,3 +195,20 @@ def calibrate_agents_task(self, agent_types=['buyer', 'developer', 'speculator']
         'reason': 'Inverse-RL agent calibration is not implemented; no profile is created.',
         'agent_types_requested': list(agent_types),
     }
+
+
+@shared_task(name='estatemind.intelligence.simulation.tasks.run_simulation_task')
+def run_simulation_task(run_id, scenario_name, num_months, agent_scale, seed=None, policy_overrides=None):
+    """One simulation run on a Celery worker (SIMULATION_BACKEND=celery), so runs don't
+    compete with web requests. The simulator records completion or failure on the run."""
+    from .engine.simulator import TunisiaRealEstateSimulator
+
+    TunisiaRealEstateSimulator(
+        run_id=run_id,
+        scenario_name=scenario_name,
+        num_months=num_months,
+        agent_scale=agent_scale,
+        seed=seed,
+        policy_overrides=policy_overrides or {},
+    ).run()
+    return {'run_id': run_id}

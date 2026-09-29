@@ -216,6 +216,9 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TIMEZONE = 'Africa/Tunis'
+# Where simulator runs execute: 'celery' (a worker; set in docker-compose) or 'thread'
+# (inside the web process; the default, so local development needs no Redis).
+SIMULATION_BACKEND = config('SIMULATION_BACKEND', default='thread')
 
 # Celery Beat Schedule — Periodic Tasks
 CELERY_BEAT_SCHEDULE = {

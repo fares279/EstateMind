@@ -127,3 +127,39 @@ class SimulationPermissionTests(TestCase):
         _login(self.client, self.owner)
         flags = {r['run_id']: r['can_delete'] for r in self.client.get('/api/simulate/runs/').json()['runs']}
         self.assertEqual(flags, {str(self.run.run_id): True, str(self.orphan.run_id): False})
+
+
+class SimulationBackendTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        _login(self.client, _user('backend@example.com'))
+
+    def _start(self):
+        return self.client.post('/api/simulate/start/', data=json.dumps({'scenario_name': 'baseline', 'num_months': 6}),
+                                content_type='application/json')
+
+    @mock.patch('estatemind.intelligence.simulation.views.threading.Thread')
+    @mock.patch('estatemind.intelligence.simulation.tasks.run_simulation_task.apply_async')
+    def test_celery_backend_queues_the_run(self, apply_async, thread):
+        with self.settings(SIMULATION_BACKEND='celery'):
+            response = self._start()
+        self.assertEqual(response.status_code, 201)
+        args = apply_async.call_args.kwargs['args']
+        self.assertEqual((args[0], args[1], args[2]), (response.json()['run_id'], 'baseline', 6))
+        thread.assert_not_called()
+
+    @mock.patch('estatemind.intelligence.simulation.views.threading.Thread')
+    @mock.patch('estatemind.intelligence.simulation.tasks.run_simulation_task.apply_async',
+                side_effect=ConnectionError('broker down'))
+    def test_unreachable_broker_falls_back_to_a_thread(self, _apply_async, thread):
+        with self.settings(SIMULATION_BACKEND='celery'):
+            self.assertEqual(self._start().status_code, 201)
+        thread.return_value.start.assert_called_once()
+
+    def test_task_runs_the_simulation(self):
+        from estatemind.intelligence.simulation.tasks import run_simulation_task
+        run_id = str(uuid.uuid4())
+        SimulationRun.objects.create(run_id=run_id, scenario_name='baseline', agent_scale='tiny', num_months=3,
+                                     status=SimulationRun.STATUS_PENDING)
+        run_simulation_task(run_id, 'baseline', 3, 'tiny', 1, {})
+        self.assertEqual(SimulationRun.objects.get(run_id=run_id).status, SimulationRun.STATUS_COMPLETE)

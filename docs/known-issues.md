@@ -81,9 +81,8 @@ See [ml/valuation-training-data.md](ml/valuation-training-data.md):
 
 ## Simulator
 
-- Runs execute in a thread inside the web process, not in Celery. A burst of runs competes with
-  web requests. Moving them to Celery is a separate project.
-- RL backtesting and calibration are `not_implemented`.
+- RL backtesting and agent calibration are `not_implemented`: both need observed transaction
+  history to compare simulated markets with, and none exists.
 
 ## Platform
 

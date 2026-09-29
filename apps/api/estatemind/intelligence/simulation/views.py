@@ -11,6 +11,7 @@ import logging
 import threading
 import uuid
 
+from django.conf import settings
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
@@ -169,8 +170,22 @@ def start_view(request):
         finally:
             connections.close_all()
 
-    t = threading.Thread(target=_run, daemon=True, name=f"sim-{run_id[:8]}")
-    t.start()
+    # SIMULATION_BACKEND=celery runs it on a worker (deployments); 'thread' runs it in
+    # this web process (local development without Redis). An unreachable broker falls
+    # back to a thread rather than leaving the run pending.
+    queued = False
+    if getattr(settings, "SIMULATION_BACKEND", "thread") == "celery":
+        try:
+            from .tasks import run_simulation_task
+            run_simulation_task.apply_async(
+                args=[run_id, scenario_name, num_months, agent_scale, seed, _safe_overrides],
+                retry=False)
+            queued = True
+        except Exception:
+            logger.exception("Could not queue simulation %s on Celery; running it in a thread", run_id)
+    if not queued:
+        t = threading.Thread(target=_run, daemon=True, name=f"sim-{run_id[:8]}")
+        t.start()
 
     return _json({
         "run_id":          run_id,
