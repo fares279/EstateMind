@@ -68,7 +68,7 @@ def build(
         lines.append("Prices in this area are expected to rise over the next year.")
     elif trend in ('falling', 'down', 'declining'):
         lines.append("Prices in this area are expected to ease over the next year.")
-    elif trend:
+    elif trend == 'stable':
         lines.append("Prices in this area are expected to stay broadly stable.")
 
     if text_analysis.get('description_quality') == 'insufficient':

@@ -143,23 +143,55 @@ def find(ref: dict, estimated_price: float, limit: int = 4) -> tuple[list, dict]
                 if c['price']:
                     all_prices.append(c['price'])
 
-    return comparables, _market_context(prices_ppm2, all_prices, estimated_price)
+    context = _market_context(prices_ppm2, all_prices, estimated_price, size_m2)
+    context.update(_forecast_trend(ref))
+    return comparables, context
 
 
-def _market_context(prices_ppm2: list, all_prices: list, estimated_price: float) -> dict:
+_TREND_TEXT = {
+    'rising':  'The price forecast for this delegation points upward over the next 12 months.',
+    'falling': 'The price forecast for this delegation points downward over the next 12 months.',
+    'stable':  'The price forecast for this delegation is broadly flat over the next 12 months.',
+}
+
+
+def _forecast_trend(ref: dict) -> dict:
+    """Trend from the delegation's latest market snapshot, whose direction comes from the
+    delegation price forecast. Without a matching snapshot no trend is claimed."""
+    none = {'market_trend': None, 'market_direction': None}
+    try:
+        from estatemind.intelligence.valuation.inference.location import plain
+        from estatemind.market.core.models import DelegationMarketSnapshot
+
+        name = plain(ref.get('delegation') or ref.get('city'))
+        if not name:
+            return none
+        gov = plain(ref.get('governorate'))
+        rows = (DelegationMarketSnapshot.objects.select_related('delegation__region')
+                .exclude(trend_direction='').order_by('-as_of_date'))
+        for snap in rows.iterator():
+            d = snap.delegation
+            if plain(d.name) == name and (not gov or plain(d.region.governorate) == gov):
+                trend = {'up': 'rising', 'down': 'falling', 'stable': 'stable'}.get(snap.trend_direction)
+                return {'market_trend': trend, 'market_direction': _TREND_TEXT.get(trend)} if trend else none
+    except Exception:
+        return none
+    return none
+
+
+def _market_context(prices_ppm2: list, all_prices: list, estimated_price: float, size_m2: float) -> dict:
     if not prices_ppm2:
         return _empty_context()
     avg_ppm2 = sum(prices_ppm2) / len(prices_ppm2)
-    pos = 'above_market' if estimated_price / max(avg_ppm2, 1) > 1.10 else \
-          'below_market' if estimated_price / max(avg_ppm2, 1) < 0.90 else 'at_market'
+    # compare like with like: the estimate's price per m2 against the comparables' average
+    ratio = (estimated_price / max(size_m2, 1)) / max(avg_ppm2, 1)
+    pos = 'above_market' if ratio > 1.10 else 'below_market' if ratio < 0.90 else 'at_market'
     clean = [p for p in all_prices if p > 0]
     return {
         'avg_price_per_m2': round(avg_ppm2),
         'comparable_count': len(prices_ppm2),
         'price_range':      {'min': round(min(clean)) if clean else None, 'max': round(max(clean)) if clean else None},
-        'market_trend':     'stable',
         'price_position':   pos,
-        'market_direction': 'Stable market with moderate listing activity.',
     }
 
 
@@ -167,6 +199,5 @@ def _empty_context() -> dict:
     return {
         'avg_price_per_m2': None, 'comparable_count': 0,
         'price_range':      {'min': None, 'max': None},
-        'market_trend':     'unknown', 'price_position': 'unknown',
-        'market_direction': 'Insufficient data to assess market direction.',
+        'price_position':   'unknown',
     }

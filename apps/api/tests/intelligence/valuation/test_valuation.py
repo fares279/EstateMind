@@ -255,3 +255,33 @@ class ValuationGovernanceTests(SimpleTestCase):
 
         self.assertTrue(result)
         self.assertIn('description', result[0])
+
+
+class MarketPositionTests(SimpleTestCase):
+    def test_position_compares_price_per_m2(self):
+        from estatemind.intelligence.valuation.services.comparables import _market_context
+
+        # 100 m2 at 300,000 TND is 3,000 TND/m2, in line with comparables at 3,000/m2
+        ctx = _market_context([2900, 3000, 3100], [290000, 300000, 310000], 300000, 100)
+        self.assertEqual(ctx["price_position"], "at_market")
+        self.assertEqual(_market_context([3000], [300000], 400000, 100)["price_position"], "above_market")
+        self.assertEqual(_market_context([3000], [300000], 200000, 100)["price_position"], "below_market")
+
+
+class MarketTrendTextTests(SimpleTestCase):
+    def _text(self, market):
+        from estatemind.intelligence.valuation.services import explanation
+
+        return explanation.build(
+            {"property_type": "apartment", "city": "Ariana Ville", "governorate": "Ariana", "size_m2": 100},
+            {"estimated_price": 300000, "price_per_m2": 3000}, {"confidence_level": "Medium"},
+            [], market, {}, {"features_impact": []},
+        )
+
+    def test_no_trend_claim_without_forecast(self):
+        for trend in (None, "unknown"):
+            self.assertNotIn("stable", self._text({"market_trend": trend}))
+
+    def test_forecast_trend_is_described(self):
+        self.assertIn("rise", self._text({"market_trend": "rising"}))
+        self.assertIn("stable", self._text({"market_trend": "stable"}))
