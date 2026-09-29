@@ -26,9 +26,19 @@ class ServedStabilityTests(SimpleTestCase):
         self.assertEqual(report['status'], 'pass')
         self.assertEqual(report['reference_ranking'], ['surface_m2', 'city', 'bedrooms'])
 
-    def test_ranking_that_flips_with_small_size_changes_fails(self):
+    def test_top_three_reordering_among_themselves_is_stable(self):
         # the top two swap whenever the surface is above 120 m2: about half the perturbations
-        bundle = _Bundle(lambda m: {'surface_m2': 0.3 if m['surface_m2'] > 120 else 0.1, 'city': 0.2, 'rooms': 0.01})
+        bundle = _Bundle(lambda m: {'surface_m2': 0.3 if m['surface_m2'] > 120 else 0.1, 'city': 0.2,
+                                    'rooms': 0.05, 'bathrooms': 0.01})
+        report = SHAPStabilityTester().run_served_stability_test(bundle, BASE, 'appartement')
+        self.assertEqual(report['status'], 'pass')
+        self.assertLess(report['exact_order_rate'], 0.75)
+
+    def test_different_feature_entering_the_top_three_fails(self):
+        # above 120 m2 'bathrooms' replaces 'rooms' in the top three: about half the perturbations
+        bundle = _Bundle(lambda m: {'surface_m2': 0.5, 'city': 0.2,
+                                    'rooms': 0.1 if m['surface_m2'] <= 120 else 0.01,
+                                    'bathrooms': 0.15 if m['surface_m2'] > 120 else 0.02})
         report = SHAPStabilityTester().run_served_stability_test(bundle, BASE, 'appartement')
         self.assertEqual(report['status'], 'fail')
 
