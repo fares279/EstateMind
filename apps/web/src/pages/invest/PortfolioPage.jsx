@@ -7,6 +7,7 @@ import {
   getPortfolioAssets, addPortfolioAsset, deletePortfolioAsset,
   scorePortfolio, scorePortfolioAsset, getForecastDelegationList,
 } from '../../services/api';
+import { changeColor, signedPct } from '../../utils/format';
 
 /* ── Design tokens ─────────────────────────────────────────── */
 const CARD  = 'rounded-2xl border border-white/10 bg-white/5';
@@ -368,6 +369,12 @@ function AssetRow({ asset: a, score: s, onDelete, onScore, scoring }) {
                 <p className="font-bold text-blue-400">
                   {s.irr?.irr_pct != null ? `${s.irr.irr_pct}%` : 'Not enough data'}
                 </p>
+                {s.irr?.irr_low_pct != null && s.irr.irr_low_pct !== s.irr.irr_high_pct && (
+                  <p className="text-[11px] text-gray-500">
+                    {s.irr.irr_low_pct}% to {s.irr.irr_high_pct}% over {s.irr.holding_years} years,
+                    if the 12-month forecast rate held each year
+                  </p>
+                )}
               </div>
               {/* Risk */}
               <div>
@@ -380,14 +387,18 @@ function AssetRow({ asset: a, score: s, onDelete, onScore, scoring }) {
               {s.forecast && (
                 <div>
                   <p className="text-gray-500 mb-1 uppercase tracking-wider">6-Month Outlook</p>
-                  <p className="font-bold text-green-400">+{s.forecast.forecast_6m_pct}%</p>
+                  <p className="font-bold" style={{ color: changeColor(s.forecast.forecast_6m_pct) }}>
+                    {signedPct(s.forecast.forecast_6m_pct) || 'No forecast'}
+                  </p>
                 </div>
               )}
               {/* 12m forecast */}
               {s.forecast && (
                 <div>
                   <p className="text-gray-500 mb-1 uppercase tracking-wider">12-Month Outlook</p>
-                  <p className="font-bold text-green-400">+{s.forecast.forecast_12m_pct}%</p>
+                  <p className="font-bold" style={{ color: changeColor(s.forecast.forecast_12m_pct) }}>
+                    {signedPct(s.forecast.forecast_12m_pct) || 'No forecast'}
+                  </p>
                 </div>
               )}
               {/* Net yield */}
@@ -518,22 +529,23 @@ export default function PortfolioPage() {
             },
             {
               label: 'Total Return',
-              value: `${summary.total_return_pct > 0 ? '+' : ''}${summary.total_return_pct}%`,
-              color: summary.total_return_pct >= 0 ? '#22c55e' : '#ef4444',
+              value: signedPct(summary.total_return_pct, 2) || 'Not enough data',
+              color: changeColor(summary.total_return_pct),
             },
             {
               label: 'Avg Annual Yield',
-              value: `${summary.avg_gross_yield_pct}%`,
+              value: summary.avg_gross_yield_pct != null ? `${summary.avg_gross_yield_pct}%` : 'No rent data',
               color: ORANGE,
             },
             {
               label: 'Avg IRR',
-              value: `${summary.avg_irr_pct}%`,
+              value: summary.avg_irr_pct != null ? `${summary.avg_irr_pct}%` : 'Not enough data',
               color: '#3b82f6',
             },
             {
               label: 'Risk Profile',
-              value: summary.avg_risk_score < 35 ? 'Low'
+              value: summary.avg_risk_score == null ? 'Not scored'
+                   : summary.avg_risk_score < 35 ? 'Low'
                    : summary.avg_risk_score < 65 ? 'Moderate' : 'Elevated',
               color: summary.avg_risk_score < 35 ? '#22c55e'
                    : summary.avg_risk_score < 65 ? '#f59e0b' : '#ef4444',

@@ -99,90 +99,24 @@ class ScannerChain:
         return result
 
     def _get_appreciation_rate(self, delegation: str, property_type: str) -> dict:
-        """
-        Pulls 12-month price appreciation rate from Module 6 forecast.
-        Returns rate and source label for transparency in IRR output.
-        """
-        try:
-            # Correct import path based on Module 6 implementation
-            from estatemind.intelligence.forecast.services.forecast_service import get_delegation_forecast
-            
-            forecast = get_delegation_forecast(
-                delegation_name=delegation,
-                property_type=property_type
-            )
-            
-            # Check if forecast data exists
-            if forecast is None:
-                raise ValueError('No forecast data available for this delegation')
-            
-            # Pull 12-month projected change from forecast summary
-            summary = forecast.get('summary', {})
-            # the forecast summary key is growth_pct_12m; 'price_change_pct' never existed,
-            # so every IRR used the fallback growth rate
-            change_pct = summary.get('growth_pct_12m')
-            
-            if change_pct is not None:
-                return {
-                    'rate': float(change_pct) / 100.0,
-                    'source': 'module6_forecast',
-                    'delegation': delegation,
-                    'property_type': property_type,
-                    'confidence': summary.get('confidence', 'unknown')
-                }
-            else:
-                raise ValueError('price_change_pct missing from forecast summary')
-                
-        except ImportError as e:
-            # Log the specific import error so it is visible, not silent
-            logger.warning(
-                f'Module 6 forecast import failed for {delegation}/{property_type}: {e}. '
-                f'Using delegation snapshot trend fallback.'
-            )
-            return self._national_average_fallback(delegation)
-            
-        except Exception as e:
-            logger.warning(
-                f'Module 6 forecast unavailable for {delegation}/{property_type}: {e}. '
-                f'Using delegation snapshot trend fallback.'
-            )
-            return self._national_average_fallback(delegation)
+        """12-month growth from the price forecast (zone_data.forecast_outlook), with the
+        forecast band's low and high ends for the IRR scenarios. Without a forecast the
+        rate is None and the IRR says so. (The fallbacks read a snapshot field that
+        doesn't exist and then used a fixed 5% 'national average'.)"""
+        from .zone_data import forecast_outlook
 
-    def _national_average_fallback(self, delegation: str) -> dict:
-        """
-        Fallback when Module 6 is unavailable.
-        Uses delegation market snapshot trend instead of hardcoded value.
-        """
-        try:
-            from estatemind.market.core.models import DelegationMarketSnapshot, Delegation
-            
-            delegation_obj = Delegation.objects.filter(
-                name__icontains=delegation
-            ).first()
-            
-            if delegation_obj:
-                # Use most recent snapshot trend as proxy
-                snapshot = DelegationMarketSnapshot.objects.filter(
-                    delegation=delegation_obj
-                ).order_by('-as_of_date').first()
-                
-                if snapshot and hasattr(snapshot, 'price_trend_pct'):
-                    return {
-                        'rate': float(snapshot.price_trend_pct) / 100.0,
-                        'source': 'delegation_snapshot_trend',
-                        'delegation': delegation,
-                        'confidence': 'low'
-                    }
-        except Exception:
-            pass
-        
-        # Last resort: Tunisia historical average (~5% nominal)
+        outlook = forecast_outlook(delegation, property_type)
+        if not outlook['available']:
+            return {'rate': None, 'low': None, 'high': None, 'source': 'none', 'delegation': delegation,
+                    'confidence': 'none'}
         return {
-            'rate': 0.05,
-            'source': 'national_historical_average',
+            'rate': outlook['growth_12m_pct'] / 100.0,
+            'low': outlook['low_12m_pct'] / 100.0,
+            'high': outlook['high_12m_pct'] / 100.0,
+            'source': outlook['source'],
             'delegation': delegation,
-            'confidence': 'very_low',
-            'note': 'Using 5% national average. Module 6 forecast unavailable.'
+            'property_type': property_type,
+            'confidence': 'unmeasured',
         }
 
     def run(self, property_data: Dict[str, Any], market_data: Dict[str, Any],
@@ -250,14 +184,18 @@ class ScannerChain:
                 property_data.get('property_type', 'apartment')
             )
 
+            pct = lambda v: v * 100 if v is not None else None  # noqa: E731
             irr_result = self.m6.score(
                 purchase_price_tnd=property_data.get('asking_price_tnd'),
                 annual_rent_tnd=yield_result['estimated_monthly_rent'] * 12,
-                annual_appreciation_pct=appreciation['rate'] * 100,
+                annual_appreciation_pct=pct(appreciation['rate']),
+                annual_appreciation_low_pct=pct(appreciation.get('low')),
+                annual_appreciation_high_pct=pct(appreciation.get('high')),
                 holding_years=property_data.get('holding_years', 10),
             )
             # Add appreciation source to result for transparency
-            irr_result['appreciation_rate_used'] = round(appreciation['rate'] * 100, 2)
+            irr_result['appreciation_rate_used'] = (round(appreciation['rate'] * 100, 2)
+                                                    if appreciation['rate'] is not None else None)
             irr_result['appreciation_source'] = appreciation['source']
             irr_result['appreciation_confidence'] = appreciation.get('confidence', 'unknown')
 
@@ -373,7 +311,7 @@ class PortfolioChain:
             total_value = sum(a.get('current_value_tnd', a.get('acquisition_price_tnd', 0))
                             for a in portfolio_assets)
 
-            yields = []
+            yields, gross_yields = [], []
             irrs = []
             irrs_low, irrs_high = [], []
             irr_details = []
@@ -396,20 +334,26 @@ class PortfolioChain:
                     is_self_managed=asset.get('is_self_managed', False),
                 )
 
-                # Per-asset IRR
+                # Per-asset IRR: growth and its band from the price forecast
                 irr_result = self.m6.score(
                     purchase_price_tnd=asset.get('acquisition_price_tnd'),
                     annual_rent_tnd=asset.get('monthly_rent_tnd', 0) * 12,
-                    annual_appreciation_pct=market.get('delegation_price_momentum_12m', 0) * 100,
+                    annual_appreciation_pct=market.get('growth_12m_pct'),
+                    annual_appreciation_low_pct=market.get('growth_12m_low_pct'),
+                    annual_appreciation_high_pct=market.get('growth_12m_high_pct'),
                     holding_years=10,
                 )
 
+                gross_yields.append(yield_result['gross_yield_pct'])
                 yields.append(yield_result['net_yield_pct'])
                 irrs.append(irr_result['irr_base_pct'])
                 irr_details.append(irr_result)
                 irrs_low.append(irr_result.get('irr_pessimistic_pct', irr_result['irr_base_pct']))
                 irrs_high.append(irr_result.get('irr_optimistic_pct', irr_result['irr_base_pct']))
-                grades.append('B')  # placeholder
+                # the same rule-based grade as the portfolio page (was a fixed 'B' placeholder,
+                # which also fed the portfolio risk score)
+                from .scorer import score_asset
+                grades.append(score_asset(asset)['grade'])
                 delegations.append(delegation)
 
                 asset_analyses.append({
@@ -424,8 +368,9 @@ class PortfolioChain:
             weights = [a.get('current_value_tnd', a.get('acquisition_price_tnd', 0)) / total_value
                       for a in portfolio_assets]
 
-            blended_gross_yield = sum(y * w for y, w in zip(yields, weights))  # Simplified
-            blended_net_yield = blended_gross_yield * 0.75  # Rough approximation
+            # (net yields used to be averaged as 'gross' and then cut by 25% again)
+            blended_gross_yield = sum(y * w for y, w in zip(gross_yields, weights))
+            blended_net_yield = sum(y * w for y, w in zip(yields, weights))
             blended_irr = sum(i * w for i, w in zip(irrs, weights))
             blended_irr_low = sum(i * w for i, w in zip(irrs_low, weights))
             blended_irr_high = sum(i * w for i, w in zip(irrs_high, weights))
@@ -451,10 +396,8 @@ class PortfolioChain:
                     'blended_irr_pct': round(blended_irr, 2),
                     'irr_pessimistic_pct': round(blended_irr_low, 2),
                     'irr_optimistic_pct': round(blended_irr_high, 2),
-                    # portfolio IRRs use delegation price momentum, currently a 0.0 placeholder
                     'irr_scenarios_identical': all(a.get('scenarios_identical') for a in irr_details),
-                    'irr_scenario_note': (IRR_NO_GROWTH_NOTE if all(a.get('scenarios_identical') for a in irr_details)
-                                          else IRR_SCENARIO_NOTE),
+                    'irr_scenario_notes': sorted({a.get('scenario_note') for a in irr_details if a.get('scenario_note')}),
                 },
                 'risk': {
                     'risk_score': risk_result['risk_score'],

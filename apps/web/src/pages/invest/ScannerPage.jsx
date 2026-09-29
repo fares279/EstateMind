@@ -4,6 +4,7 @@ import {
   Building2, Home, Store, Trees, ScanSearch, Clock,
 } from 'lucide-react';
 import { scanListing, getScanHistory, getForecastDelegationList } from '../../services/api';
+import { changeColor, signedPct } from '../../utils/format';
 
 /* ── Design tokens ─────────────────────────────────────────── */
 const CARD   = 'rounded-2xl border border-white/10 bg-white/5';
@@ -202,42 +203,48 @@ function Result({ result }) {
           <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-4">
             Price Outlook
           </p>
-          <Row label="Market Direction"
-            value={
-              <span className={`flex items-center gap-1
-                ${f.direction === 'UP' ? 'text-green-400' : 'text-red-400'}`}>
-                {f.direction === 'UP'
-                  ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-                {f.direction}
-              </span>
-            } />
-          <Row label="Next 6 Months"
-            value={`+${f.forecast_6m_pct}%`}
-            valueColor="#22c55e" />
-          <Row label="Next 12 Months"
-            value={`+${f.forecast_12m_pct}%`}
-            valueColor="#22c55e" />
-          <Row label="Forecast Confidence"
-            value={`${((f.reliability || 0) * 100).toFixed(0)}%`} />
+          {f.available ? (
+            <>
+              <Row label="Market Direction"
+                value={
+                  <span className="flex items-center gap-1" style={{ color: changeColor(f.forecast_12m_pct) }}>
+                    {f.direction === 'UP' ? <TrendingUp size={12} />
+                      : f.direction === 'DOWN' ? <TrendingDown size={12} /> : null}
+                    {{ UP: 'Rising', DOWN: 'Falling', FLAT: 'Flat' }[f.direction] || 'Flat'}
+                  </span>
+                } />
+              <Row label="Next 6 Months"
+                value={signedPct(f.forecast_6m_pct) || 'No forecast'}
+                valueColor={changeColor(f.forecast_6m_pct)} />
+              <Row label="Next 12 Months"
+                value={signedPct(f.forecast_12m_pct) || 'No forecast'}
+                valueColor={changeColor(f.forecast_12m_pct)} />
+              {f.low_12m_pct != null && f.low_12m_pct !== f.high_12m_pct && (
+                <Row label="12-Month Range"
+                  value={`${signedPct(f.low_12m_pct)} to ${signedPct(f.high_12m_pct)}`} />
+              )}
+              <p className="mt-3 text-[11px] text-gray-500">
+                Extrapolated from EstateMind's price data; its accuracy has not been measured.
+              </p>
+            </>
+          ) : (
+            <p className="text-sm text-gray-400">There is no price forecast for this area yet.</p>
+          )}
         </div>
 
         {/* Area */}
         <div className={`${CARD} p-5`}>
           <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-4">
-            Area Dynamics
+            Listings in This Area
           </p>
-          <Row label="Buyer Demand"
-            value={`${z.demand_intensity || 0}/100`} />
-          <Row label="Market Balance"
-            value={
-              z.supply_demand_ratio < 1     ? 'High Demand'
-              : z.supply_demand_ratio < 1.3 ? 'Balanced'
-              : 'Oversupply'
-            } />
-          <Row label="Vacancy Rate"
-            value={`${z.vacancy_rate_pct || 0}%`} />
-          <Row label="Avg Time to Sell"
-            value={`${Math.round(z.median_dom || 0)} days`} />
+          <Row label="For sale"
+            value={`${z.sale_listing_count ?? 0} listings`} />
+          <Row label="For rent"
+            value={`${z.rent_listing_count ?? 0} listings`} />
+          <Row label="Median asking price / m²"
+            value={z.median_sale_price_per_m2 != null
+              ? `${Math.round(z.median_sale_price_per_m2).toLocaleString()} TND` : 'Not enough listings'} />
+          <p className="mt-3 text-[11px] text-gray-500">Real listings only; sample listings are excluded.</p>
         </div>
       </div>
     </div>

@@ -105,17 +105,87 @@ def get_zone_stats(delegation: str, property_type: str) -> dict:
     return defaults
 
 
+def forecast_outlook(delegation: str, property_type: str) -> dict:
+    """12-month price outlook for a delegation, from the forecast module (the same
+    forecast the forecast pages, the chatbot and valuations use).
+
+    growth_*_pct are within the forecast series (first month to month 6 / 12);
+    low/high_12m_pct come from the forecast's 12th-month interval, which is an
+    unmeasured illustrative band (no price history exists to calibrate it).
+    Without a forecast, available is False and the figures are None: no growth is
+    invented. (The investor pages used to read a static CSV and fall back to
+    +3.5% / +6.0% 'UP'.)"""
+    none = {'available': False, 'source': None, 'growth_6m_pct': None, 'growth_12m_pct': None,
+            'low_12m_pct': None, 'high_12m_pct': None, 'direction': None}
+    if not delegation:
+        return none
+    try:
+        from estatemind.intelligence.forecast.services.forecast_service import get_delegation_forecast
+
+        ptype = _PTYPE_NORM.get(str(property_type).lower(), 'Apartment').lower()
+        ptype = 'house' if ptype == 'house' else 'land' if ptype == 'land' else 'apartment'
+        forecast = get_delegation_forecast(delegation_name=delegation, property_type=ptype)
+    except Exception as e:  # no forecast tables yet, bad name...
+        logger.info('No forecast for %s/%s: %s', delegation, property_type, e)
+        forecast = None
+    summary = (forecast or {}).get('summary') or {}
+    g12 = summary.get('growth_pct_12m')
+    if g12 is None:
+        return none
+    current = summary.get('current_price_per_m2') or 0
+    last = ((forecast or {}).get('months') or [{}])[-1]
+    low = high = g12
+    if current and last.get('lower') and last.get('upper'):
+        low = round((last['lower'] / current - 1) * 100, 2)
+        high = round((last['upper'] / current - 1) * 100, 2)
+    return {
+        'available': True, 'source': 'forecast_module',
+        'growth_6m_pct': summary.get('growth_pct_6m'), 'growth_12m_pct': g12,
+        'low_12m_pct': min(low, g12), 'high_12m_pct': max(high, g12),
+        'direction': 'UP' if g12 > 0.5 else 'DOWN' if g12 < -0.5 else 'FLAT',
+    }
+
+
+def real_zone_stats(delegation: str, property_type: str) -> dict:
+    """What the listings actually show for a delegation: counts of real (not
+    sample) sale and rent listings of the type, and their median sale price per
+    m2. (The zone stats CSV holds one constant value per column for every
+    delegation: demand 60, vacancy 7%, 45 days on market...)"""
+    from statistics import median
+
+    from estatemind.market.core.models import SYNTHETIC_SOURCE, Property
+
+    ptype = _PTYPE_NORM.get(str(property_type).lower(), 'Apartment').lower()
+    ptype = 'house' if ptype == 'house' else 'land' if ptype == 'land' else 'apartment'
+    rows = (Property.objects.filter(is_active=True, property_type=ptype, delegation__name__iexact=delegation,
+                                    price__gt=0, area_sqm__gt=0)
+            .exclude(source=SYNTHETIC_SOURCE).values_list('transaction_type', 'price', 'area_sqm'))
+    sale = [p / a for t, p, a in rows if t == 'sale']
+    return {
+        'sale_listing_count': len(sale),
+        'rent_listing_count': sum(1 for t, _, _ in rows if t == 'rent'),
+        'median_sale_price_per_m2': round(median(sale)) if sale else None,
+    }
+
+
 def get_zone_forecast(delegation: str, property_type: str) -> dict:
-    """Return forecast features for a delegation + property_type."""
+    """Forecast features for a delegation + property_type: the forecast module
+    first (forecast_outlook), then the benchmark trend CSV, else neutral (0%,
+    FLAT) with forecast_available False. Models take numbers, so a missing
+    forecast is 0 growth here; display code must use forecast_available."""
     ptype_norm = _PTYPE_NORM.get(property_type.lower(), 'Apartment').lower()
     deleg_key  = delegation.lower().strip()
 
     defaults = {
-        'forecast_3m_pct':          2.0,
-        'forecast_6m_pct':          3.5,
-        'forecast_12m_pct':         6.0,
-        'forecast_direction':       'UP',
-        'forecast_direction_code':  1.0,
+        'forecast_available':       False,
+        'forecast_source':          None,
+        'forecast_3m_pct':          0.0,
+        'forecast_6m_pct':          0.0,
+        'forecast_12m_pct':         0.0,
+        'forecast_12m_low_pct':     None,
+        'forecast_12m_high_pct':    None,
+        'forecast_direction':       'FLAT',
+        'forecast_direction_code':  0.0,
         'forecast_confidence':      'medium',
         'forecast_confidence_code': 1.0,
         'trend_volatility_score':   25.0,
@@ -145,7 +215,23 @@ def get_zone_forecast(delegation: str, property_type: str) -> dict:
                 defaults['forecast_confidence_code'] = 2.0 if c == 'high' else (1.0 if c == 'medium' else 0.0)
             defaults['forecast_reliability_score'] = defaults['forecast_reliability'] * 100
             defaults['forecast_momentum'] = defaults['forecast_6m_pct'] / max(abs(defaults['forecast_3m_pct']), 0.01)
+            defaults['forecast_available'] = True
+            defaults['forecast_source'] = 'benchmark_trend'
 
+    outlook = forecast_outlook(delegation, property_type)
+    if outlook['available']:
+        g6, g12 = outlook['growth_6m_pct'] or 0.0, outlook['growth_12m_pct']
+        defaults.update({
+            'forecast_available': True, 'forecast_source': outlook['source'],
+            'forecast_3m_pct': g6 / 2, 'forecast_6m_pct': g6, 'forecast_12m_pct': g12,
+            'forecast_12m_low_pct': outlook['low_12m_pct'], 'forecast_12m_high_pct': outlook['high_12m_pct'],
+            'forecast_direction': outlook['direction'],
+            'forecast_direction_code': {'UP': 1.0, 'DOWN': -1.0}.get(outlook['direction'], 0.0),
+            'forecast_momentum': g6 / max(abs(g6 / 2), 0.01),
+        })
+    elif defaults['forecast_available']:
+        base = defaults['forecast_12m_pct']
+        defaults['forecast_12m_low_pct'] = defaults['forecast_12m_high_pct'] = base
     return defaults
 
 

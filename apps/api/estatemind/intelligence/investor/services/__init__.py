@@ -458,11 +458,13 @@ class InvestmentGraderService(BaseScorerService):
 # Model 6: IRR Calculator
 # ════════════════════════════════════════════════════════════════════════════════
 
-IRR_SCENARIO_NOTE = ('Pessimistic assumes 0% price growth, base the estimated growth rate, '
-                     'optimistic 1.5x that rate.')
-IRR_NO_GROWTH_NOTE = ('Base, pessimistic and optimistic IRR are identical because no price-growth '
-                      'estimate is available (growth is a 0% placeholder), not because the '
-                      'scenarios agree.')
+IRR_SCENARIO_NOTE = ('Base uses the central 12-month price forecast; pessimistic and optimistic use '
+                     "the low and high end of the forecast's band. The band is illustrative: the "
+                     "forecast's accuracy has not been measured.")
+IRR_NO_BAND_NOTE = ('Base, pessimistic and optimistic IRR are identical because the forecast for this '
+                    'place has no band, not because the scenarios agree.')
+IRR_NO_GROWTH_NOTE = ('No price forecast is available for this place, so the IRR assumes 0% price '
+                      'growth and the three scenarios are identical.')
 
 
 class IRRCalculatorService(BaseScorerService):
@@ -479,15 +481,19 @@ class IRRCalculatorService(BaseScorerService):
     """
 
     def score(self, purchase_price_tnd: float, annual_rent_tnd: float,
-              annual_appreciation_pct: float, holding_years: int = 10,
+              annual_appreciation_pct: float | None, holding_years: int = 10,
               down_payment_pct: float = 0.30, loan_interest_rate: float = 0.08,
+              annual_appreciation_low_pct: float | None = None,
+              annual_appreciation_high_pct: float | None = None,
               **kwargs) -> Dict[str, Any]:
         """
         Compute IRR (base case, pessimistic, optimistic).
-        
-        Pessimistic: appreciation = 0%
-        Base: appreciation = provided
-        Optimistic: appreciation = provided × 1.5
+
+        Base: the forecast growth. Pessimistic / optimistic: the low and high end of
+        the forecast's 12-month band. (They used to be 0% and 1.5x the base, so with a
+        falling forecast the 'optimistic' case was the worst.) Without a band the
+        three coincide, and without any growth estimate growth is 0%; both are said
+        in scenario_note.
         """
         try:
             # Cash flow calculation
@@ -527,25 +533,32 @@ class IRRCalculatorService(BaseScorerService):
                 irr = self._compute_irr_newton(cash_flows)
                 return irr
 
-            irr_base = compute_irr_for_appreciation(annual_appreciation_pct / 100)
-            irr_pessimistic = compute_irr_for_appreciation(0.0)
-            irr_optimistic = compute_irr_for_appreciation(annual_appreciation_pct * 1.5 / 100)
+            has_growth = annual_appreciation_pct is not None
+            base = annual_appreciation_pct if has_growth else 0.0
+            low = annual_appreciation_low_pct if annual_appreciation_low_pct is not None else base
+            high = annual_appreciation_high_pct if annual_appreciation_high_pct is not None else base
+            low, high = min(low, base), max(high, base)
+            irr_base = compute_irr_for_appreciation(base / 100)
+            irr_pessimistic = compute_irr_for_appreciation(low / 100)
+            irr_optimistic = compute_irr_for_appreciation(high / 100)
 
-            # Pessimistic is always 0% growth, so with no growth estimate the three
-            # scenarios collapse into one number; say so rather than look broken.
-            scenarios_identical = not annual_appreciation_pct
+            scenarios_identical = low == base == high
+            note = (IRR_NO_GROWTH_NOTE if not has_growth
+                    else IRR_NO_BAND_NOTE if scenarios_identical else IRR_SCENARIO_NOTE)
             return {
                 'irr_base_pct': round(irr_base * 100, 2),
                 'irr_pessimistic_pct': round(irr_pessimistic * 100, 2),
                 'irr_optimistic_pct': round(irr_optimistic * 100, 2),
                 'scenarios_identical': scenarios_identical,
-                'scenario_note': IRR_NO_GROWTH_NOTE if scenarios_identical else IRR_SCENARIO_NOTE,
+                'scenario_note': note,
                 'holding_years': holding_years,
                 'confidence': 'medium',
                 'drivers': {
                     'purchase_price': purchase_price_tnd,
                     'annual_rent': annual_rent_tnd,
-                    'annual_appreciation': annual_appreciation_pct,
+                    'annual_appreciation': base,
+                    'annual_appreciation_low': low,
+                    'annual_appreciation_high': high,
                     'down_payment_pct': down_payment_pct * 100,
                     'loan_interest_rate': loan_interest_rate * 100,
                 },
@@ -564,7 +577,10 @@ class IRRCalculatorService(BaseScorerService):
     @staticmethod
     def _compute_irr_newton(cash_flows: List[float], tolerance: float = 1e-6, max_iter: int = 100) -> float:
         """
-        Compute IRR using Newton-Raphson method.
+        IRR by Newton-Raphson, falling back to bisection on (-99%, +100%) when Newton
+        leaves that range or does not converge. (Newton alone diverged on leveraged
+        cash flows with falling prices, overflowed, and the error handler reported
+        0% for every scenario.)
         """
         def npv(rate, flows):
             return sum(cf / (1 + rate) ** i for i, cf in enumerate(flows))
@@ -573,16 +589,36 @@ class IRRCalculatorService(BaseScorerService):
             return sum(-i * cf / (1 + rate) ** (i + 1) for i, cf in enumerate(flows))
 
         rate = 0.1  # initial guess
-        for _ in range(max_iter):
-            npv_val = npv(rate, cash_flows)
-            if abs(npv_val) < tolerance:
-                break
-            npv_deriv = npv_derivative(rate, cash_flows)
-            if npv_deriv == 0:
-                break
-            rate -= npv_val / npv_deriv
+        try:
+            for _ in range(max_iter):
+                npv_val = npv(rate, cash_flows)
+                if abs(npv_val) < tolerance:
+                    return rate
+                npv_deriv = npv_derivative(rate, cash_flows)
+                if npv_deriv == 0:
+                    break
+                rate -= npv_val / npv_deriv
+                if not -0.99 < rate < 1.0:
+                    break
+        except (OverflowError, ZeroDivisionError):
+            pass
 
-        return rate
+        lo, hi = -0.99, 1.0
+        f_lo, f_hi = npv(lo, cash_flows), npv(hi, cash_flows)
+        if f_lo * f_hi > 0:  # no sign change: the return lies outside the range
+            # negative at both ends: the cash flows never pay back (e.g. the sale does
+            # not repay the loan), so the investment is a near-total loss
+            return lo if f_lo < 0 else hi
+        for _ in range(200):
+            mid = (lo + hi) / 2
+            f_mid = npv(mid, cash_flows)
+            if abs(f_mid) < tolerance or hi - lo < 1e-9:
+                return mid
+            if f_lo * f_mid < 0:
+                hi = mid
+            else:
+                lo, f_lo = mid, f_mid
+        return (lo + hi) / 2
 
 
 # ════════════════════════════════════════════════════════════════════════════════

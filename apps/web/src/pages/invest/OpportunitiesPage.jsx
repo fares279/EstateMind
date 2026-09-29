@@ -5,6 +5,7 @@ import {
 } from 'recharts';
 import { MapPin, TrendingUp, ChevronUp, ChevronDown } from 'lucide-react';
 import { getInvestorOpportunities } from '../../services/api';
+import { changeColor, signedPct } from '../../utils/format';
 
 /* ── Design tokens ─────────────────────────────────────────── */
 const CARD   = 'rounded-2xl border border-white/10 bg-white/5';
@@ -248,7 +249,7 @@ export default function OpportunitiesPage() {
                     const gc     = GRADE_COLOR[d.investment_grade];
                     const gl     = GRADE_LABEL[d.investment_grade] || d.investment_grade;
                     const trend  = d.annual_trend_pct || 0;
-                    const fcst   = d.forecast_12m_pct || 0;
+                    const fcst   = d.forecast_12m_pct;
                     return (
                       <tr key={i} className="hover:bg-white/[0.02] transition-colors">
                         <td className="px-4 py-3.5 text-xs text-gray-600 tabular-nums">{i + 1}</td>
@@ -277,9 +278,8 @@ export default function OpportunitiesPage() {
                           {(d.gross_yield_pct || 0).toFixed(1)}%
                         </td>
                         <td className="px-4 py-3.5 text-right">
-                          <span className={`text-xs font-semibold
-                            ${fcst >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                            {fcst >= 0 ? '+' : ''}{fcst.toFixed(1)}%
+                          <span className="text-xs font-semibold" style={{ color: changeColor(fcst) }}>
+                            {signedPct(fcst) || 'No forecast'}
                           </span>
                         </td>
                         <td className="px-4 py-3.5 text-right">

@@ -92,32 +92,14 @@ def scan_property(request):
         property_type = property_data.get('property_type', 'apartment')
         
         if delegation:
-            # Load zone stats and forecast to enrich market_data
-            zone_stats = get_zone_stats(delegation, property_type)
-            zone_fcst = get_zone_forecast(delegation, property_type)
-            
-            # Populate missing market_data fields from zone data
-            if 'delegation_median_price_m2' not in market_data or market_data['delegation_median_price_m2'] == 0:
-                market_data['delegation_median_price_m2'] = zone_stats.get('median_price_per_m2_tnd', 2000)
-            
-            if 'delegation_median_monthly_rent' not in market_data or market_data['delegation_median_monthly_rent'] == 0:
-                # Estimate rent from price if not available (typical rental yield ~5-6% annually)
-                estimated_annual_rent = market_data.get('delegation_median_price_m2', zone_stats.get('median_price_per_m2_tnd', 2000)) * 0.055
-                market_data['delegation_median_monthly_rent'] = estimated_annual_rent / 12
-            
-            if 'delegation_price_momentum_12m' not in market_data or market_data['delegation_price_momentum_12m'] == 0:
-                market_data['delegation_price_momentum_12m'] = zone_fcst.get('forecast_12m_pct', 6.0) / 100
-            
-            if 'delegation_dom' not in market_data or market_data['delegation_dom'] == 0:
-                market_data['delegation_dom'] = zone_stats.get('median_days_on_market', 30)
-            
-            if 'climate_risk_score' not in market_data or market_data['climate_risk_score'] == 0:
-                market_data['climate_risk_score'] = 0.45  # Default to moderate
-            
-            if 'national_interest_rate' not in market_data or market_data['national_interest_rate'] == 0:
-                market_data['national_interest_rate'] = 8.0  # Default rate
-            
-            # Store zone data source in market_data for transparency
+            # Missing market fields come from real data (market_inputs); what had to be
+            # assumed is returned in assumed_inputs.
+            from .services.market_inputs import market_inputs
+            real = market_inputs(delegation, property_data.get('governorate', ''), property_type,
+                                 property_data.get('surface_m2', 0))
+            for key, value in real.items():
+                if not market_data.get(key):
+                    market_data[key] = value
             market_data['_zone_data_used'] = True
             market_data['_delegation'] = delegation
 
@@ -213,14 +195,16 @@ def portfolio_analysis(request):
             })
 
         # Build market data map
+        from .services.market_inputs import market_inputs
         market_data_map = {}
         for asset in assets:
             delegation = asset.delegation
             if delegation not in market_data_map:
-                market_data_map[delegation] = {
-                    'delegation_median_monthly_rent': _latest_median_rent(delegation),
-                    'delegation_price_momentum_12m': 0.0,
-                }
+                # growth and its band from the price forecast (was a 0.0 placeholder,
+                # so the three IRR scenarios were always identical)
+                market_data_map[delegation] = market_inputs(
+                    delegation, getattr(asset, 'governorate', '') or '', asset.property_type, asset.surface_m2)
+                market_data_map[delegation]['delegation_median_monthly_rent'] = _latest_median_rent(delegation)
 
         # Run portfolio chain
         portfolio_chain = PortfolioChain()

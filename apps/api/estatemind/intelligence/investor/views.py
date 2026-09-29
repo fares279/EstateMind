@@ -330,8 +330,9 @@ def investor_dashboard(request):
     portfolio_result = score_portfolio(asset_dicts) if asset_dicts else {
         'assets': [], 'summary': {
             'total_assets': 0, 'total_value_tnd': 0, 'total_cost_tnd': 0,
-            'total_gain_tnd': 0, 'total_return_pct': 0, 'avg_gross_yield_pct': 0,
-            'avg_irr_pct': 0, 'avg_risk_score': 50, 'grade_distribution': {},
+            # no assets: nothing to average (these were 0% and a risk score of 50)
+            'total_gain_tnd': 0, 'total_return_pct': None, 'avg_gross_yield_pct': None,
+            'avg_irr_pct': None, 'avg_risk_score': None, 'grade_distribution': {},
         },
     }
 

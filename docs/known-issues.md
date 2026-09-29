@@ -54,9 +54,13 @@ See [ml/valuation-training-data.md](ml/valuation-training-data.md):
 
 ## Investor
 
-- Scores come from fixed rules (labelled); the 7 designed models don't exist.
-- Base, pessimistic and optimistic IRR are identical in portfolio analysis, because growth is a
-  0% placeholder (labelled).
+- Scores come from fixed rules (labelled); the 7 designed models don't exist, and there is no
+  transaction or return history to train them on.
+- The forward IRR assumes the 12-month forecast growth continues for the 10-year holding period
+  (stated on the page). The forecast band it uses for the low and high cases is illustrative, not
+  measured.
+- `investor/data/zone_market_stats.csv` still feeds the (absent) models' features; its demand,
+  vacancy and days-on-market columns are one constant for every delegation and are no longer shown.
 
 ## Valuation serving
 

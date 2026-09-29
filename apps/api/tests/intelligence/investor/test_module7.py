@@ -114,6 +114,8 @@ class TestScoringModels(TestCase):
             purchase_price_tnd=350000,
             annual_rent_tnd=16800,
             annual_appreciation_pct=5.0,
+            annual_appreciation_low_pct=2.0,
+            annual_appreciation_high_pct=8.0,
             holding_years=10,
         )
 
