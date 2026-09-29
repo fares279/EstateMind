@@ -117,6 +117,11 @@ class Property(models.Model):
     posted_at = models.DateTimeField(null=True, blank=True)
     scraped_at = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
+    # Filled in by the scraper pipeline from benchmarks, not read from the listing.
+    # Price statistics leave out imputed prices (and prices per m2 on imputed areas).
+    price_imputed = models.BooleanField(default=False)
+    area_imputed = models.BooleanField(default=False)
+    rooms_imputed = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

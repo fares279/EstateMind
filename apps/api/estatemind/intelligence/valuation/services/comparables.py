@@ -82,7 +82,8 @@ def find(ref: dict, estimated_price: float, limit: int = 4) -> tuple[list, dict]
     qs = Property.objects.select_related('region', 'delegation').filter(
         is_active=True, price__isnull=False, price__gt=0,
         transaction_type=tx_type, property_type=ptype,
-    ).exclude(source=SYNTHETIC_SOURCE)  # evidence must be real listings, not benchmark samples
+    ).exclude(source=SYNTHETIC_SOURCE).exclude(  # evidence must be real listings, not benchmark samples
+        price_imputed=True).exclude(area_imputed=True)  # nor prices/areas the scraper filled in
     if gov_raw:
         qs = qs.filter(region__governorate__iexact=gov_raw)
 

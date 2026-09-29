@@ -351,8 +351,11 @@ def rebuild_market_snapshots(as_of_date: date | None = None) -> dict[str, int]:
 
         sale_properties = [p for p in properties if p.transaction_type == "sale"]
         rent_properties = [p for p in properties if p.transaction_type == "rent"]
-        # sale listings only: monthly rents per m2 (~6 TND) used to drag this median down
-        price_per_sqm_values = [p.price_per_sqm for p in sale_properties if p.price_per_sqm]
+        # sale listings only: monthly rents per m2 (~6 TND) used to drag this median down.
+        # Prices the scraper filled in from benchmarks are left out of price statistics.
+        priced_sale = [p for p in sale_properties if not p.price_imputed]
+        priced_rent = [p for p in rent_properties if not p.price_imputed]
+        price_per_sqm_values = [p.price_per_sqm for p in priced_sale if p.price_per_sqm and not p.area_imputed]
         days_on_market = [_days_on_market(p) for p in properties]
         days_on_market = [d for d in days_on_market if d is not None]
 
@@ -371,10 +374,10 @@ def rebuild_market_snapshots(as_of_date: date | None = None) -> dict[str, int]:
                 "synthetic_listing_count": sum(1 for p in properties if p.source == SYNTHETIC_SOURCE),
                 "sale_listing_count": len(sale_properties),
                 "rent_listing_count": len(rent_properties),
-                "median_sale_price": _safe_median([p.price for p in sale_properties]),
-                "median_rent_price": _safe_median([p.price for p in rent_properties]),
-                "avg_sale_price": _safe_average([p.price for p in sale_properties]),
-                "avg_rent_price": _safe_average([p.price for p in rent_properties]),
+                "median_sale_price": _safe_median([p.price for p in priced_sale]),
+                "median_rent_price": _safe_median([p.price for p in priced_rent]),
+                "avg_sale_price": _safe_average([p.price for p in priced_sale]),
+                "avg_rent_price": _safe_average([p.price for p in priced_rent]),
                 "median_price_per_sqm": _safe_median(price_per_sqm_values),
                 "price_per_sqm_distribution": _distribution(price_per_sqm_values),
                 "supply_pressure": round(supply_pressure, 4),
@@ -406,7 +409,8 @@ def rebuild_market_snapshots(as_of_date: date | None = None) -> dict[str, int]:
             if not segment_properties:
                 continue
 
-            segment_price_per_sqm = [p.price_per_sqm for p in segment_properties if p.price_per_sqm]
+            segment_price_per_sqm = [p.price_per_sqm for p in segment_properties
+                                     if p.price_per_sqm and not p.price_imputed and not p.area_imputed]
             segment_days_on_market = [_days_on_market(p) for p in segment_properties]
             segment_days_on_market = [d for d in segment_days_on_market if d is not None]
             segment_trend = _trend_for_region(

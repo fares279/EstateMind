@@ -833,15 +833,20 @@ class DataWrangler:
         if not title and price_tnd is None:
             return None
 
-        # Step 7 — imputation
+        # Step 7 — imputation, recorded in 'imputed' (it used to leave no trace)
+        imputed = []
         if price_tnd is None:
             price_tnd = _benchmark_price(property_type, tx_type, governorate)
+            imputed.append('price')
         if surface_m2 is None:
             surface_m2 = _BENCH_SURFACE.get(property_type, 90.0)
+            imputed.append('surface')
         if bedrooms is None and property_type in ('apartment', 'house'):
             bedrooms = max(1, rooms - 1) if rooms else _BENCH_BEDROOMS.get(property_type, 2)
+            imputed.append('bedrooms')
         if bathrooms is None and property_type in ('apartment', 'house'):
             bathrooms = max(1, (bedrooms or 2) // 2)
+            imputed.append('bathrooms')
 
         price_per_m2 = round(price_tnd / surface_m2, 2) if price_tnd and surface_m2 > 0 else None
         condition    = _infer_condition(_n(description))
@@ -877,4 +882,5 @@ class DataWrangler:
             'currency':         'TND',
             'image_url':        data.get('image_url') or None,
             'condition':        condition,
+            'imputed':          imputed,
         }

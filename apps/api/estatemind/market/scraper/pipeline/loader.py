@@ -100,8 +100,10 @@ class PropertyLoader:
             nd.get('city', ''), region, nd.get('delegation_hint', '')
         )
 
+        imputed = set(nd.get('imputed') or [])
         price = nd.get('price_tnd')
         if price is None or price == 0.0:
+            imputed.add('price')
             # Use benchmark rather than 0 so analytics and admin never show blank
             from estatemind.market.scraper.pipeline.wrangler import _benchmark_price, _BENCH_SURFACE
             gov = nd.get('governorate', '')
@@ -111,6 +113,7 @@ class PropertyLoader:
 
         surface = nd.get('surface_m2')
         if surface is None or surface == 0.0:
+            imputed.add('surface')
             from estatemind.market.scraper.pipeline.wrangler import _BENCH_SURFACE
             pt = PROPERTY_TYPE_MAP.get(nd.get('property_type', 'apartment'), 'apartment')
             surface = _BENCH_SURFACE.get(pt, 90.0)
@@ -141,6 +144,9 @@ class PropertyLoader:
             'currency':         'TND',
             'scraped_at':       datetime.now(tz=timezone.utc),
             'is_active':        True,
+            'price_imputed':    'price' in imputed,
+            'area_imputed':     'surface' in imputed,
+            'rooms_imputed':    bool(imputed & {'bedrooms', 'bathrooms'}),
         }
 
         prop, created = self._Property.objects.update_or_create(

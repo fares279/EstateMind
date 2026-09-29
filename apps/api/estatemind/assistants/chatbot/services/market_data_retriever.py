@@ -363,7 +363,7 @@ class MarketDataRetriever:
         groups: dict[int, dict] = {}
         rows = (Property.objects.filter(is_active=True, transaction_type='sale', property_type=property_type,
                                         delegation__isnull=False, price__gt=0, area_sqm__gt=0)
-                .exclude(source=SYNTHETIC_SOURCE)
+                .exclude(source=SYNTHETIC_SOURCE).exclude(price_imputed=True).exclude(area_imputed=True)
                 .values_list('delegation_id', 'delegation__name', 'delegation__region__governorate',
                              'price', 'area_sqm'))
         for delegation_id, name, governorate, price, area in rows:

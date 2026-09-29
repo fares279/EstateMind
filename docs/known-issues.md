@@ -32,10 +32,9 @@ See [ml/valuation-training-data.md](ml/valuation-training-data.md):
 
 ## Scraper
 
-- Prices in "MD" are not scaled. In classifieds "MD" usually means thousands of dinars, but it
-  is ambiguous. Such prices are then rejected as too low and replaced by a benchmark.
-- Missing prices, surfaces and bedroom counts are filled with benchmark values, and nothing marks
-  them as filled in.
+- "MD" is read as thousands of dinars ("350 MD" = 350,000), except a value under 10 with decimals
+  ("1,2 MD"), read as millions. The notation is ambiguous; listings that fit neither reading are
+  rejected as before.
 
 ## Climate (domain review needed; code unchanged)
 

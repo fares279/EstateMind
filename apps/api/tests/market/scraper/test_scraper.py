@@ -102,3 +102,41 @@ class ScraperHealthEndpointTests(TestCase):
         for url in ('/api/scraper/health/incidents/', '/api/scraper/health/scraper-agents/',
                     '/api/scraper/health/dashboard/', '/api/scraper/health/data-quality/'):
             self.assertEqual(client.get(url).status_code, 200, url)
+
+
+class PriceUnitTests(SimpleTestCase):
+    def test_md_means_thousands_of_dinars(self):
+        from estatemind.market.scraper.scrapers.base import _parse_price
+        self.assertEqual(_parse_price('350 MD'), 350_000.0)
+        self.assertEqual(_parse_price('1,2 MD'), 1_200_000.0)      # MD also means millions
+        self.assertEqual(_parse_price('1 200 000 MD'), 1_200_000.0)  # already in dinars
+        self.assertEqual(_parse_price('350 000 DT'), 350_000.0)
+        self.assertEqual(_parse_price('150 mille'), 150_000.0)
+
+    def test_md_price_survives_the_wrangler(self):
+        row = DataWrangler().wrangle({**SALE, 'listing_url': 'u9', 'title': 'Appartement S+2 à La Marsa',
+                                      'price': '350 MD', 'surface_area': '120 m2', 'property_type': 'apartment'})
+        self.assertEqual(row['price_tnd'], 350_000.0)
+        self.assertNotIn('price', row['imputed'])
+
+
+class ImputationFlagTests(TestCase):
+    def test_filled_in_values_are_marked_on_the_property(self):
+        from types import SimpleNamespace
+
+        from estatemind.market.scraper.pipeline.loader import PropertyLoader
+        row = DataWrangler().wrangle({**SALE, 'listing_url': 'u10', 'title': 'Appartement à La Marsa',
+                                      'property_type': 'apartment'})
+        self.assertEqual(set(row['imputed']), {'price', 'surface', 'bedrooms', 'bathrooms'})
+        prop, _ = PropertyLoader().load(SimpleNamespace(normalized_data=row, external_id='ext-10'))
+        self.assertTrue(prop.price_imputed and prop.area_imputed and prop.rooms_imputed)
+
+    def test_measured_values_are_not_marked(self):
+        from types import SimpleNamespace
+
+        from estatemind.market.scraper.pipeline.loader import PropertyLoader
+        row = DataWrangler().wrangle({**SALE, 'listing_url': 'u11', 'title': 'Appartement S+2 à La Marsa',
+                                      'price': '350 000 DT', 'surface_area': '120 m2', 'property_type': 'apartment',
+                                      'bedrooms': 2, 'bathrooms': 1})
+        prop, _ = PropertyLoader().load(SimpleNamespace(normalized_data=row, external_id='ext-11'))
+        self.assertFalse(prop.price_imputed or prop.area_imputed or prop.rooms_imputed)

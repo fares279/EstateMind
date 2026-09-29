@@ -159,7 +159,8 @@ def real_zone_stats(delegation: str, property_type: str) -> dict:
     ptype = 'house' if ptype == 'house' else 'land' if ptype == 'land' else 'apartment'
     rows = (Property.objects.filter(is_active=True, property_type=ptype, delegation__name__iexact=delegation,
                                     price__gt=0, area_sqm__gt=0)
-            .exclude(source=SYNTHETIC_SOURCE).values_list('transaction_type', 'price', 'area_sqm'))
+            .exclude(source=SYNTHETIC_SOURCE).exclude(price_imputed=True).exclude(area_imputed=True)
+            .values_list('transaction_type', 'price', 'area_sqm'))
     sale = [p / a for t, p, a in rows if t == 'sale']
     return {
         'sale_listing_count': len(sale),

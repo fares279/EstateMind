@@ -95,6 +95,9 @@ def _parse_price(raw: str | None) -> float | None:
         return None
     s = str(raw).strip().replace('\xa0', ' ').replace(' ', ' ')
     is_mille = 'mille' in s.lower()
+    # 'MD' is mille dinars (thousands) in Tunisian classifieds: '350 MD' = 350,000.
+    # It used to be dropped, so such prices read as 350 and were rejected as too low.
+    is_md = bool(re.search(r'(?i)(?<![a-z])md(?![a-z])', s))
     # Remove currency labels
     s = re.sub(r'(?i)(dt|tnd|md|mille|dinars?)', ' ', s)
     # Extract first numeric-looking token
@@ -109,7 +112,11 @@ def _parse_price(raw: str | None) -> float | None:
         token = token.replace(' ', '').replace(',', '')
     try:
         val = float(token)
-        return val * 1000 if is_mille else val
+        if is_md and val < 10 and val != int(val):
+            return val * 1_000_000  # '1,2 MD': MD also means millions; 1.2 thousand is no price
+        if is_mille or (is_md and val < 10_000):  # '1 200 000 MD' is already in dinars
+            return val * 1000
+        return val
     except ValueError:
         return None
 
