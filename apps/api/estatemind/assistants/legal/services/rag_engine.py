@@ -16,6 +16,9 @@ import uuid
 from django.core.cache import cache
 
 from estatemind.assistants.chatbot.services.conversation_memory import ConversationMemory
+from estatemind.assistants.conversation_facts import (
+    extract_user_name, is_name_question, name_acknowledgement, name_response,
+)
 from estatemind.assistants.legal.models import LegalResponseLog, LegalSession
 
 from . import llm_service, prompts
@@ -28,6 +31,7 @@ SESSION_TTL = 60 * 30
 _FOLLOW_UP = ('it', 'this', 'that', 'they', 'them', 'those', 'ce', 'cela', 'ça', 'cette', 'ces', 'il', 'elle')
 
 O = LegalResponseLog
+FOLLOW_UP_MIN_CONFIDENCE = 0.5
 
 
 def _memory_key(session_id: str) -> str:
@@ -87,8 +91,29 @@ class LegalAssistant:
         log = {'language': language, 'generation_attempts': 0, 'llm_model': ''}
         answer_text, citations, grounding, quality = '', [], {}, {}
 
-        # 2. classify
+        # 1b. personal facts, as in the market chatbot ("my name is Bob" / "what is my name?")
+        stated_name = extract_user_name(question)
+        if stated_name:
+            memory.extracted_facts['user_name'] = stated_name
+        if stated_name or is_name_question(question):
+            reply = (name_acknowledgement(stated_name, language) if stated_name
+                     else name_response(memory.extracted_facts.get('user_name'), language))
+            memory.add_turn(user_message=question, assistant_response=reply, intent='conversation', entities={})
+            _save_session(session, memory, session.last_domain)
+            return {'session_id': session.session_id, 'turn_index': memory.turn_count - 1, 'response_log_id': None,
+                    'outcome': O.OUTCOME_CONVERSATION, 'answer': reply, 'language': language,
+                    'domain': 'conversation', 'in_scope': True, 'citations': [], 'sentences': [],
+                    'grounding_score': None, 'grounding_label': None, 'quality_label': None,
+                    'overall_quality': None, 'reward_score': None, 'feedback_requested': False}
+
+        # 2. classify the question itself; if it is a follow-up the classifier is unsure
+        # about ("et pour un terrain ?": zoning at 0.37), judge it with the previous
+        # question instead (transactions at 0.79). Always using the context misrouted
+        # clear follow-ups ("et si l'acheteur est étranger ?": foreign ownership -> leasing).
+        query = _retrieval_query(question, memory)
         cls = self.classifier.classify(question)
+        if query != question and (not cls['in_scope'] or cls['confidence'] < FOLLOW_UP_MIN_CONFIDENCE):
+            cls = self.classifier.classify(query)
         domain = cls['primary_domain']
         log.update(domain=domain, domain_confidence=cls['confidence'], in_scope=cls['in_scope'])
 
@@ -96,7 +121,7 @@ class LegalAssistant:
             outcome, answer_text = O.OUTCOME_OUT_OF_SCOPE, prompts.message('out_of_scope', language)
         else:
             # 3. retrieve
-            retrieval = self.retriever.retrieve(_retrieval_query(question, memory), domain)
+            retrieval = self.retriever.retrieve(query, domain)
             citations = _citations(retrieval.context_passages if retrieval.sufficient else [])
             log.update(
                 collection_used=retrieval.collection, embedding_model=retrieval.embedding_model,

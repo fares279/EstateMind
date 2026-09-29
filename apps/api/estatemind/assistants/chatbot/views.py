@@ -21,6 +21,7 @@ from estatemind.assistants.chatbot.services.conversation_memory import Conversat
 from estatemind.assistants.chatbot.models import ChatbotSession, ChatbotResponseLog
 from estatemind.platform.throttling import ChatThrottle, FeedbackThrottle, with_defaults
 from estatemind.platform.errors import error_body
+from estatemind.assistants.conversation_facts import extract_user_name, is_name_question, name_response
 from estatemind.assistants.chatbot.apps import (
     get_intent_classifier,
     get_market_retriever,
@@ -35,31 +36,11 @@ SESSION_TTL = 60 * 30  # 30 minutes
 
 
 def _extract_user_name(message: str) -> str | None:
-    """Extract a self-introduced name from the user's message."""
-    patterns = [
-        r'\bmy name is\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\'\- ]{0,40})',
-        r'\bi am\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\'\- ]{0,40})',
-        r'\bcall me\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\'\- ]{0,40})',
-    ]
-    for pattern in patterns:
-        match = re.search(pattern, message, flags=re.IGNORECASE)
-        if match:
-            candidate = match.group(1).strip()
-            candidate = re.sub(r'[^A-Za-zÀ-ÿ\'\- ]+$', '', candidate).strip()
-            if candidate:
-                return candidate[:50]
-    return None
+    return extract_user_name(message)
 
 
 def _is_name_question(message: str) -> bool:
-    lower = message.lower().strip()
-    return any(
-        phrase in lower
-        for phrase in [
-            'what is my name', "what's my name", 'do you know my name',
-            'remember my name', 'tell me my name', 'what do you call me',
-        ]
-    )
+    return is_name_question(message)
 
 
 def _detect_ranking_query(message: str) -> bool:
@@ -111,13 +92,7 @@ def _format_source_tag(source_tag: str) -> str:
 
 
 def _name_response(memory: ConversationMemory) -> str:
-    name = memory.extracted_facts.get('user_name')
-    if name:
-        return f"Your name is {name}."
-    return (
-        "I don’t know your name yet. You can tell me by saying 'my name is Bob'."
-    )
-
+    return name_response(memory.extracted_facts.get('user_name'))
 
 def _get_or_create_session(session_id: str = None):
     """

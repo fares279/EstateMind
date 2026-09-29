@@ -126,7 +126,9 @@ class _FakeClassifier:
         self.in_scope = in_scope
 
     def classify(self, q):
-        return {'primary_domain': 'transactions', 'confidence': 0.8, 'in_scope': self.in_scope}
+        self.queries = getattr(self, 'queries', []) + [q]
+        unsure = len(q.split()) <= 3  # very short follow-ups: low confidence alone
+        return {'primary_domain': 'transactions', 'confidence': 0.3 if unsure else 0.8, 'in_scope': self.in_scope}
 
 
 class _FakeRetriever:
@@ -237,6 +239,31 @@ class TestLegalAssistantPipeline(TestCase):
         history_roles = [m['role'] for m in chat.call_args_list[1].args[0]]
         self.assertEqual(history_roles, ['system', 'user', 'assistant', 'user'])
         self.assertEqual(LegalSession.objects.get(session_id=first['session_id']).turn_count, 2)
+
+
+class TestLegalConversationMemory(TestCase):
+    def test_remembers_the_users_name_like_the_chatbot(self):
+        assistant = _assistant()
+        first = assistant.answer('My name is Bob')
+        self.assertIn('Bob', first['answer'])
+        self.assertEqual(first['outcome'], LegalResponseLog.OUTCOME_CONVERSATION)
+        second = assistant.answer('What is my name?', session_id=first['session_id'])
+        self.assertEqual(second['answer'], 'Your name is Bob.')
+        self.assertFalse(LegalResponseLog.objects.exists())  # personal turns are not logged as legal answers
+
+    def test_french_name(self):
+        assistant = _assistant()
+        first = assistant.answer("Je m'appelle Amal")
+        second = assistant.answer('Quel est mon nom ?', session_id=first['session_id'])
+        self.assertIn('Amal', second['answer'])
+
+    def test_follow_up_is_classified_with_the_previous_question(self):
+        assistant = _assistant(decisions=(PASS, PASS))
+        with patch.object(llm_service, 'chat', return_value=ANSWER):
+            first = assistant.answer('Which property acquisition contracts pay the fixed duty?')
+            assistant.answer('And for land?', session_id=first['session_id'])
+        self.assertEqual(assistant.classifier.queries[1], 'And for land?')  # alone first
+        self.assertIn('fixed duty', assistant.classifier.queries[2])       # unsure: with context
 
 
 class TestLegalViews(TestCase):

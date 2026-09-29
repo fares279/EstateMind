@@ -64,6 +64,7 @@ class LegalResponseLog(models.Model):
     OUTCOME_OUT_OF_SCOPE = 'out_of_scope'
     OUTCOME_LLM_UNAVAILABLE = 'llm_unavailable'
     OUTCOME_ERROR = 'error'
+    OUTCOME_CONVERSATION = 'conversation'  # personal-fact turns ('my name is ...'); not logged
     OUTCOME_CHOICES = [
         (OUTCOME_ANSWERED, 'Answered, grounded'),
         (OUTCOME_ANSWERED_FLAGGED, 'Answered, some sentences not verified'),
