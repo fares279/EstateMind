@@ -96,5 +96,7 @@ See [ml/valuation-training-data.md](ml/valuation-training-data.md):
 - Frontend test coverage is thin (see frontend.md).
 - The dev database starts empty by design; run `migrate` then `seed_demo_data`. Only about half
   of the real listings match a delegation; listing coordinates are delegation centroids.
-- The API Keys and Property Alerts pages are static mock-ups with no backend (decision pending).
+- API Keys is parked: `pages/AccountApiKeysPage.jsx` is a mock-up with no backend. It is kept but
+  not routed or linked, pending a decision on a real API-key feature.
+- Property Alerts has no backend; the page says "Coming soon" instead of showing sample alerts.
 - Valuation scenarios (renovation, extra bedroom, ...) are rules of thumb, labelled as such.

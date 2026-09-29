@@ -1,5 +1,5 @@
 import React from 'react';
-import { LogOut, Settings, Key, Bell, Zap } from 'lucide-react';
+import { LogOut, Settings, Bell, Zap } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
@@ -47,14 +47,6 @@ const UserProfileDropdown = ({ isOpen, onClose }) => {
             >
               <Settings size={16} />
               Settings
-            </Link>
-            <Link
-              to="/account/api-keys"
-              className="flex items-center gap-3 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
-              onClick={onClose}
-            >
-              <Key size={16} />
-              API Keys
             </Link>
           </div>
 
