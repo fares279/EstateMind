@@ -63,8 +63,6 @@ See [ml/valuation-training-data.md](ml/valuation-training-data.md):
 - Scores come from fixed rules (labelled); the 7 designed models don't exist.
 - Base, pessimistic and optimistic IRR are identical in portfolio analysis, because growth is a
   0% placeholder (labelled).
-- The Risk page radar chart is partly invented: "Volatility" is `risk × 0.75 + 12`, and
-  "Asset Mix", "Liquidity" and "Income Risk" use fixed values (70/40/18, fallback 30, 58/28).
 
 ## Valuation serving
 

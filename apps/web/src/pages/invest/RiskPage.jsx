@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import {
-  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip,
 } from 'recharts';
 import { ShieldCheck, ShieldAlert, ShieldOff, TrendingUp, AlertTriangle, Plus } from 'lucide-react';
@@ -136,13 +135,13 @@ export default function RiskPage() {
   const avgRisk = data.portfolio_risk_score || 0;
   const hhi     = data.hhi_index            || 0;
 
-  const radarData = [
-    { subject: 'Location Mix',  A: Math.min(hhi, 100) },
-    { subject: 'Market Risk',   A: avgRisk },
-    { subject: 'Asset Mix',     A: ptypePie.length <= 1 ? 70 : ptypePie.length === 2 ? 40 : 18 },
-    { subject: 'Liquidity',     A: data.assets.filter(a => a.risk_level === 'High').length / data.assets.length * 100 || 30 },
-    { subject: 'Income Risk',   A: data.assets.some(a => (a.yield_pct || 0) < 2) ? 58 : 28 },
-    { subject: 'Volatility',    A: Math.min(avgRisk * 0.75 + 12, 100) },
+  // Only dimensions the API measures. Asset mix, liquidity, income risk and volatility
+  // used to be drawn here from fixed numbers; they are not measured, so they are not shown.
+  const dimensions = [
+    { label: 'Location concentration', value: Math.min(hhi, 100),
+      note: 'How much of the portfolio value sits in one governorate (HHI, 0–100).' },
+    { label: 'Market risk', value: Math.min(avgRisk, 100),
+      note: 'Average rule-based risk score of the properties (0–100).' },
   ];
 
   const concLevel = data.concentration_risk || 'Low';
@@ -200,20 +199,27 @@ export default function RiskPage() {
           </div>
         </div>
 
-        {/* Radar */}
-        <div className={`${CARD} p-6`}>
+        {/* Measured risk dimensions */}
+        <div className={`${CARD} p-6 flex flex-col`}>
           <p className="text-sm font-semibold text-white mb-4">Risk Dimensions</p>
-          <ResponsiveContainer width="100%" height={210}>
-            <RadarChart data={radarData} margin={{ top: 4, right: 20, bottom: 4, left: 20 }}>
-              <PolarGrid stroke="rgba(255,255,255,0.07)" />
-              <PolarAngleAxis dataKey="subject" tick={{ fill: '#9ca3af', fontSize: 10 }} />
-              <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-              <Radar name="Risk" dataKey="A"
-                stroke={ORANGE} fill={ORANGE} fillOpacity={0.18}
-                strokeWidth={1.5} dot={{ fill: ORANGE, r: 2 }} />
-            </RadarChart>
-          </ResponsiveContainer>
-          <p className="text-[10px] text-gray-600 text-center">Smaller area = lower risk</p>
+          <div className="space-y-5 flex-1">
+            {dimensions.map(d => {
+              const color = d.value < 35 ? '#22c55e' : d.value < 65 ? '#f59e0b' : '#ef4444';
+              return (
+                <div key={d.label}>
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-xs text-gray-400">{d.label}</span>
+                    <span className="text-lg font-black" style={{ color }}>{Math.round(d.value)}</span>
+                  </div>
+                  <div className="mt-1.5 h-1.5 rounded-full bg-white/[0.07] overflow-hidden">
+                    <div className="h-full rounded-full" style={{ width: `${d.value}%`, background: color }} />
+                  </div>
+                  <p className="mt-1.5 text-[11px] text-gray-500">{d.note}</p>
+                </div>
+              );
+            })}
+          </div>
+          <p className="mt-4 text-[10px] text-gray-600">Lower is better. Only measured dimensions are shown.</p>
         </div>
 
         {/* Concentration */}
