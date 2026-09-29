@@ -144,9 +144,9 @@ Mahdia,Rejiche,35.4655214,11.0416985,1,original_db
 Mahdia,Sidi Alouane,35.3750157,10.9378385,1,original_db
 Médenine,Ben Gardane,32.8123428,11.3041784,0,original_db
 Médenine,Beni Khedache,33.240657,10.0967538,0,original_db
-Médenine,Djerba - Ajim,33.7383472,10.8014768,0,original_db
-Médenine,Djerba - Houmt Souk,33.8509343,10.8680497,0,original_db
-Médenine,Djerba - Midoun,33.7536409,10.9352661,0,original_db
+Médenine,Djerba - Ajim,33.7383472,10.8014768,1,original_db; coastal: island
+Médenine,Djerba - Houmt Souk,33.8509343,10.8680497,1,original_db; coastal: island
+Médenine,Djerba - Midoun,33.7536409,10.9352661,1,original_db; coastal: island
 Médenine,Médenine Nord,33.3638818,10.3930425,0,original_db
 Médenine,Médenine Sud,33.4192417,10.6543094,0,original_db
 Médenine,Sidi Makhlouf,33.5063363,10.479706,0,original_db
@@ -172,7 +172,7 @@ Nabeul,El Haouaria,37.0498089,11.0116492,1,original_db
 Nabeul,El Mida,36.7211712,10.8580023,1,original_db
 Nabeul,Grombalia,36.5984231,10.4990402,1,original_db
 Nabeul,Hammam Ghezèze,36.9335323,11.0681213,1,original_db
-Nabeul,Hammamet,,,1,missing
+Nabeul,Hammamet,36.4000,10.6167,1,manual: town centre 36°24′N 10°37′E
 Nabeul,Kélibia,36.8456561,11.0935701,1,original_db
 Nabeul,Korba,36.5728862,10.857624,1,original_db
 Nabeul,Menzel Bouzelfa,36.7032107,10.6012254,1,original_db

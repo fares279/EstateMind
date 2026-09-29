@@ -66,7 +66,9 @@ function opportunityColor(score) {
 }
 
 function climateColor(cat) {
-  const c = (cat || '').toLowerCase();
+  const c = (cat || '').toLowerCase().replace(/_/g, ' ');
+  // 'very low' must be checked before the 'very' (very high) case below
+  if (c === 'very low')                        return { fill: '#86efac', alpha: 0.45, radius: 30000 };
   if (c === 'low')                             return { fill: '#4ade80', alpha: 0.52, radius: 34000 };
   if (c === 'moderate' || c === 'medium')      return { fill: '#facc15', alpha: 0.58, radius: 35000 };
   if (c === 'high')                            return { fill: '#fb923c', alpha: 0.62, radius: 36000 };
@@ -204,9 +206,10 @@ function climateTip(item) {
   };
   return `
     <div style="font-family:system-ui;min-width:190px">
-      <div style="font-weight:700;font-size:13px;margin-bottom:4px">${item.governorate || 'Zone'}</div>
+      <div style="font-weight:700;font-size:13px;margin-bottom:4px">${item.delegation ? `${item.delegation}, ` : ''}${item.governorate || 'Zone'}</div>
       <div style="margin-bottom:6px">
-        <span style="display:inline-block;background:${riskColor(item.risk_category)};color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px">${item.risk_category || 'Unknown'} Risk</span>
+        <span style="display:inline-block;background:${riskColor(item.risk_category)};color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px">${item.risk_category || 'Unknown'} risk</span>
+        ${item.composite_score != null ? `<span style="margin-left:6px;font-size:11px;color:#6b7280">score ${Number(item.composite_score).toFixed(2)}</span>` : ''}
       </div>
       <div style="display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:11px">
         ${item.flood_risk      ? `<span style="color:#6b7280">Flood</span><span style="font-weight:600;color:${riskColor(item.flood_risk)}">${item.flood_risk}</span>` : ''}
@@ -387,14 +390,20 @@ export default function ExploreMap({
         if (mapLayer === 'climate') {
           const { data } = await getClimateRiskMap();
           if (cancelled) return;
-          const items = Array.isArray(data) ? data : [];
+          const LABELS = { VERY_LOW: 'Very low', LOW: 'Low', MODERATE: 'Moderate', HIGH: 'High', VERY_HIGH: 'Very high' };
+          const items = (data?.features || []).map((f) => ({
+            ...f.properties,
+            lon: f.geometry?.coordinates?.[0],
+            lat: f.geometry?.coordinates?.[1],
+            risk_category: LABELS[f.properties?.risk_label] || f.properties?.risk_label,
+          }));
           const stats = { low: 0, moderate: 0, high: 0, vhigh: 0 };
           items.forEach((item) => {
-            const lat = Number(item.lat || item.region_lat || 0);
-            const lon = Number(item.lon || item.region_lon || 0);
+            const lat = Number(item.lat || 0);
+            const lon = Number(item.lon || 0);
             if (!lat || !lon) return;
             const cat = (item.risk_category || '').toLowerCase();
-            if (cat === 'low') stats.low++;
+            if (cat === 'low' || cat === 'very low') stats.low++;
             else if (cat === 'moderate' || cat === 'medium') stats.moderate++;
             else if (cat === 'high') stats.high++;
             else stats.vhigh++;

@@ -35,20 +35,20 @@ See [ml/valuation-training-data.md](ml/valuation-training-data.md):
   ("1,2 MD"), read as millions. The notation is ambiguous; listings that fit neither reading are
   rejected as before.
 
-## Climate (domain review needed; code unchanged)
+## Climate (domain review or data needed)
 
 - The composite rises toward the north (correlation with latitude +0.36). Tozeur, with heat 0.72,
-  comes out VERY_LOW.
-- The flood factor is mocked: it takes two fixed values, set only by `is_coastal`.
-- Djerba is marked as not coastal.
-- Climate does not change served valuations: the CatBoost models have no climate input, and
-  `climate_adjusted_price` is never set. The page shows climate as context only.
-- The `ClimateRisk` table is empty (the ClimaTN CSVs are not in the repo), so the climate layer
-  on the Explore map is empty. `seed_demo_data` fills the delegation-level scores only.
-- Coastal flags come from a governorate-level rule, and Hammamet has no coordinates in the source
-  geography.
-- Weights: flood 0.30, heat 0.25, coastal erosion 0.20, wildfire 0.10, infrastructure resilience
-  −0.15.
+  comes out VERY_LOW. Weights: flood 0.30, heat 0.25, coastal erosion 0.20, wildfire 0.10,
+  infrastructure resilience −0.15. Changing them is a domain decision.
+- The flood factor is mocked: it takes two fixed values, set only by the coastal flag. Real flood
+  data is needed.
+- Coastal flags come from a governorate-level rule, so inland delegations of coastal governorates
+  are marked coastal. Correcting them needs coastline geodata. (Djerba's three delegations were
+  marked inland; fixed.)
+- Climate does not change served valuations: the models have no climate input. The valuation page
+  shows climate as context only.
+- The governorate-level `ClimateRisk` table is empty (the ClimaTN CSVs are not in the repo). The
+  Explore map's climate layer now shows the delegation scores instead.
 
 ## Investor
 

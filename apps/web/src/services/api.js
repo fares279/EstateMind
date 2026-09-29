@@ -83,7 +83,8 @@ export const getValuationModelRegistry = (params) => api.get('/valuations/regist
 export const getValuationCalibration = (params) => api.get('/valuations/calibration/', { params });
 export const getValuationDrift = (params) => api.get('/valuations/drift/', { params });
 export const getValuationAuditLog = () => api.get('/valuations/audit/');
-export const getClimateRiskMap = () => api.get('/climate/');
+// Delegation climate scores as GeoJSON points (the governorate ClimateRisk table is empty)
+export const getClimateRiskMap = () => api.get('/climate/heatmap/');
 export const getCampaignStats = () => api.get('/campaign/stats/');
 
 // Interactive map endpoints (Phase 4)
