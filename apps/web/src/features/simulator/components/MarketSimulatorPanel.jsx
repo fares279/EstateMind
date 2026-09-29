@@ -7,6 +7,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { validateScenario, runSimulation } from '../../../services/api-modules';
 import { AnomalyAlert, SkeletonLoader, ErrorFallback } from '../../../components/common/CommonComponents';
+import { userErrorMessage } from '../../../utils/errors';
 
 export const ScenarioBuilder = ({ onRunSimulation }) => {
   const [scenario, setScenario] = useState({
@@ -68,7 +69,7 @@ export const ScenarioBuilder = ({ onRunSimulation }) => {
     <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
       <div className="text-lg font-semibold text-white mb-4">Scenario Configuration</div>
 
-      {error && <AnomalyAlert message={error.message} severity="error" />}
+      {error && <AnomalyAlert message={userErrorMessage(error, 'The simulation could not be run.')} severity="error" />}
 
       <div className="space-y-6 mb-6">
         {Object.entries(RANGES).map(([key, { min, max, step }]) => (

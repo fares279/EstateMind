@@ -7,6 +7,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { sendChatMessage, submitChatFeedback } from '../../../services/api-modules';
 import { FallbackNotice, SkeletonLoader } from '../../../components/common/CommonComponents';
+import { userErrorMessage } from '../../../utils/errors';
 
 export const ChatMessage = ({ message, onFeedback }) => {
   const { text, sources, quality_score, is_fallback, fallback_reason, timestamp } = message;
@@ -109,7 +110,7 @@ export const ChatInterface = () => {
     } catch (error) {
       const errorMessage = {
         id: `msg_${Date.now()}`,
-        text: `Sorry, I encountered an error: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`,
+        text: userErrorMessage(error, 'Sorry, something went wrong. Please try again.'),
         role: 'assistant',
         intent: 'error',
         timestamp: new Date().toISOString(),

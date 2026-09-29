@@ -21,6 +21,7 @@ import {
   BarChart3,
 } from 'lucide-react';
 import api from '../../../services/api';
+import { userErrorMessage } from '../../../utils/errors';
 
 const PipelineHealthDashboard = () => {
   const [healthData, setHealthData] = useState(null);
@@ -53,7 +54,7 @@ const PipelineHealthDashboard = () => {
       setIncidents(incidentRes.data?.incidents || []);
       setError(null);
     } catch (err) {
-      setError(err.message || 'Failed to load dashboard data');
+      setError(userErrorMessage(err, 'The pipeline dashboard could not be loaded.'));
       console.error('Dashboard fetch error:', err);
     } finally {
       setLoading(false);

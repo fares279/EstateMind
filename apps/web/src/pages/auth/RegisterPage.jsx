@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { User, Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { userErrorMessage } from '../../utils/errors';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -133,8 +134,8 @@ export default function RegisterPage() {
             errorMessage = Array.isArray(firstError) ? firstError[0] : firstError;
           }
         }
-      } else if (err.message) {
-        errorMessage = err.message;
+      } else {
+        errorMessage = userErrorMessage(err, errorMessage);
       }
 
       setError(errorMessage);

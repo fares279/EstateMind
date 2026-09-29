@@ -3,6 +3,7 @@ import axios from 'axios';
 import { API_BASE } from '../config/apiBase';
 import { canAccessPlan, normalizePlan } from '../utils/accessControl';
 import { trackUserActivity, createCheckoutSession, devUpgradePlan } from '../services/api';
+import { userErrorMessage } from '../utils/errors';
 
 const AuthContext = createContext();
 
@@ -316,13 +317,13 @@ export const AuthProvider = ({ children }) => {
             setUser(upgradedUser);
             return fallbackResponse.data;
           } catch (fallbackErr) {
-            const message = fallbackErr.response?.data?.error || fallbackErr.message || 'Upgrade failed';
+            const message = userErrorMessage(fallbackErr, 'The upgrade could not be completed.');
             setError(message);
             throw fallbackErr;
           }
         }
 
-        const message = err.response?.data?.error || err.message || 'Upgrade failed';
+        const message = userErrorMessage(err, 'The upgrade could not be completed.');
         setError(message);
         throw err;
       }

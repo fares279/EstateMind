@@ -4,6 +4,7 @@ import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-
 import { X, AlertCircle, CheckCircle, Loader } from 'lucide-react';
 import axios from 'axios';
 import { API_BASE } from '../../../config/apiBase';
+import { userErrorMessage } from '../../../utils/errors';
 
 // Initialize Stripe (guard against missing publishable key to avoid runtime error)
 const PUBLISHABLE_KEY = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY;
@@ -101,7 +102,7 @@ function PaymentForm({ clientSecret, plan, onSuccess, onClose, userEmail, userFu
       }
     } catch (err) {
       console.error('Payment error:', err);
-      setError(err.message || 'An unexpected error occurred.');
+      setError(userErrorMessage(err, 'The payment could not be completed. Please try again.'));
     }
 
     setIsLoading(false);
