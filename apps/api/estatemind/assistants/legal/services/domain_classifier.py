@@ -111,3 +111,41 @@ class LegalDomainClassifier:
             'scope_scores': {'legal': round(legal, 3), 'non_legal': round(non_legal, 3)},
             'method': 'embedding_similarity' + ('+keywords' if keyword_hit else ''),
         }
+
+
+def routing_cross_validation(questions: list[dict], classifier: 'LegalDomainClassifier | None' = None) -> dict:
+    """Honest estimate of the scope decision (redirect non-legal questions, keep legal ones).
+
+    NON_LEGAL_MIN and SCOPE_MARGIN were chosen on the evaluation questions, so accuracy
+    measured on them is optimistic. Leave-one-out: for each question, pick the
+    thresholds that do best on the other questions (ties broken toward the current
+    values), then score the held-out one. Correct means: out_of_scope questions are
+    redirected, answerable and unanswerable (legal) questions are not.
+    """
+    import itertools
+
+    classifier = classifier or LegalDomainClassifier()
+    rows = []
+    for q in questions:
+        result = classifier.classify(q['question'])
+        s = result['scope_scores']
+        greeting = bool(_GREETING.search(q['question'])) and len(q['question'].split()) <= 6
+        rows.append((s['legal'], s['non_legal'], greeting, q['category'] == 'out_of_scope'))
+
+    grid = list(itertools.product([round(0.30 + 0.025 * i, 3) for i in range(17)],
+                                  [round(0.025 * i, 3) for i in range(11)]))
+    current = (LegalDomainClassifier.NON_LEGAL_MIN, LegalDomainClassifier.SCOPE_MARGIN)
+
+    def correct(row, params):
+        legal, non_legal, greeting, should_redirect = row
+        redirect = greeting or (non_legal >= params[0] and non_legal - legal >= params[1])
+        return redirect == should_redirect
+
+    def best(train):
+        score = lambda p: (sum(correct(r, p) for r in train), -abs(p[0] - current[0]) - abs(p[1] - current[1]))  # noqa: E731
+        return max(grid, key=score)
+
+    in_sample = sum(correct(r, current) for r in rows)
+    held_out = sum(correct(rows[i], best(rows[:i] + rows[i + 1:])) for i in range(len(rows)))
+    return {'questions': len(rows), 'in_sample_correct': in_sample, 'leave_one_out_correct': held_out,
+            'current_thresholds': {'NON_LEGAL_MIN': current[0], 'SCOPE_MARGIN': current[1]}}

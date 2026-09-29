@@ -58,8 +58,9 @@ The table below shows what each model is, and how far it has been checked agains
   and activates it unless `--no-activate` is given.
 - Evaluate with `python manage.py evaluate_legal_assistant [--json report.json]`, using the 43
   questions in `data/eval_questions.json`.
-- Retrieval recall@3 is 0.96 and routing is 42/43. The routing threshold was tuned on this same
-  set, so that figure is optimistic. The grounding gate caught 10/10 unsupported claims and kept
+- Retrieval recall@3 is 0.96 and routing is 42/43. The scope thresholds were tuned on this same
+  set; a leave-one-out check (`evaluate_legal_assistant --routing-cv`) gives the scope decision
+  43/43 both in-sample and held out, so the tuning is not what makes the figure look good. The grounding gate caught 10/10 unsupported claims and kept
   10/12 supported ones.
 - **Corpus ceiling**: 23 passages, covering registration duties and mortgage law only. Questions
   outside them cannot be answered well, whatever the model.

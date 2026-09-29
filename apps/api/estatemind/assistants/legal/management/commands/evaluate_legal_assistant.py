@@ -40,8 +40,15 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('--json', help='Also write the full report to this file.')
+        parser.add_argument('--routing-cv', action='store_true',
+                            help='Only report the leave-one-out estimate of the scope decision (no LLM needed).')
 
     def handle(self, *args, **options):
+        if options.get('routing_cv'):
+            from estatemind.assistants.legal.services.domain_classifier import routing_cross_validation
+            report = routing_cross_validation(load_eval_questions())
+            self.stdout.write(json.dumps(report, indent=1))
+            return
         assistant = get_assistant()
         rows = []
         for q in load_eval_questions():

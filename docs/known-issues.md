@@ -18,7 +18,6 @@ project. Fixed issues are in the git history.
   have nothing to retrieve, however good the model is.
 - Answer quality with a real LLM is unmeasured. The default endpoint only resolves on the ESPRIT
   network. `evaluate_legal_assistant` measures it once an endpoint is reachable.
-- The routing threshold was tuned on the evaluation set, so 42/43 is optimistic.
 
 ## Valuation data
 

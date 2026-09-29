@@ -161,7 +161,8 @@ your approval: no scraping of outside sites.
 Measured on the 43-question evaluation set:
 
 - Retrieval recall@3: 0.48 → 0.96.
-- Routing: 42/43. The routing threshold was tuned on this same set, so this is optimistic.
+- Routing: 42/43. The scope thresholds were tuned on this set, but a leave-one-out check scores
+  the scope decision 43/43 held out as well.
 - The grounding gate caught 10/10 unsupported claims and kept 10/12 supported ones.
 
 Answer quality with a real LLM is **unmeasured**. The default endpoint (tokenfactory) only
