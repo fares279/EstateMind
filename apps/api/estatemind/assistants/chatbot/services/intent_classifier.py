@@ -5,12 +5,37 @@ Target accuracy: ≥92%
 """
 
 import logging
+import re
 from typing import Optional, Dict, List
 from sentence_transformers import SentenceTransformer, util
 import torch
 import numpy as np
 
 logger = logging.getLogger(__name__)
+
+
+GREETING_PHRASES = (
+    'hello', 'hi', 'hey', 'bonjour', 'salut', 'salam', 'marhaba', 'good morning',
+    'good afternoon', 'good evening', 'my name is', 'thanks', 'thank you', 'merci', 'shukran',
+)
+# Words that make a message a real question even when it opens with a greeting.
+_DOMAIN_WORDS = (
+    'price', 'prix', 'cost', 'rent', 'loyer', 'buy', 'sell', 'invest', 'yield', 'market', 'value',
+    'worth', 'forecast', 'predict', 'future', 'grow', 'rise', 'fall', 'tax', 'law', 'loi', 'legal',
+    'flood', 'climate', 'risk', 'portfolio', 'apartment', 'appartement', 'house', 'villa', 'maison',
+    'land', 'terrain', 'delegation', 'governorate',
+)
+
+
+def is_greeting(message: str) -> bool:
+    """A greeting, thanks or introduction with no real question in it.
+
+    Words are matched whole: the old substring test read 'which' and 'high' as
+    'hi', so "Which delegations will grow fastest?" was answered as a greeting."""
+    text = ' ' + re.sub(r'[^\w\s]', ' ', message.lower()) + ' '
+    if not any(f' {phrase} ' in text for phrase in GREETING_PHRASES):
+        return False
+    return not any(re.search(rf'\b{word}', text) for word in _DOMAIN_WORDS)
 
 
 class IntentClassifier:
@@ -60,11 +85,17 @@ class IntentClassifier:
             self.model = get_sentence_model(INTENT_MODEL)
             self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
             
-            # Pre-compute embeddings for intent descriptions
+            # Each intent is the centroid of its description and the hand-labelled
+            # examples in data/chatbot_intents.json. Chosen by leave-one-out accuracy
+            # on the examples (centroid 0.78, description only 0.76, nearest example
+            # 0.59); the held-out evaluation set was not used to choose.
+            from .intent_data import examples
+            labelled = examples()
             self.intent_embeddings = {}
             for intent, description in self.INTENT_DESCRIPTIONS.items():
-                embedding = self.model.encode(description, convert_to_tensor=True)
-                self.intent_embeddings[intent] = embedding
+                texts = [description, *labelled.get(intent, [])]
+                vectors = self.model.encode(texts, convert_to_tensor=True, normalize_embeddings=True)
+                self.intent_embeddings[intent] = vectors.mean(dim=0)
             
             self.is_loaded = True
             logger.info(f'Intent classifier loaded on device: {self.device}')
@@ -101,16 +132,9 @@ class IntentClassifier:
             return self._fallback_classify(user_message)
         
         try:
-            message_lower = user_message.lower().strip()
-
             # Short-circuit obvious greetings and introductions so they do not
             # get misrouted into the market/investment branches.
-            greeting_markers = [
-                'hello', 'hi', 'hey', 'bonjour', 'salut', 'salam', 'marhaba',
-                'good morning', 'good afternoon', 'good evening', 'my name is',
-                'thanks', 'thank you', 'shukran',
-            ]
-            if any(marker in message_lower for marker in greeting_markers):
+            if is_greeting(user_message):
                 return {
                     'intent': 'general_greeting',
                     'confidence': 0.98,
@@ -199,32 +223,8 @@ class IntentClassifier:
         entities = {}
         message_lower = message.lower()
         
-        # Location extraction
-        try:
-            all_delegations = list(
-                Delegation.objects.values_list('name', flat=True)
-            )
-            for delegation in all_delegations:
-                if delegation.lower() in message_lower:
-                    entities['location'] = delegation
-                    entities['location_type'] = 'delegation'
-                    break
-        except Exception as e:
-            logger.warning(f'Delegation lookup error: {e}')
+        entities.update(self._extract_location(message))
 
-        if 'location' not in entities:
-            try:
-                all_governorates = list(
-                    Region.objects.values_list('governorate', flat=True)
-                )
-                for governorate in all_governorates:
-                    if governorate.lower() in message_lower:
-                        entities['location'] = governorate
-                        entities['location_type'] = 'governorate'
-                        break
-            except Exception as e:
-                logger.warning(f'Governorate lookup error: {e}')
-        
         # Property type
         property_patterns = {
             'apartment': ['apartment', 'appartement', 'flat', 'studio', 'appart'],
@@ -247,6 +247,41 @@ class IntentClassifier:
         
         return entities
     
+    @staticmethod
+    def _extract_location(message: str) -> Dict:
+        """The place named in the message: the longest delegation name first, then a
+        governorate. Whole words, ignoring case and accents ('Tunisia' is not Tunis;
+        'BENI KHIAR' is Beni Khiar). Names come from the database, and from the
+        delegations reference file for places the database doesn't have yet."""
+        from estatemind.intelligence.valuation.inference.location import _reference, plain
+        from estatemind.market.core.models import Delegation, Region
+
+        text = f' {plain(message)} '
+        delegations, governorates = {}, {}
+        try:
+            delegations = {plain(n): n for n in Delegation.objects.values_list('name', flat=True)}
+            governorates = {plain(g): g for g in Region.objects.values_list('governorate', flat=True)}
+        except Exception as e:
+            logger.warning(f'Location lookup error: {e}')
+        try:
+            ref_governorates, ref_delegations = _reference()
+            for key in ref_delegations:
+                delegations.setdefault(key, key.title())
+            for key, canonical in ref_governorates.items():
+                governorates.setdefault(key, governorates.get(canonical, canonical.title()))
+        except Exception as e:
+            logger.warning(f'Location reference unavailable: {e}')
+
+        for table, kind in ((delegations, 'delegation'), (governorates, 'governorate')):
+            found = [key for key in table if key and f' {key} ' in text]
+            if found:
+                key = max(found, key=len)
+                # a delegation named like its governorate (e.g. 'Sfax') is answered at governorate level
+                if kind == 'delegation' and key in governorates:
+                    return {'location': governorates[key], 'location_type': 'governorate'}
+                return {'location': table[key], 'location_type': kind}
+        return {}
+
     def _fallback_classify(self, message: str) -> Dict:
         """
         Fallback when ML model not available.
@@ -259,11 +294,17 @@ class IntentClassifier:
             'investment_advice': ['invest', 'buy', 'yield', 'rent', 'opportunity'],
             'valuation_request': ['valuation', 'worth', 'value', 'estimate'],
             'legal_question': ['tax', 'law', 'regulation', 'fee', 'registration'],
-            'forecast_inquiry': ['forecast', 'predict', 'future', 'expect'],
+            'forecast_inquiry': ['forecast', 'predict', 'future', 'expect', 'grow', 'fastest'],
             'portfolio_question': ['portfolio', 'diversif', 'performance'],
             'climate_question': ['climate', 'flood', 'risk', 'environment'],
             'general_greeting': ['hello', 'hi', 'hey', 'thanks']
         }
+        if is_greeting(message):
+            entities = self._extract_entities(message)
+            return {'intent': 'general_greeting', 'confidence': 0.9, 'entities': entities,
+                    'is_ambiguous': False, 'secondary_intent': 'market_inquiry',
+                    'secondary_confidence': 0.1, 'method': 'fallback_keyword_matching'}
+        keyword_map.pop('general_greeting')
         
         scores = {}
         for intent, keywords in keyword_map.items():

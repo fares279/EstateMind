@@ -12,6 +12,10 @@ from django.utils import timezone
 logger = logging.getLogger(__name__)
 
 
+# Delegations ranked nationally need at least this many real (not sample) listings.
+MIN_REAL_LISTINGS = 5
+
+
 class MarketDataRetriever:
     """
     Retrieves grounded market context for chatbot responses.
@@ -329,7 +333,7 @@ class MarketDataRetriever:
                     retrieval_errors.append(top_growth.get('reason', 'Unknown error'))
             
             if 'investment_grade' in data_types:
-                top_investments = self._get_investment_rankings()
+                top_investments = self._get_investment_rankings(property_type)
                 context['investment'] = top_investments
                 if not top_investments.get('available'):
                     retrieval_errors.append(top_investments.get('reason', 'Unknown error'))
@@ -347,136 +351,139 @@ class MarketDataRetriever:
             'location_type': 'national'
         }
     
+    @staticmethod
+    def _real_medians(property_type: str) -> list[dict]:
+        """Median sale price per m2 of real (not sample) listings of one property type,
+        per delegation with at least MIN_REAL_LISTINGS of them. One type at a time:
+        mixing land with apartments made land-heavy delegations look cheapest."""
+        from statistics import median
+
+        from estatemind.market.core.models import SYNTHETIC_SOURCE, Property
+
+        groups: dict[int, dict] = {}
+        rows = (Property.objects.filter(is_active=True, transaction_type='sale', property_type=property_type,
+                                        delegation__isnull=False, price__gt=0, area_sqm__gt=0)
+                .exclude(source=SYNTHETIC_SOURCE)
+                .values_list('delegation_id', 'delegation__name', 'delegation__region__governorate',
+                             'price', 'area_sqm'))
+        for delegation_id, name, governorate, price, area in rows:
+            g = groups.setdefault(delegation_id, {'delegation': name, 'governorate': governorate, 'ppm': []})
+            g['ppm'].append(price / area)
+        return [{'delegation': g['delegation'], 'governorate': g['governorate'],
+                 'median_price_per_sqm': median(g['ppm']), 'listing_count': len(g['ppm'])}
+                for g in groups.values() if len(g['ppm']) >= MIN_REAL_LISTINGS]
+
     def _get_market_rankings(self, property_type: str) -> Dict:
-        """Get top 10 most expensive delegations by median price per sqm."""
+        """Most expensive and cheapest delegations by the median price per m2 of real
+        sale listings of the asked property type. (This read a DelegationStats model
+        that doesn't exist, so it always reported rankings as unavailable.)"""
         try:
-            from estatemind.market.features.models import DelegationStats
-            
-            rankings = (
-                DelegationStats.objects
-                .filter(property_type=property_type)
-                .order_by('-median_price_per_m2')[:10]
-            )
-            
-            if not rankings:
-                return {
-                    'available': False,
-                    'reason': 'No market ranking data available'
-                }
-            
-            top_delegations = [
-                {
-                    'rank': i + 1,
-                    'delegation': r.delegation_name,
-                    'governorate': r.governorate,
-                    'median_price_per_sqm': r.median_price_per_m2,
-                    'listing_count': r.listing_count
-                }
-                for i, r in enumerate(rankings)
-            ]
-            
+            medians = self._real_medians(property_type)
+            if not medians:
+                return {'available': False, 'reason': f'Not enough real {property_type} listings to rank delegations'}
+
+            def row(rank, m):
+                return {'rank': rank, 'delegation': m['delegation'], 'governorate': m['governorate'],
+                        'median_price_per_sqm': round(m['median_price_per_sqm']),
+                        'listing_count': m['listing_count']}
+
+            by_price = sorted(medians, key=lambda m: m['median_price_per_sqm'], reverse=True)
             return {
                 'available': True,
-                'ranking_type': 'most_expensive_by_median_ppm2',
-                'top_delegations': top_delegations,
+                'ranking_type': 'median_price_per_m2',
+                'top_delegations': [row(i + 1, m) for i, m in enumerate(by_price[:10])],
+                'cheapest_delegations': [row(i + 1, m) for i, m in enumerate(by_price[::-1][:10])],
+                'ranked_count': len(medians),
+                'min_real_listings': MIN_REAL_LISTINGS,
                 'property_type': property_type,
-                'source_tag': f'market_rankings_{property_type}',
+                'source_tag': 'market_rankings',
                 'retrieved_at': timezone.now().isoformat()
             }
-            
         except Exception as e:
             logger.warning(f'Market rankings failed: {e}', exc_info=True)
-            return {
-                'available': False,
-                'reason': 'Market rankings are temporarily unavailable.'
-            }
-    
+            return {'available': False, 'reason': 'Market rankings are temporarily unavailable.'}
+
     def _get_forecast_rankings(self, property_type: str) -> Dict:
-        """Get top 10 fastest growing delegations by 12-month forecast growth."""
+        """Top 10 delegations by forecast growth over 12 months, measured within each
+        delegation's latest forecast (first month to last), as the per-place answers
+        and the forecast pages do. (This divided the forecast level by current listing
+        prices; forecast levels sit well below listing prices, so every delegation
+        showed a large fall.)"""
         try:
-            from estatemind.intelligence.forecast.models import DelegationForecast, DelegationPriceData
-            
-            # Furthest-ahead month of the latest forecast per delegation. Built in
-            # Python: .distinct('field') (DISTINCT ON) is Postgres-only, and slicing
-            # before ranking used to rank only the first 20 delegations alphabetically.
-            latest = {}
-            for f in (DelegationForecast.objects
-                      .filter(property_type=property_type)
-                      .order_by('delegation_name', 'forecast_origin', 'forecast_month')):
-                latest[f.delegation_name] = f
-            current_prices = dict(
-                DelegationPriceData.objects
-                .filter(property_type=property_type, delegation_name__in=list(latest))
-                .values_list('delegation_name', 'price_avg')
-            )
+            from estatemind.intelligence.forecast.models import DelegationForecast
+
+            series = {}
+            for f in (DelegationForecast.objects.filter(property_type=property_type)
+                      .order_by('delegation_name', 'forecast_origin', 'horizon_idx')):
+                key = f.delegation_name
+                if key not in series or f.forecast_origin > series[key]['origin']:
+                    series[key] = {'origin': f.forecast_origin, 'governorate': f.governorate, 'points': {}}
+                if f.forecast_origin == series[key]['origin']:
+                    series[key]['points'][f.horizon_idx] = f.predicted_price_per_m2
 
             rankings = []
-            for name, f in latest.items():
-                initial_price = current_prices.get(name)
-                if f.predicted_price_per_m2 > 0 and initial_price and initial_price > 0:
-                    predicted_tnd = f.predicted_price_per_m2 / 1000  # Convert from millimes
-                    growth_pct = ((predicted_tnd - initial_price) / initial_price) * 100
-                    rankings.append({
-                        'delegation': name,
-                        'growth_pct_12m': round(growth_pct, 2),
-                        'current_price': round(initial_price, 2),
-                        'forecast_price': round(predicted_tnd, 2)
-                    })
+            for name, info in series.items():
+                points = info['points']
+                first, last = points.get(min(points)), points.get(max(points))
+                if len(points) < 2 or not first or first <= 0 or not last:
+                    continue
+                rankings.append({
+                    'delegation': name,
+                    'governorate': info['governorate'],
+                    'growth_pct_12m': round((last - first) / first * 100, 2),
+                })
 
             if not rankings:
-                return {
-                    'available': False,
-                    'reason': 'No forecast ranking data available'
-                }
-            
-            # Sort by growth and take top 10
+                return {'available': False, 'reason': 'No forecast ranking data available'}
+
             rankings.sort(key=lambda x: x['growth_pct_12m'], reverse=True)
             top_rankings = rankings[:10]
-            
             for i, r in enumerate(top_rankings):
                 r['rank'] = i + 1
-            
             return {
                 'available': True,
                 'ranking_type': 'fastest_growing_12m',
                 'top_delegations': top_rankings,
+                'ranked_count': len(rankings),
                 'property_type': property_type,
                 'source_tag': 'forecast_rankings',
                 'retrieved_at': timezone.now().isoformat()
             }
-            
         except Exception as e:
             logger.warning(f'Forecast rankings failed: {e}', exc_info=True)
-            return {
-                'available': False,
-                'reason': 'Forecast rankings are temporarily unavailable.'
-            }
-    
-    def _get_investment_rankings(self) -> Dict:
-        """Get top 10 investment opportunities nationwide."""
-        try:
-            # No zone-level investment ranking exists (the ZoneAnalyzer this called
-            # was never written); say so instead of failing on the import.
-            top_zones = None
+            return {'available': False, 'reason': 'Forecast rankings are temporarily unavailable.'}
 
-            if not top_zones:
-                return {
-                    'available': False,
-                    'reason': 'Investment ranking by zone is not implemented yet'
-                }
-            
+    def _get_investment_rankings(self, property_type: str = 'apartment') -> Dict:
+        """Top 10 delegations by the rule-based opportunity score (the same scoring as
+        the per-place answers and the investor opportunities list), at each
+        delegation's median price per m2. Delegations need MIN_REAL_LISTINGS real
+        listings of the asked type. (Zone ranking used to be reported as not implemented.)"""
+        try:
+            from estatemind.intelligence.investor.services.delegation_scoring import score_delegation
+
+            scored = []
+            for m in self._real_medians(property_type):
+                result = score_delegation(m['delegation'], m['governorate'], m['median_price_per_sqm'],
+                                          property_type=property_type)
+                if result:
+                    scored.append(result)
+            if not scored:
+                return {'available': False, 'reason': 'No investment ranking data available'}
+            scored.sort(key=lambda r: r['opportunity_score'], reverse=True)
+            top = [{'rank': i + 1, 'delegation': r['delegation'], 'governorate': r['governorate'],
+                    'opportunity_score': r['opportunity_score'], 'grade': r['investment_grade'],
+                    'gross_yield_pct': r['gross_yield_pct']}
+                   for i, r in enumerate(scored[:10])]
             return {
                 'available': True,
                 'ranking_type': 'best_investment_opportunities',
-                'top_delegations': top_zones,
+                'property_type': property_type,
+                'top_delegations': top,
+                'ranked_count': len(scored),
+                'scoring_method': 'rule_based',
                 'source_tag': 'investment_rankings',
                 'retrieved_at': timezone.now().isoformat()
             }
-            
         except Exception as e:
             logger.warning(f'Investment rankings failed: {e}', exc_info=True)
-            return {
-                'available': False,
-                'reason': 'Investment rankings are temporarily unavailable.'
-            }
-
+            return {'available': False, 'reason': 'Investment rankings are temporarily unavailable.'}

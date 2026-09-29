@@ -10,6 +10,11 @@ from typing import Dict, Set, List
 logger = logging.getLogger(__name__)
 
 
+# 394,989 / 3.5 / 3,5 / 12% / 1,850 TND ...
+NUMBER = re.compile(r'\b\d{1,3}(?:,\d{3})+(?:\.\d+)?(?:\s*(?:%|TND|DT|m²|dinars?))?|\b\d+(?:[.,]\d+)?(?:\s*(?:%|TND|DT|m²|dinars?))?')
+THOUSANDS = re.compile(r'\d{1,3}(?:,\d{3})+(?:\.\d+)?')
+
+
 class HallucinationGuard:
     """
     Validates that all statistics in a generated response
@@ -34,10 +39,15 @@ class HallucinationGuard:
         }
         """
         
-        # Extract all numbers with optional % or currency suffix
-        number_pattern = r'\b\d+(?:[.,]\d+)?(?:\s*(?:%|TND|DT|m²|m²|dinars?))?\b'
-        numbers_in_response = re.findall(number_pattern, response_text)
-        
+        numbers_in_response = []
+        for m in NUMBER.finditer(response_text):
+            before, after = response_text[max(0, m.start() - 2):m.start()], response_text[m.end():m.end() + 7]
+            # units and scales, not statistics: '12-month outlook', 'score 39/100'
+            if before.endswith('/') or re.match(r'-?\s?(month|year|day)s?\b', after):
+                continue
+            sign = '-' if before.endswith(('-', '−')) and not before[:1].isalnum() else ''
+            numbers_in_response.append(sign + m.group(0))
+
         if not numbers_in_response:
             # No statistics claimed — fully grounded by default
             return {
@@ -47,92 +57,68 @@ class HallucinationGuard:
                 'grounding_score': 1.0,
                 'has_claims': False
             }
-        
-        # Flatten all retrieved values to a searchable set
+
         retrieved_values = self._extract_all_values(retrieved_context)
-        
-        grounded = []
-        ungrounded = []
-        
+        grounded, ungrounded = [], []
         for number in numbers_in_response:
-            clean_number = re.sub(r'[^\d.,]', '', number)
-            
-            if self._is_value_grounded(clean_number, retrieved_values):
-                grounded.append(number)
-            else:
-                ungrounded.append(number)
-        
+            (grounded if self._is_value_grounded(number, retrieved_values) else ungrounded).append(number)
+
         total = len(numbers_in_response)
-        grounding_score = len(grounded) / total if total > 0 else 1.0
-        
         return {
-            'is_grounded': len(ungrounded) == 0,
+            'is_grounded': not ungrounded,
             'ungrounded_claims': ungrounded,
             'grounded_statistics': grounded,
-            'grounding_score': grounding_score,
+            'grounding_score': len(grounded) / total,
             'has_claims': True
         }
-    
-    def _extract_all_values(self, context: Dict) -> Set:
-        """
-        Recursively extracts all numeric values from the context dict
-        so they can be matched against response numbers.
-        """
-        values = set()
-        
+
+    def _extract_all_values(self, context: Dict) -> List[float]:
+        """Every number in the retrieved context (booleans excluded)."""
+        values: List[float] = []
+
         def _recurse(obj):
+            if isinstance(obj, bool):
+                return
             if isinstance(obj, (int, float)):
-                # Add multiple representations
-                values.add(str(round(obj, 2)))
-                values.add(str(round(obj, 1)))
-                values.add(str(int(obj)))
-                values.add(f"{obj:.0f}")
-            elif isinstance(obj, bool):
-                # Skip boolean values
-                pass
+                values.append(float(obj))
             elif isinstance(obj, dict):
                 for v in obj.values():
                     _recurse(v)
             elif isinstance(obj, (list, tuple)):
                 for item in obj:
                     _recurse(item)
-        
+
         _recurse(context)
         return values
-    
-    def _is_value_grounded(self, clean_number: str, retrieved_values: Set) -> bool:
-        """
-        Checks if a number from the response appears in retrieved values.
-        Handles minor rounding differences (1850.0 vs 1850, vs 1850.5).
-        """
-        
-        # Direct match
-        if clean_number in retrieved_values:
-            return True
-        
-        # Try parsing as float and check with tolerance
+
+    @staticmethod
+    def _parse(number: str) -> tuple[float, int, bool]:
+        """(value, decimals shown, is a percentage). '1,850' is 1850 (thousands
+        separator); '3,5' is 3.5 (French decimal comma)."""
+        negative = number.startswith('-')
+        digits = re.match(r'[\d.,]+', number.lstrip('-')).group(0)
+        if THOUSANDS.fullmatch(digits):
+            digits = digits.replace(',', '')
+        else:
+            digits = digits.replace(',', '.')
+        decimals = len(digits.split('.', 1)[1]) if '.' in digits else 0
+        return (-1 if negative else 1) * float(digits), decimals, '%' in number
+
+    def _is_value_grounded(self, number: str, retrieved_values: List[float]) -> bool:
+        """A number is grounded when a retrieved value, rounded to the precision the
+        response shows, equals it, or is within 0.5% of it. Percentages also match
+        values stored as fractions (0.052 -> 5.2%).
+
+        (This used to accept anything within 10 units of any retrieved value, so
+        '5%' matched a stored 12, and it read '1,850' as 1.85.)"""
         try:
-            num = float(clean_number.replace(',', '.'))
-            
-            # Check for close match (within 2% or 10 units)
-            for retrieved in retrieved_values:
-                try:
-                    retrieved_num = float(retrieved)
-                    
-                    # Absolute difference threshold
-                    if abs(num - retrieved_num) < 10:
-                        return True
-                    
-                    # Percentage difference threshold (2%)
-                    if retrieved_num != 0:
-                        pct_diff = abs(num - retrieved_num) / abs(retrieved_num)
-                        if pct_diff < 0.02:
-                            return True
-                    
-                except (ValueError, TypeError):
-                    continue
-            
+            num, decimals, is_pct = self._parse(number)
+        except (AttributeError, ValueError):
             return False
-            
-        except (ValueError, TypeError):
-            return False
+        for value in retrieved_values:
+            for candidate in ((value, value * 100) if is_pct else (value,)):
+                if round(candidate, decimals) == num:
+                    return True
+                if candidate and abs(num - candidate) / abs(candidate) <= 0.005:
+                    return True
+        return False

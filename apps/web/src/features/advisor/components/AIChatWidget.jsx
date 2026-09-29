@@ -9,9 +9,11 @@ import React, {
 import {
   X, Send, Sparkles, Minimize2, RotateCcw, Globe2,
   ChevronDown, Building2, TrendingUp, MapPin, Zap,
-  MessageCircle,
+  MessageCircle, ThumbsUp, ThumbsDown,
 } from 'lucide-react';
 import { chatSendMessage } from '../../../services/api';
+import { submitChatFeedback } from '../../../services/api-modules';
+import { userErrorMessage } from '../../../utils/errors';
 
 /* ── Constants ──────────────────────────────────────────────────────────────── */
 const ORANGE      = '#FF6B35';
@@ -22,21 +24,20 @@ const WELCOME = {
   role: 'assistant',
   text: `## Welcome to EstateMind AI 🏠
 
-I'm your **personal real estate advisor** for the Tunisian market — powered by live data from all 278 delegations.
+I answer questions about the Tunisian property market from EstateMind's listings and forecasts.
 
 **I can help you with:**
-- 📊 Current prices across every governorate
-- 📈 12-month price forecasts & trend analysis
-- 💰 Investment yields and opportunity ranking
-- 🏦 Mortgage guidance and affordability checks
-- 🌍 Climate risk and neighbourhood comparisons
+- 📊 Prices in a governorate or delegation
+- 📈 12-month price forecasts, and where prices are expected to grow fastest
+- 💰 Rule-based investment scores and rental yields, by place or ranked
+- 🌍 Climate risk scores for a place
 
 What's on your mind?`,
   suggestions: [
     'Apartment prices in Tunis?',
-    'Best investment regions 2026?',
-    'Compare Sousse vs Sfax',
-    'Mortgage guide Tunisia',
+    'Which delegations will grow fastest?',
+    'Where should I invest?',
+    'Flood risk in Hammamet?',
   ],
   ts: Date.now(),
 };
@@ -98,7 +99,29 @@ function TypingDots() {
 }
 
 /* ── Single message bubble ──────────────────────────────────────────────────── */
-function MessageBubble({ msg, onSuggestion }) {
+function FeedbackButtons({ msg, onFeedback }) {
+  if (!msg.responseLogId) return null;
+  if (msg.feedback === 'sent') {
+    return <span className="text-[10px] text-gray-500 px-1">Thanks for the feedback</span>;
+  }
+  return (
+    <div className="flex items-center gap-1 px-1">
+      {msg.feedback === 'error' && (
+        <span className="text-[10px] text-red-400 mr-1">Feedback could not be sent.</span>
+      )}
+      <button type="button" aria-label="Helpful" onClick={() => onFeedback(msg, 'helpful')}
+        className="rounded-md p-1 text-gray-500 hover:bg-white/5 hover:text-green-400">
+        <ThumbsUp size={12} />
+      </button>
+      <button type="button" aria-label="Not helpful" onClick={() => onFeedback(msg, 'not_helpful')}
+        className="rounded-md p-1 text-gray-500 hover:bg-white/5 hover:text-red-400">
+        <ThumbsDown size={12} />
+      </button>
+    </div>
+  );
+}
+
+function MessageBubble({ msg, onSuggestion, onFeedback }) {
   const isUser = msg.role === 'user';
   const isTyping = msg.role === 'typing';
 
@@ -149,10 +172,13 @@ function MessageBubble({ msg, onSuggestion }) {
           </div>
         )}
 
-        {/* Timestamp */}
-        <span className="text-[10px] text-gray-600 px-1">
-          {new Date(msg.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-        </span>
+        {/* Timestamp and feedback (assistant replies that were logged) */}
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-gray-600 px-1">
+            {new Date(msg.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </span>
+          {!isUser && onFeedback && <FeedbackButtons msg={msg} onFeedback={onFeedback} />}
+        </div>
       </div>
     </div>
   );
@@ -160,10 +186,10 @@ function MessageBubble({ msg, onSuggestion }) {
 
 /* ── Quick action pills ─────────────────────────────────────────────────────── */
 const QUICK_ACTIONS = [
-  { label: 'Prices', icon: Building2, q: 'What are current property prices?' },
-  { label: 'Invest', icon: TrendingUp, q: 'Best investment opportunities in Tunisia 2026?' },
-  { label: 'Map',    icon: MapPin,    q: 'Which governorate has the best value for money?' },
-  { label: 'Trend',  icon: Zap,       q: 'What are the price growth trends for 2026?' },
+  { label: 'Prices', icon: Building2, q: 'What are the most expensive delegations?' },
+  { label: 'Invest', icon: TrendingUp, q: 'Where should I invest?' },
+  { label: 'Value',  icon: MapPin,    q: 'What are the cheapest areas to buy?' },
+  { label: 'Trend',  icon: Zap,       q: 'Which delegations will grow fastest?' },
 ];
 
 /* ══════════════════════════════════════════════════════════════════════════════
@@ -248,6 +274,7 @@ export default function AIChatWidget() {
         text: data.message || "I couldn't process that. Please try again.",
         suggestions: data.suggestions || [],
         intent: data.intent,
+        responseLogId: data.response_log_id,
       });
 
       if (!open) setUnread(c => c + 1);
@@ -256,13 +283,24 @@ export default function AIChatWidget() {
       setMessages(prev => prev.filter(m => m.id !== typingId));
       addMsg({
         role: 'assistant',
-        text: "Sorry, I had trouble connecting. Please check that the backend is running and try again.",
-        suggestions: ['Apartment prices in Tunis?', 'Investment advice?'],
+        text: userErrorMessage(err, 'Sorry, something went wrong. Please try again.'),
+        suggestions: ['Apartment prices in Tunis?', 'Where should I invest?'],
       });
     } finally {
       setLoading(false);
     }
   }, [loading, sessionId, language, open, addMsg]);
+
+  // Thumbs up/down on a reply: feeds the chatbot's reward model and quality report.
+  const sendFeedback = useCallback(async (msg, feedback) => {
+    const mark = (state) => setMessages(prev => prev.map(m => (m.id === msg.id ? { ...m, feedback: state } : m)));
+    mark('sent');
+    try {
+      await submitChatFeedback(msg.responseLogId, sessionId, feedback);
+    } catch {
+      mark('error');
+    }
+  }, [sessionId]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -388,7 +426,7 @@ export default function AIChatWidget() {
                 <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4"
                   style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,107,53,0.3) transparent' }}>
                   {messages.map(msg => (
-                    <MessageBubble key={msg.id} msg={msg} onSuggestion={handleSuggestion} />
+                    <MessageBubble key={msg.id} msg={msg} onSuggestion={handleSuggestion} onFeedback={sendFeedback} />
                   ))}
                   <div ref={messagesEndRef} />
                 </div>

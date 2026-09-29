@@ -5,17 +5,11 @@ project. Fixed issues are in the git history.
 
 ## Chatbot
 
-- "Tunisia" is matched as the location Tunis.
-- The hallucination check allows ±10 on numbers, so wrong figures within that margin pass.
-- The `[Source:` attribution regex runs on lower-cased text, so it can never match.
-  `has_source_attribution` is therefore always false.
-- The intent-accuracy check compares the classifier with its own labels (self-referential).
-- The daily quality report crashes when re-run on the same day.
-- "Which delegations will grow fastest?" is classified as a greeting (confidence 0.98).
-- Locations are only recognized if the delegation exists in the database.
-- The investment ranking by zone is not implemented. The chatbot now says so.
-- The chat widget users see (`AIChatWidget`) never sends feedback, so the reward model gets no
-  chatbot ratings from the web app. The unmounted `ChatInterface` is dead code.
+- Intent accuracy on the hand-labelled held-out set (`data/chatbot_intents.json`, 31 questions) is
+  77% (24/31), below the 92% target. Adding labelled examples did not change it (the method was
+  chosen by cross-validation on the examples: 78% there); the embedding model seems to be the
+  limit. Portfolio and forecast questions are the weakest. Explicit words decide which national
+  ranking is shown, so rankings don't depend on the classifier.
 
 ## Legal assistant
 

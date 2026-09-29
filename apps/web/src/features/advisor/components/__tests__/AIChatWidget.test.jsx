@@ -1,8 +1,10 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { chatSendMessage } from '../../../../services/api';
+import { submitChatFeedback } from '../../../../services/api-modules';
 import AIChatWidget from '../AIChatWidget';
 
 jest.mock('../../../../services/api', () => ({ chatSendMessage: jest.fn() }));
+jest.mock('../../../../services/api-modules', () => ({ submitChatFeedback: jest.fn() }));
 
 beforeAll(() => {
   window.HTMLElement.prototype.scrollIntoView = jest.fn();
@@ -32,5 +34,22 @@ describe('AIChatWidget', () => {
     await waitFor(() => expect(document.activeElement).toBe(box));
     const typed = screen.getByText('my name is bob');
     expect(typed.className).not.toMatch(/uppercase/);
+  });
+
+  it('sends thumbs-up feedback for a logged reply with its session', async () => {
+    chatSendMessage.mockResolvedValue({ data: { message: 'Median 3,037 TND/m².', response_log_id: 77 } });
+    submitChatFeedback.mockResolvedValue({});
+    const { container } = render(<AIChatWidget />);
+    fireEvent.click(container.querySelector('button'));
+    const box = await screen.findByPlaceholderText(/Ask about prices/);
+    fireEvent.change(box, { target: { value: 'prices in la marsa' } });
+    await act(async () => { fireEvent.keyDown(box, { key: 'Enter' }); });
+    await screen.findByText(/3,037/);
+    // the welcome message was not logged, so only the reply has buttons
+    expect(screen.getAllByLabelText('Helpful')).toHaveLength(1);
+    await act(async () => { fireEvent.click(screen.getByLabelText('Helpful')); });
+    const sessionId = window.localStorage.getItem('estatemind_chat_session');
+    expect(submitChatFeedback).toHaveBeenCalledWith(77, sessionId, 'helpful');
+    expect(await screen.findByText('Thanks for the feedback')).toBeInTheDocument();
   });
 });

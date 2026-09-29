@@ -34,7 +34,6 @@ export { InvestmentGradeCard, PortfolioRiskPanel } from '../features/invest/comp
 // Climate Risk Intelligence
 
 // AI Advisor
-export { ChatMessage, ChatInterface } from '../features/advisor/components/AdvisorChatWidget';
 
 // Market Simulator
 export { ScenarioBuilder, SimulationResultPanel } from '../features/simulator/components/MarketSimulatorPanel';

@@ -139,10 +139,10 @@ class ResponseQualityMonitor:
             r'according to our data'
         ]
         
-        response_lower = response.lower()
-        
+        # case-insensitive: the patterns used to run on lower-cased text, so
+        # '\[Source:' (capital S) could never match
         for pattern in attribution_patterns:
-            if re.search(pattern, response_lower):
+            if re.search(pattern, response, re.IGNORECASE):
                 return True
         
         return False

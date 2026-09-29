@@ -52,10 +52,13 @@ def retrain_reward_model():
 
 
 @shared_task(name='estatemind.assistants.chatbot.tasks.generate_quality_report')
-def generate_quality_report():
+def generate_quality_report(report_date=None):
     """
     Daily task to compute response quality statistics and alert on degradation.
-    Runs daily @ 07:00 UTC (Africa/Tunis).
+    Runs daily @ 07:00 UTC (Africa/Tunis) and reports on the previous full day
+    (it used to report on the current day, seven hours old at that point).
+    Re-running for a date replaces that date's report; it used to crash on the
+    unique report_date.
     
     Returns:
         dict with report metrics
@@ -66,14 +69,13 @@ def generate_quality_report():
         
         logger.info('Generating daily response quality report...')
         
-        # Get all responses from today
-        today = date.today()
+        day = report_date or (timezone.localdate() - timedelta(days=1))
         today_responses = ChatbotResponseLog.objects.filter(
-            created_at__date=today
+            created_at__date=day
         )
         
         if not today_responses.exists():
-            logger.info('No responses today, skipping quality report')
+            logger.info(f'No responses on {day}, skipping quality report')
             return {'status': 'no_data'}
         
         total = today_responses.count()
@@ -114,8 +116,7 @@ def generate_quality_report():
         )
         
         # Create report
-        report = ResponseQualityDailyReport.objects.create(
-            report_date=today,
+        report, _ = ResponseQualityDailyReport.objects.update_or_create(report_date=day, defaults=dict(
             total_responses=total,
             good_responses=good,
             acceptable_responses=acceptable,
@@ -130,7 +131,7 @@ def generate_quality_report():
             thumbs_down_count=thumbs_down,
             feedback_rate=feedback_rate,
             top_intents=intent_counts
-        )
+        ))
         
         logger.info(
             f'Quality report generated: {total} responses, '
@@ -160,104 +161,45 @@ def generate_quality_report():
 
 
 @shared_task(name='estatemind.assistants.chatbot.tasks.evaluate_intent_accuracy')
-def evaluate_intent_accuracy():
+def evaluate_intent_accuracy(classifier=None):
     """
-    Weekly task to evaluate intent classifier accuracy on recent queries.
-    Runs Monday @ 03:00 UTC (Africa/Tunis).
-    
-    Returns:
-        dict with accuracy metrics
+    Weekly task: intent classifier accuracy on the hand-labelled held-out set
+    (data/chatbot_intents.json, 'evaluation'). Runs Monday @ 03:00 UTC.
+
+    This used to re-classify the past week's queries and compare the result with
+    the intent the same classifier had logged for them: that measured whether the
+    classifier agreed with itself, not whether it was right.
     """
     try:
-        from estatemind.assistants.chatbot.models import ChatbotResponseLog, IntentAccuracyMetric
+        from estatemind.assistants.chatbot.models import IntentAccuracyMetric
         from estatemind.assistants.chatbot.services import IntentClassifier
-        from django.db.models import Count
-        
-        logger.info('Evaluating intent classifier accuracy...')
-        
-        # Get all responses from past 7 days
-        week_ago = timezone.now() - timedelta(days=7)
-        test_responses = ChatbotResponseLog.objects.filter(
-            created_at__gte=week_ago
-        ).select_related('session')
-        
-        if test_responses.count() < 20:
-            logger.info('Insufficient test data (need 20+), skipping')
-            return {'status': 'insufficient_data', 'count': test_responses.count()}
-        
-        # Initialize classifier
-        classifier = IntentClassifier()
-        
-        if not classifier.is_loaded:
+        from estatemind.assistants.chatbot.services import intent_data
+
+        classifier = classifier or IntentClassifier()
+        if not getattr(classifier, 'is_loaded', True):
             logger.warning('Intent classifier not loaded, cannot evaluate')
             return {'status': 'classifier_unavailable'}
-        
-        correct = 0
-        accuracy_by_intent = {}
-        confusion = {}
-        
-        for response in test_responses:
-            # Re-classify the query
-            result = classifier.classify(
-                response.query,
-                session_context=response.session.memory_snapshot
-            )
-            predicted_intent = result['intent']
-            actual_intent = response.intent
-            
-            # Track accuracy
-            if predicted_intent == actual_intent:
-                correct += 1
-            
-            # Per-intent breakdown
-            if actual_intent not in accuracy_by_intent:
-                accuracy_by_intent[actual_intent] = {'correct': 0, 'total': 0}
-            
-            accuracy_by_intent[actual_intent]['total'] += 1
-            if predicted_intent == actual_intent:
-                accuracy_by_intent[actual_intent]['correct'] += 1
-            
-            # Confusion matrix
-            confusion_key = f'{actual_intent}->{predicted_intent}'
-            confusion[confusion_key] = confusion.get(confusion_key, 0) + 1
-        
-        total = test_responses.count()
-        overall_accuracy = correct / total if total > 0 else 0.0
-        
-        # Convert per-intent breakdown to percentages
-        accuracy_percentages = {
-            intent: (data['correct'] / data['total'])
-            for intent, data in accuracy_by_intent.items()
-        }
-        
-        # Create metric record
+
+        result = intent_data.evaluate(lambda text: classifier.classify(text)['intent'])
         metric = IntentAccuracyMetric.objects.create(
-            total_queries_tested=total,
-            correct_predictions=correct,
-            accuracy=overall_accuracy,
-            accuracy_by_intent=accuracy_percentages,
-            confusion_matrix=confusion,
-            test_set_size=total
+            total_queries_tested=result['total'],
+            correct_predictions=result['correct'],
+            accuracy=result['accuracy'],
+            accuracy_by_intent=result['accuracy_by_intent'],
+            confusion_matrix=result['confusion'],
+            test_set_size=result['total'],
         )
-        
-        logger.info(
-            f'Intent accuracy evaluated: {overall_accuracy:.1%} '
-            f'({correct}/{total})'
-        )
-        
-        # Check if meets target
-        if overall_accuracy < 0.92:
-            logger.warning(f'ALERT: Intent accuracy {overall_accuracy:.1%} '
-                          f'below target 92%')
-        
+        logger.info(f"Intent accuracy on the labelled set: {result['accuracy']:.1%} "
+                    f"({result['correct']}/{result['total']})")
+        if result['accuracy'] < 0.92:
+            logger.warning(f"Intent accuracy {result['accuracy']:.1%} is below the 92% target")
         return {
             'status': 'completed',
-            'total_queries': total,
-            'accuracy': overall_accuracy,
-            'accuracy_by_intent': accuracy_percentages,
-            'metric_id': metric.id
+            'total_queries': result['total'],
+            'accuracy': result['accuracy'],
+            'accuracy_by_intent': result['accuracy_by_intent'],
+            'metric_id': metric.id,
         }
-        
     except Exception as e:
         logger.exception(f'Intent accuracy evaluation failed: {e}')
         return {'status': 'error', 'error': str(e)}

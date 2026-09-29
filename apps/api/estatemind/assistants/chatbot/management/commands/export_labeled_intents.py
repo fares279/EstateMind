@@ -7,6 +7,7 @@ Usage:
     python manage.py export_labeled_intents --min_feedback=200 --output=labeled_intents.jsonl
 """
 
+from collections import Counter
 import json
 from django.core.management.base import BaseCommand
 from django.utils import timezone
@@ -96,12 +97,12 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS(
                 f"✅ Exported {total_count} examples to {output_file}\n"
-                f"   Next step: python train_intent_classifier_finetuned.py --labeled_data={output_file}"
+                f"   Next step: python manage.py retrain_intent_classifier --labeled_data={output_file}"
             )
         )
 
         # Print statistics
-        feedback_counts = query.values('user_feedback').counts()
+        feedback_counts = Counter(query.values_list('user_feedback', flat=True))
         self.stdout.write("\nFeedback breakdown:")
         for feedback_type, count in feedback_counts.items():
             percent = (count / total_count) * 100
@@ -109,7 +110,7 @@ class Command(BaseCommand):
             self.stdout.write(f"  {status} {feedback_type}: {count} ({percent:.1f}%)")
 
         # Print intent breakdown
-        intent_counts = query.values('intent').counts()
+        intent_counts = Counter(query.values_list('intent', flat=True))
         self.stdout.write("\nIntent breakdown:")
         for intent, count in intent_counts.items():
             percent = (count / total_count) * 100

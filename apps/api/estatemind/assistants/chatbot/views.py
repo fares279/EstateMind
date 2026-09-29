@@ -43,15 +43,17 @@ def _is_name_question(message: str) -> bool:
     return is_name_question(message)
 
 
+RANKING_PATTERN = re.compile(
+    r"\b(top|best|highest|lowest|most|least|rank(ing)?s?|leading|worst|fastest|slowest|"
+    r"cheapest|priciest|most expensive|which (delegations?|areas?|towns?|places?|governorates?)|"
+    r"where (should|can|will|are|is)|meilleure?s?|moins cher|plus cher)\b", re.IGNORECASE)
+CHEAP_PATTERN = re.compile(r"\b(cheapest|lowest|least expensive|affordable|moins cher)\b", re.IGNORECASE)
+
+
 def _detect_ranking_query(message: str) -> bool:
-    """Detect ranking queries like 'top 5', 'best', 'highest', etc."""
-    lower = message.lower().strip()
-    ranking_keywords = [
-        'top ', 'best ', 'highest', 'lowest', 'most ', 'least ', 
-        'rank', 'ranking', 'compare', 'which is better',
-        'top delegations', 'top properties', 'leading', 'worst'
-    ]
-    return any(keyword in lower for keyword in ranking_keywords)
+    """Ranking questions: 'top 5', 'which delegations will grow fastest', 'cheapest
+    areas'. Whole words ('fastest' and 'which delegations' used to be missed)."""
+    return bool(RANKING_PATTERN.search(message))
 
 
 def _data_basis_note(market: dict) -> str:
@@ -242,7 +244,8 @@ def chat_message(request):
             # climate_question was missing here, so climate answers never had data
             should_retrieve = location and intent in ['market_inquiry', 'investment_advice', 'forecast_inquiry',
                                                       'climate_question']
-            should_retrieve = should_retrieve or (is_ranking_query and intent in ['market_inquiry', 'investment_advice'])
+            should_retrieve = should_retrieve or (is_ranking_query and intent in [
+                'market_inquiry', 'investment_advice', 'forecast_inquiry'])
             
             if should_retrieve:
                 if location:
@@ -271,7 +274,8 @@ def chat_message(request):
                 intent=intent,
                 entities=entities,
                 retrieval_data=retrieval_data,
-                memory=memory
+                memory=memory,
+                message=enriched_message,
             )
         
         # Step 6: Validate groundedness
@@ -360,9 +364,59 @@ def chat_message(request):
         }, status=status.HTTP_200_OK)
 
 
+def _ranking_response(intent: str, message: str, context: dict) -> str | None:
+    """A national ranking answer from get_national_rankings data, or None. Explicit
+    words pick the ranking ('most expensive', 'grow fastest', 'invest'); the
+    classified intent only decides when there are none."""
+    lower = message.lower()
+    if re.search(r'\b(expensive|cheap|cheapest|priciest|affordable|price|prices|prix|cher)\b', lower):
+        intent = 'market_inquiry'
+    elif re.search(r'\b(grow|growth|rise|rising|forecast|fastest|increase)\b', lower):
+        intent = 'forecast_inquiry'
+    elif re.search(r'\b(invest|investment|yield|return|opportunit(y|ies)|investir)\b', lower):
+        intent = 'investment_advice'
+    if intent == 'forecast_inquiry':
+        data, key = context.get('forecast', {}), 'top_delegations'
+    elif intent == 'investment_advice':
+        data, key = context.get('investment', {}), 'top_delegations'
+    else:
+        data = context.get('market', {})
+        key = 'cheapest_delegations' if CHEAP_PATTERN.search(message) else 'top_delegations'
+    rows = (data or {}).get(key) or []
+    if not data.get('available') or not rows:
+        reason = (data or {}).get('reason')
+        return f"I can't rank delegations for that right now. {reason}." if reason else None
+
+    top = rows[:5]
+    source = f"[Source: {_format_source_tag(data.get('source_tag', ''))}]"
+    if intent == 'forecast_inquiry':
+        items = [f"{r['delegation']} ({r['governorate']}): {r['growth_pct_12m']:+.1f}%" for r in top]
+        head = (f"Fastest-growing delegations by 12-month price forecast "
+                f"({data.get('property_type', 'apartment')}s, {data.get('ranked_count')} delegations ranked):")
+        note = "Forecasts are extrapolated from EstateMind's price data, not guarantees."
+    elif intent == 'investment_advice':
+        items = [f"{r['delegation']} ({r['governorate']}): score {r['opportunity_score']}, grade {r['grade']}, "
+                 f"gross yield {r['gross_yield_pct']}%" for r in top]
+        head = (f"Top delegations for {data.get('property_type', 'apartment')}s by rule-based opportunity score "
+                f"({data.get('ranked_count')} delegations with enough real listings):")
+        note = "Scores come from fixed rules on price, rent and forecast, not a trained model."
+    else:
+        items = [f"{r['delegation']} ({r['governorate']}): {r['median_price_per_sqm']:,} TND/m² "
+                 f"({r['listing_count']} listings)" for r in top]
+        order = 'Cheapest' if key == 'cheapest_delegations' else 'Most expensive'
+        head = (f"{order} delegations for {data.get('property_type', 'apartment')}s by median price per m² "
+                f"(delegations with at least {data.get('min_real_listings')} real sale listings):")
+        note = ''
+    lines = [head, *[f"{i + 1}. {item}" for i, item in enumerate(items)]]
+    if note:
+        lines.append(note)
+    lines.append(source)
+    return '\n'.join(lines)
+
+
 def _generate_grounded_response(intent: str, entities: dict,
                                 retrieval_data: dict,
-                                memory) -> str:
+                                memory, message: str = '') -> str:
     """
     Generates a response grounded in retrieved data.
     Never invents statistics — all claims must be in retrieval_data.
@@ -378,6 +432,11 @@ def _generate_grounded_response(intent: str, entities: dict,
             "What would you like to explore?"
         )
     
+    if not location and retrieval_data.get('location') == 'NATIONWIDE':
+        ranked = _ranking_response(intent, message, context)
+        if ranked:
+            return ranked
+
     if not location:
         return (
             "I can help with Tunisia's real estate market, but I need a location to ground the answer. "

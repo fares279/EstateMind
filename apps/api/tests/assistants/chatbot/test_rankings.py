@@ -41,7 +41,60 @@ class ForecastRankingTests(TestCase):
         top = self.retriever._get_forecast_rankings('apartment')['top_delegations'][0]
         self.assertAlmostEqual(top['growth_pct_12m'], 10.0)
 
-    def test_investment_ranking_reports_not_implemented(self):
+    def test_investment_ranking_without_listings_says_so(self):
         result = self.retriever._get_investment_rankings()
         self.assertFalse(result['available'])
-        self.assertIn('not implemented', result['reason'])
+        self.assertIn('No investment ranking data', result['reason'])
+
+
+from estatemind.assistants.chatbot import views as chatbot_views  # noqa: E402
+from estatemind.market.core.models import SYNTHETIC_SOURCE, Delegation, Property, Region  # noqa: E402
+
+
+class RankingQuestionTests(TestCase):
+    def test_ranking_words(self):
+        for message in ('Which delegations will grow fastest?', 'cheapest areas to buy', 'Top 5 delegations',
+                        'Where should I invest?'):
+            self.assertTrue(chatbot_views._detect_ranking_query(message), message)
+        self.assertFalse(chatbot_views._detect_ranking_query('What are prices in Sousse?'))
+
+    def test_explicit_words_choose_the_ranking(self):
+        context = {'market': {'available': True, 'source_tag': 'market_rankings', 'property_type': 'apartment',
+                              'min_real_listings': 5,
+                              'top_delegations': [{'delegation': 'Carthage', 'governorate': 'Tunis',
+                                                   'median_price_per_sqm': 3209, 'listing_count': 17}],
+                              'cheapest_delegations': [{'delegation': 'Fouchana', 'governorate': 'Ben Arous',
+                                                        'median_price_per_sqm': 1171, 'listing_count': 6}]},
+                   'forecast': {'available': True, 'top_delegations': [
+                       {'delegation': 'Hergla', 'governorate': 'Sousse', 'growth_pct_12m': 13.7}]}}
+        # classified as a forecast question, but it asks about prices
+        text = chatbot_views._ranking_response('forecast_inquiry', 'Top 5 most expensive delegations', context)
+        self.assertIn('Carthage', text)
+        self.assertIn('Fouchana', chatbot_views._ranking_response('market_inquiry', 'cheapest areas', context))
+        self.assertIn('Hergla', chatbot_views._ranking_response('market_inquiry', 'which will grow fastest', context))
+
+
+class MarketRankingTests(TestCase):
+    def setUp(self):
+        self.retriever = MarketDataRetriever.__new__(MarketDataRetriever)
+        region = Region.objects.create(governorate='Tunis')
+        self.n = 0
+
+        def listings(name, ppm, count, ptype='apartment', source='listings_csv'):
+            d, _ = Delegation.objects.get_or_create(region=region, name=name)
+            for _ in range(count):
+                self.n += 1
+                Property.objects.create(external_id=f'p{self.n}', title='t', description='d', property_type=ptype,
+                                        region=region, delegation=d, price=ppm * 100, area_sqm=100, bedrooms=2,
+                                        bathrooms=1, source=source)
+        listings('Carthage', 3200, 6)
+        listings('Bardo', 1200, 6)
+        listings('Bardo', 150, 20, ptype='land')             # land must not drag Bardo's apartment median
+        listings('Mornag', 900, 3)                           # too few real listings to rank
+        listings('Mornag', 900, 10, source=SYNTHETIC_SOURCE) # sample listings don't count
+
+    def test_ranks_real_listings_of_one_type(self):
+        result = self.retriever._get_market_rankings('apartment')
+        self.assertTrue(result['available'], result)
+        self.assertEqual([r['delegation'] for r in result['top_delegations']], ['Carthage', 'Bardo'])
+        self.assertEqual(result['cheapest_delegations'][0]['median_price_per_sqm'], 1200)
