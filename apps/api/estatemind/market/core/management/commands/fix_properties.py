@@ -165,7 +165,7 @@ class Command(BaseCommand):
 
         from estatemind.market.core.models import Property, Region, Delegation
         from estatemind.market.scraper.pipeline.wrangler import (
-            _lookup_city, _DEFAULT_DELEGATION, _build_english_title,
+            _lookup_city, _build_english_title,
             _n, _infer_governorate,
         )
 
@@ -299,9 +299,8 @@ class Command(BaseCommand):
                         stats['region_fixed'] += 1
                         changed = True
 
-                    # Fix delegation FK
-                    if not deleg_hint:
-                        deleg_hint = _DEFAULT_DELEGATION.get(target_gov)
+                    # Fix delegation FK (only from a town found in the listing; no
+                    # catch-all 'X Ville' default)
                     if deleg_hint and new_region:
                         current_deleg_name = p.delegation.name if p.delegation else ''
                         if current_deleg_name.lower() != deleg_hint.lower():
@@ -315,21 +314,6 @@ class Command(BaseCommand):
                                 p.delegation = new_deleg
                                 stats['delegation_fixed'] += 1
                                 changed = True
-                    elif not p.delegation and new_region:
-                        # Assign default delegation even if no specific hint
-                        default_name = _DEFAULT_DELEGATION.get(target_gov)
-                        if default_name:
-                            if not dry:
-                                new_deleg = _get_or_create_delegation(default_name, new_region)
-                            else:
-                                new_deleg = Delegation.objects.filter(
-                                    name__iexact=default_name, region=new_region
-                                ).first()
-                            if new_deleg:
-                                p.delegation = new_deleg
-                                stats['delegation_fixed'] += 1
-                                changed = True
-
                 # Translate French title to English
                 if _needs_translation(title) and target_gov:
                     new_title = _build_english_title(

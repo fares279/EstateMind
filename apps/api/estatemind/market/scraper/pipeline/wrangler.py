@@ -337,35 +337,6 @@ _CITY_LOOKUP: dict[str, tuple[str, str | None]] = {
     'souk lahad':               ('Kebili', 'Souk Lahad'),
 }
 
-# Default delegation name per governorate (used when no specific match found)
-_DEFAULT_DELEGATION: dict[str, str] = {
-    'Tunis':       'Tunis Ville',
-    'Ariana':      'Ariana Ville',
-    'Ben Arous':   'Ben Arous Ville',
-    'Manouba':     'Manouba Ville',
-    'Nabeul':      'Nabeul Ville',
-    'Zaghouan':    'Zaghouan Ville',
-    'Bizerte':     'Bizerte Nord',
-    'Beja':        'Beja Ville',
-    'Jendouba':    'Jendouba Ville',
-    'Kef':         'Kef Ville',
-    'Siliana':     'Siliana Ville',
-    'Sousse':      'Sousse Medina',
-    'Monastir':    'Monastir Ville',
-    'Mahdia':      'Mahdia Ville',
-    'Sfax':        'Sfax Ville',
-    'Kairouan':    'Kairouan Ville',
-    'Kasserine':   'Kasserine Ville',
-    'Sidi Bouzid': 'Sidi Bouzid Ville',
-    'Gabes':       'Gabes Ville',
-    'Medenine':    'Medenine Ville',
-    'Tataouine':   'Tataouine Ville',
-    'Gafsa':       'Gafsa Ville',
-    'Tozeur':      'Tozeur Ville',
-    'Kebili':      'Kebili Ville',
-}
-
-
 def _lookup_city(raw: str) -> tuple[str, str | None] | None:
     """
     Return (governorate, delegation_hint) for a city/neighbourhood name, or None.
@@ -772,8 +743,16 @@ class DataWrangler:
         gov_from_lookup   = None
         deleg_from_lookup = None
 
-        # Priority: title location > scraper city > location_raw > inference
+        # Priority: title location > scraper city > location_raw > inference.
+        # City/location fields that only repeat the governorate (normalization copies it
+        # there) say nothing about the town; looking them up assigned the governorate's
+        # main delegation ('Sousse' -> Sousse Medina) to listings with no town.
+        def _key(text):
+            return re.sub(r'[^a-z]+', ' ', _n(text)).strip()
+        gov_key = _key(governorate)
         for candidate in [title_location, city, location_raw]:
+            if candidate and candidate is not title_location and gov_key and _key(candidate) == gov_key:
+                continue
             if candidate:
                 result = _lookup_city(candidate)
                 if result:
@@ -794,12 +773,13 @@ class DataWrangler:
 
         # Resolve delegation hint
         if not deleg_from_lookup:
-            if city:
+            if city and _key(city) != _key(governorate):
                 r = _lookup_city(city)
                 if r:
                     deleg_from_lookup = r[1]
-            if not deleg_from_lookup:
-                deleg_from_lookup = _DEFAULT_DELEGATION.get(governorate)
+            # No town found: the listing stays at governorate level (no delegation).
+            # It used to go to the governorate's catch-all 'X Ville' delegation, which
+            # skewed that delegation's prices and forecasts.
 
         # Step 5 — enrich from text
         price_tnd  = _safe_float(data.get('price_tnd')) or _parse_price(str(data.get('price') or ''))

@@ -140,3 +140,14 @@ class ImputationFlagTests(TestCase):
                                       'bedrooms': 2, 'bathrooms': 1})
         prop, _ = PropertyLoader().load(SimpleNamespace(normalized_data=row, external_id='ext-11'))
         self.assertFalse(prop.price_imputed or prop.area_imputed or prop.rooms_imputed)
+
+
+class UnknownTownTests(SimpleTestCase):
+    def test_no_town_means_no_delegation(self):
+        # used to be the governorate's catch-all 'X Ville' delegation
+        row = DataWrangler().wrangle({**SALE, 'listing_url': 'u12', 'title': 'Appartement à vendre',
+                                      'governorate': 'Sousse', 'price': '250 000 DT', 'surface_area': '100 m2',
+                                      'property_type': 'apartment'})
+        self.assertIsNotNone(row)
+        self.assertEqual(row['governorate'], 'Sousse')
+        self.assertFalse(row['delegation_hint'])
