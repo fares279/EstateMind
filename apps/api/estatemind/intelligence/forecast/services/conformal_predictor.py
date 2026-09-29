@@ -32,12 +32,16 @@ class ConformalPredictor:
     on a held-out calibration set (from backtesting).
     """
 
-    def __init__(self, coverage: float = 0.90):
+    def __init__(self, coverage: float = 0.90, adaptive: bool = True):
         """
         Args:
             coverage: desired coverage level (e.g. 0.90 for 90%)
+            adaptive: when horizons are given, size each horizon's band with adaptive
+                conformal inference over its time-ordered residuals (see _adaptive_quantile)
         """
         self.coverage = coverage
+        self.adaptive = adaptive
+        self._online_coverage: dict[int, float] = {}
         self._quantile = None  # learned from calibration set (all horizons pooled)
         self._n_calibration = 0
         # Error grows with the forecast horizon: one pooled width over-covers
@@ -45,6 +49,38 @@ class ConformalPredictor:
         self._horizon_quantiles: dict[int, float] = {}
 
     MIN_PER_HORIZON = 20
+    # Adaptive conformal inference (Gibbs & Candes, 2021): step size of the miscoverage
+    # level, and how many recent residuals a band is computed from.
+    ACI_GAMMA = 0.01
+    ACI_WINDOW = 60
+    ACI_WARMUP = 12
+
+    def _level_quantile(self, abs_residuals: np.ndarray, level: float) -> float:
+        n = len(abs_residuals)
+        k = int(np.ceil((n + 1) * min(max(level, 0.0), 1.0)))
+        return float(np.sort(abs_residuals)[max(1, min(k, n)) - 1])
+
+    def _adaptive_quantile(self, abs_residuals: np.ndarray) -> tuple[float, float]:
+        """Walk the residuals in time order. Each step's band is the (1 - alpha_t)
+        quantile of the last ACI_WINDOW residuals; after a miss alpha_t shrinks (wider
+        bands), after a hit it grows slightly, so long-run coverage returns to the target
+        after a regime change instead of staying low. Returns (band for the next step,
+        coverage achieved during the walk).
+
+        Split conformal pools all residuals, so after a regime change the band keeps
+        reflecting the old, calmer regime (81% at a 90% target in the synthetic backtest).
+        """
+        target = 1 - self.coverage
+        alpha, hits, steps = target, 0, 0
+        for t in range(self.ACI_WARMUP, len(abs_residuals)):
+            past = abs_residuals[max(0, t - self.ACI_WINDOW):t]
+            q = self._level_quantile(past, 1 - alpha)
+            miss = abs_residuals[t] > q
+            hits += not miss
+            steps += 1
+            alpha = float(np.clip(alpha + self.ACI_GAMMA * (target - miss), 0.0, 0.5))
+        recent = abs_residuals[-self.ACI_WINDOW:]
+        return self._level_quantile(recent, 1 - alpha), (hits / steps if steps else float('nan'))
 
     def _quantile_of(self, abs_residuals: np.ndarray) -> float:
         # Split-conformal: the k-th smallest residual, k = ceil((n+1) * coverage) (1-based).
@@ -80,7 +116,12 @@ class ConformalPredictor:
             for h in np.unique(hz):
                 part = residuals[hz == h]
                 if len(part) >= self.MIN_PER_HORIZON:
-                    self._horizon_quantiles[int(h)] = self._quantile_of(part)
+                    if self.adaptive:
+                        q, online = self._adaptive_quantile(part)
+                        self._horizon_quantiles[int(h)] = q
+                        self._online_coverage[int(h)] = round(online, 3)
+                    else:
+                        self._horizon_quantiles[int(h)] = self._quantile_of(part)
 
         return {
             "quantile": round(self._quantile, 2),
@@ -90,6 +131,8 @@ class ConformalPredictor:
             "residual_p90": round(float(np.percentile(residuals, 90)), 2),
             "valid": n >= 30,  # need at least 30 for strong reliability
             "per_horizon": bool(self._horizon_quantiles),
+            "method": "adaptive_conformal" if self.adaptive and self._online_coverage else "split_conformal",
+            "online_coverage_by_horizon": dict(self._online_coverage),
         }
 
     def quantile_for(self, horizon: int | None = None) -> float:

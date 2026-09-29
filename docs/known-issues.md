@@ -74,7 +74,10 @@ See [ml/valuation-training-data.md](ml/valuation-training-data.md):
 - There is no price history, so forecast levels can't be backtested. Current forecasts sit at
   0.63× listing prices; the archived set is at 0.32×.
 - The scraper assigns catch-all "X Ville" delegations.
-- Conformal intervals under-cover after regime changes.
+- Forecast intervals still under-cover: about 73-80% at a 90% target on synthetic series, after
+  the switch to adaptive conformal. The trend model's errors grow over time on random-walk
+  prices; a better base model is the fix, not the band. Served forecasts use an illustrative
+  ±2.5% band until a model is backtested on real price history.
 
 ## Simulator
 

@@ -38,8 +38,11 @@ The table below shows what each model is, and how far it has been checked agains
 - `python manage.py train_forecast_model`, then `generate_forecasts`.
 - Intervals are split-conformal and sized per forecast horizon
   (`services/conformal_predictor.py`, tested in `tests/intelligence/forecast/test_conformal.py`).
-  In a synthetic backtest at 90% nominal coverage, the linear model reached 81% overall and 70% at
-  month 12. Intervals under-cover after regime changes; adaptive conformal is future work.
+  Each horizon's band now uses adaptive conformal inference over its time-ordered backtest
+  residuals (level adjusted after each miss or hit, last 60 residuals). On 200 synthetic series,
+  coverage of the following forecasts at a 90% target went from 67% to 80% after a regime change,
+  and from 68% to 73% with no change. The remaining gap is the trend model's: on random-walk
+  prices its errors keep growing over time, which no band calibration fully corrects.
 - There is no historical price series, so forecast *levels* cannot be backtested. The current
   forecasts sit at about 0.63× listing prices, and the archived set at 0.32× (a likely scaling
   error).

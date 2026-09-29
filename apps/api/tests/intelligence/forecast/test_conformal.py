@@ -48,3 +48,21 @@ class ConformalCoverageTests(SimpleTestCase):
         cp.calibrate([1.0] * 30 + [5.0] * 30, horizons=[1] * 30 + [12] * 30)
         self.assertEqual(cp.predict_interval(100, horizon=1)['high'], 101.0)
         self.assertEqual(cp.predict_interval(100, horizon=12)['high'], 105.0)
+
+
+class AdaptiveConformalTests(SimpleTestCase):
+    def test_band_recovers_after_errors_grow(self):
+        # 240 calm residuals, then 120 three times larger (a regime change); the next 120 as large
+        rng = np.random.default_rng(0)
+        past = np.concatenate([rng.normal(0, 1, 240), rng.normal(0, 3, 120)])
+        future = np.abs(rng.normal(0, 3, 120))
+        hz = [1] * len(past)
+        split = ConformalPredictor(0.90, adaptive=False)
+        split.calibrate(list(past), horizons=hz)
+        adaptive = ConformalPredictor(0.90, adaptive=True)
+        meta = adaptive.calibrate(list(past), horizons=hz)
+        split_cov = np.mean(future <= split.quantile_for(1))
+        adaptive_cov = np.mean(future <= adaptive.quantile_for(1))
+        self.assertLess(split_cov, 0.85)       # pooled residuals remember the calm regime
+        self.assertGreater(adaptive_cov, 0.85)
+        self.assertEqual(meta['method'], 'adaptive_conformal')
