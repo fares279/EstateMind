@@ -82,11 +82,23 @@ def champion_predictions(test: pd.DataFrame) -> dict[str, np.ndarray]:
     return out
 
 
+def variant_e_options():
+    """Variant E, holding out the previous v2 test listings (see compare_data_fixes)."""
+    from ml.shared.listings_dataset import V1, Options, build
+    holdout = frozenset(build(options=V1).test['record_id'])
+    return Options(location='v2', drop_cross_town_duplicates=True, drop_fractional_surfaces=True,
+                   coordinates='none', holdout_ids=holdout)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--iterations', type=int, default=2000)
     parser.add_argument('--register', action='store_true')
     parser.add_argument('--version', default=f'estate_v2_{date.today():%Y%m%d}')
+    parser.add_argument('--options', choices=('v2', 'e'), default='v2',
+                        help="'v2': the default cleaning. 'e': variant E from docs/ml/valuation-training-data.md "
+                             "(per-row location fix, generated-looking rows dropped, no coordinates), with the "
+                             "previous v2 test listings held out so evaluate_served compares on unseen rows.")
     args = parser.parse_args()
 
     import os
@@ -95,7 +107,7 @@ def main():
     from config.paths import ARTIFACTS_DIR
     from ml.shared.listings_dataset import FEATURES, build
 
-    ds = build()
+    ds = build(options=variant_e_options()) if args.options == 'e' else build()
     out_dir = ARTIFACTS_DIR / 'valuation' / 'models' / args.version
     out_dir.mkdir(parents=True, exist_ok=True)
 
