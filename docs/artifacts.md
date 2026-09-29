@@ -6,7 +6,7 @@ recorded in the tracked `apps/api/artifacts.lock.json`: each file's path, size a
 
 ```bash
 cd apps/api
-python scripts/artifacts.py verify               # does disk match the lock?
+python scripts/artifacts.py verify               # does disk match the lock? (--strict: see below)
 python scripts/artifacts.py lock                 # record the current files (after retraining)
 python scripts/artifacts.py pack bundle.tar.gz   # bundle them for upload
 python scripts/artifacts.py fetch <https-url>    # download a bundle, verify, install
@@ -15,6 +15,12 @@ python scripts/artifacts.py fetch <https-url>    # download a bundle, verify, in
 `fetch` verifies every file against the lock *before* installing anything. A bundle that doesn't
 match is rejected, and nothing is written. The API container runs `verify` at start, and runs
 `fetch` when `ESTATEMIND_ARTIFACTS_URL` is set and files are missing.
+
+The legal vector store (`chroma/`) is runtime-mutable: Chroma rewrites its files when it is used.
+It is locked and shipped like the rest, but `verify` only requires those files to be present, so
+using the legal assistant doesn't make the next container start re-download the bundle.
+`verify --strict`, `pack` and `fetch` compare every file. To pack after the store has been used,
+run `lock` first.
 
 ## Workflow after retraining
 

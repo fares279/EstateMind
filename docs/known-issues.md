@@ -92,9 +92,6 @@ See [ml/valuation-training-data.md](ml/valuation-training-data.md):
 - `checkout.session.completed` webhooks handle subscriptions, but checkout creates one-off
   PaymentIntents. Real upgrades go through `confirm-payment`, and renewals aren't automatic.
 - Frontend test coverage is thin (see frontend.md).
-- Chroma rewrites the legal vector store files (`artifacts/chroma/legal/`) when it is used, so
-  `scripts/artifacts.py verify` then reports them as changed, and the container entrypoint
-  re-fetches the whole bundle on the next start when `ESTATEMIND_ARTIFACTS_URL` is set.
 - The dev database starts empty by design; run `migrate` then `seed_demo_data`. Only about half
   of the real listings match a delegation; listing coordinates are delegation centroids.
 - API Keys is parked: `pages/AccountApiKeysPage.jsx` is a mock-up with no backend. It is kept but
