@@ -47,7 +47,7 @@ function AddDrawer({ onClose, onSave }) {
   const [delegs, setDelegs] = useState([]);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v, ...(k === 'governorate' ? { delegation: '' } : {}) }));
 
   useEffect(() => {
     if (!form.governorate) {
@@ -149,16 +149,11 @@ function AddDrawer({ onClose, onSave }) {
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-400 mb-1.5">Area / Delegation</label>
-              <input
-                list="portfolio-delegations"
-                className={INP}
-                value={form.delegation}
-                onChange={e => set('delegation', e.target.value)}
-                placeholder="e.g. La Marsa" />
-              <datalist id="portfolio-delegations">
-                {delegs.map(d => <option key={d} value={d} />)}
-              </datalist>
-              <p className="mt-1 text-[10px] text-gray-600">Type to search delegations in the selected governorate.</p>
+              <select className={INP} value={form.delegation} disabled={!delegs.length}
+                onChange={e => set('delegation', e.target.value)}>
+                <option value="">{delegs.length ? 'Select an area' : 'Loading areas…'}</option>
+                {delegs.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
             </div>
           </div>
 

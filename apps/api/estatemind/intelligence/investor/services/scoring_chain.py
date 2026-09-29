@@ -118,7 +118,9 @@ class ScannerChain:
             
             # Pull 12-month projected change from forecast summary
             summary = forecast.get('summary', {})
-            change_pct = summary.get('price_change_pct')
+            # the forecast summary key is growth_pct_12m; 'price_change_pct' never existed,
+            # so every IRR used the fallback growth rate
+            change_pct = summary.get('growth_pct_12m')
             
             if change_pct is not None:
                 return {

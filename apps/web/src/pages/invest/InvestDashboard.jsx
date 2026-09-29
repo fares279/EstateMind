@@ -75,13 +75,20 @@ export default function InvestDashboard() {
   const [data,    setData]    = useState(null);
   const [freshness, setFreshness] = useState({});
   const [loading, setLoading] = useState(true);
+  const [failed,  setFailed]  = useState(false);
   const navigate              = useNavigate();
 
-  useEffect(() => {
+  const load = () => {
+    setLoading(true);
+    setFailed(false);
     getInvestorDashboard()
       .then(r => setData(r.data))
-      .catch(() => setData(null))
+      .catch(() => { setData(null); setFailed(true); })
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    load();
 
     getKpiFreshness()
       .then((r) => setFreshness(r.data || {}))
@@ -285,8 +292,8 @@ export default function InvestDashboard() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold text-green-400">
-                      +{(s.annual_trend_pct || 0).toFixed(1)}%/yr
+                    <p className={`text-sm font-bold ${(s.annual_trend_pct || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {(s.annual_trend_pct || 0) >= 0 ? '+' : '−'}{Math.abs(s.annual_trend_pct || 0).toFixed(1)}%/yr
                     </p>
                     <p className="text-xs text-gray-500">
                       {Math.round(s.price_avg || 0).toLocaleString()} TND/m²
@@ -295,8 +302,13 @@ export default function InvestDashboard() {
                 </button>
               ))}
             </div>
+          ) : failed ? (
+            <div className="text-center py-10 space-y-2">
+              <p className="text-sm text-gray-400">Market data could not be loaded.</p>
+              <button onClick={load} className="text-xs font-medium text-[#FF6B35] hover:underline">Try again</button>
+            </div>
           ) : (
-            <p className="text-sm text-gray-500 text-center py-10">Loading market data…</p>
+            <p className="text-sm text-gray-500 text-center py-10">No market data yet.</p>
           )}
         </div>
 

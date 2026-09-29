@@ -330,7 +330,8 @@ class PortfolioCovarianceModel:
             # Get all available delegations
             all_delegations = (
                 DelegationMarketSnapshot.objects
-                .values_list('delegation_name', flat=True)
+                .order_by('delegation__name')
+                .values_list('delegation__name', flat=True)  # snapshots have no delegation_name field
                 .distinct()
             )
             all_delegations = list(set(all_delegations) - set(delegations) - set(excluded_delegations))

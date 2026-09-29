@@ -140,7 +140,7 @@ function Result({ result }) {
           {
             label: 'Annual Yield',
             value: `${y.gross_yield_pct}%`,
-            sub: `≈ ${Math.round(y.monthly_rent_est || 0).toLocaleString()} TND/mo`,
+            sub: `≈ ${Math.round(y.monthly_rent_est || 0).toLocaleString()} TND/mo ${String(y.basis || '').startsWith('market_rent') ? '(local market rent)' : '(typical yield; no rent data for this area)'}`,
             color: ORANGE,
           },
           {
@@ -253,7 +253,8 @@ export default function ScannerPage() {
   const [loading, setLoading] = useState(false);
   const [err,     setErr]     = useState('');
 
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  // changing the governorate clears the area: an area from another governorate used to stay selected
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v, ...(k === 'governorate' ? { delegation: '' } : {}) }));
 
   useEffect(() => {
     getScanHistory().then(r => setHistory(r.data || [])).catch(() => {});
@@ -261,6 +262,7 @@ export default function ScannerPage() {
 
   useEffect(() => {
     if (!form.governorate) return;
+    setDelegs([]);
     getForecastDelegationList(form.governorate)
       .then(r => setDelegs(r.data?.delegations || r.data || []))
       .catch(() => setDelegs([]));
@@ -270,6 +272,10 @@ export default function ScannerPage() {
     e.preventDefault();
     if (!form.listing_price_tnd || !form.surface_m2) {
       setErr('Asking price and surface area are required.');
+      return;
+    }
+    if (Number(form.listing_price_tnd) <= 0 || Number(form.surface_m2) <= 0) {
+      setErr('Price and surface must be positive numbers.');
       return;
     }
     setErr('');
@@ -286,7 +292,8 @@ export default function ScannerPage() {
         price_reduction_count: 0,
       });
       setResult(res.data);
-      setHistory(h => [res.data, ...h].slice(0, 20));
+      // reload the saved scans: the result object is not a history row (that showed blank rows)
+      getScanHistory().then(r => setHistory(r.data || [])).catch(() => {});
     } catch (e) {
       setErr(e?.response?.data?.error || 'Analysis failed. Please check your connection and try again.');
     } finally { setLoading(false); }
@@ -362,17 +369,11 @@ export default function ScannerPage() {
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-400 mb-1.5">Area</label>
-              {delegs.length > 0 ? (
-                <select className={INP} value={form.delegation}
-                  onChange={e => set('delegation', e.target.value)}>
-                  <option value="">— Any —</option>
-                  {delegs.map(d => <option key={d} value={d}>{d}</option>)}
-                </select>
-              ) : (
-                <input className={INP} value={form.delegation}
-                  onChange={e => set('delegation', e.target.value)}
-                  placeholder="e.g. La Marsa" />
-              )}
+              <select className={INP} value={form.delegation} disabled={!delegs.length}
+                onChange={e => set('delegation', e.target.value)}>
+                <option value="">{delegs.length ? 'Any area' : 'Loading areas…'}</option>
+                {delegs.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
             </div>
           </div>
 
@@ -435,7 +436,14 @@ export default function ScannerPage() {
         {/* Results */}
         <div className="xl:col-span-3">
           {result ? (
-            <Result result={result} />
+            <>
+              {result.input_warnings?.length > 0 && (
+                <div className="mb-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-300 space-y-0.5">
+                  {result.input_warnings.map((w, i) => <p key={i}>{w}</p>)}
+                </div>
+              )}
+              <Result result={result} />
+            </>
           ) : (
             <div className="flex flex-col items-center justify-center h-full min-h-[420px]
               rounded-2xl border border-dashed border-white/[0.1] text-center px-10">

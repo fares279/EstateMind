@@ -8,6 +8,7 @@ import logging
 import numpy as np
 import pandas as pd
 
+from .market_rent import market_rent_per_m2
 from .registry import REGISTRY
 from .zone_data import get_zone_stats, get_zone_forecast
 from .scoring_method import describe
@@ -80,6 +81,12 @@ def score_listing(inp: dict) -> dict:
     zone = get_zone_stats(deleg, ptype)
     fcst = get_zone_forecast(deleg, ptype)
 
+    price    = float(inp.get('listing_price_tnd', 200000))
+    surface  = float(inp.get('surface_m2', 100))
+    zone_avg = zone.get('avg_price_per_m2_tnd', 1500.0)
+    fair_value = zone_avg * surface
+    price_gap_pct = (price - fair_value) / max(fair_value, 1) * 100
+
     # ── Model 1: Undervaluation detector ────────────────────────────────────
     f1 = build_scanner_features_m1(inp, zone, fcst)
     proba_arr = _predict_proba('undervaluation_detector', f1)
@@ -99,9 +106,14 @@ def score_listing(inp: dict) -> dict:
             'OVERPRICED':           round(float(probas[3]), 3),
         }
     else:
-        underval_label    = 'FAIRLY_PRICED'
-        proba_undervalued = 0.25
-        underval_probas   = {'SEVERELY_UNDERVALUED': 0.05, 'UNDERVALUED': 0.20, 'FAIRLY_PRICED': 0.60, 'OVERPRICED': 0.15}
+        # Rule-based: follow the price gap to the zone average. This used to return
+        # FAIRLY_PRICED with fixed 60% 'probabilities' whatever the price.
+        underval_label = ('SEVERELY_UNDERVALUED' if price_gap_pct <= -35 else
+                          'UNDERVALUED' if price_gap_pct <= -15 else
+                          'OVERPRICED' if price_gap_pct >= 15 else 'FAIRLY_PRICED')
+        proba_undervalued = {'SEVERELY_UNDERVALUED': 0.85, 'UNDERVALUED': 0.65,
+                             'FAIRLY_PRICED': 0.25, 'OVERPRICED': 0.05}[underval_label]
+        underval_probas   = None  # no model, so no probabilities
 
     # ── Model 3: Buy/Wait ────────────────────────────────────────────────────
     f3 = build_scanner_features_m3(inp, zone, fcst, proba_undervalued)
@@ -120,12 +132,22 @@ def score_listing(inp: dict) -> dict:
     # ── Model 2: Rental yield ────────────────────────────────────────────────
     f2 = build_scanner_features_m2(inp, zone, fcst)
     yield_pred = _predict('rental_yield', f2)
+    rent_pm2, rent_basis = market_rent_per_m2(deleg, gov, ptype)
     if yield_pred is not None:
         gross_yield = float(np.clip(float(np.array(yield_pred).flatten()[0]), 1.0, 25.0))
+        yield_basis = 'model'
+        monthly_rent = price * gross_yield / 100 / 12
+    elif rent_pm2:
+        # market rent (median of real rental listings) x surface, then yield = rent / price.
+        # The rent used to be derived from the price and an assumed yield (circular).
+        monthly_rent = rent_pm2 * surface
+        gross_yield = monthly_rent * 12 / max(price, 1) * 100
+        yield_basis = f'market_rent_{rent_basis}'
     else:
-        price  = float(inp.get('listing_price_tnd', 200000))
-        ppm2   = price / max(float(inp.get('surface_m2', 100)), 1)
+        ppm2   = price / max(surface, 1)
         gross_yield = 8.0 if ppm2 < 2000 else (6.5 if ppm2 < 3500 else 5.5)
+        monthly_rent = price * gross_yield / 100 / 12
+        yield_basis = 'assumed'  # no rent data for this area: a typical yield, not a measurement
 
     # ── Model 4: Opportunity score ───────────────────────────────────────────
     f4 = build_scanner_features_m4(inp, zone, fcst, proba_undervalued, gross_yield, p_buy)
@@ -150,17 +172,11 @@ def score_listing(inp: dict) -> dict:
         elif opp_score >= 35:  investment_grade = 'C'
         else:                  investment_grade = 'D'
 
-    # ── Price estimation ─────────────────────────────────────────────────────
-    price    = float(inp.get('listing_price_tnd', 200000))
-    surface  = float(inp.get('surface_m2', 100))
-    zone_avg = zone.get('avg_price_per_m2_tnd', 1500.0)
-    fair_value = zone_avg * surface
-    price_gap_pct = (price - fair_value) / max(fair_value, 1) * 100
-
     return {
         'undervaluation': {
             'label':              underval_label,
             'probabilities':      underval_probas,
+            'method':             'model' if underval_probas is not None else 'rule_based_price_gap',
             'proba_undervalued':  round(proba_undervalued, 3),
         },
         'buy_signal': {
@@ -170,7 +186,9 @@ def score_listing(inp: dict) -> dict:
         'yield': {
             'gross_yield_pct': round(gross_yield, 2),
             'net_yield_pct':   round(max(0.0, gross_yield - 2.0), 2),
-            'monthly_rent_est': round(price * gross_yield / 100 / 12),
+            'monthly_rent_est': round(monthly_rent),
+            'basis':           yield_basis,
+            'rent_per_m2':     round(rent_pm2, 2) if rent_pm2 and yield_basis.startswith('market_rent') else None,
         },
         'opportunity_score': round(opp_score, 1),
         'investment_grade':  investment_grade,

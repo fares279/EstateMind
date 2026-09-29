@@ -6,6 +6,8 @@ from rest_framework import status
 
 from estatemind.platform.errors import error_body
 
+from .services.input_validation import InvalidListing, check_delegation, check_listing
+
 from .models import PortfolioAsset, ScanResult
 
 INPUT_MESSAGE = 'Some of the values could not be read. Please check them and try again.'
@@ -16,32 +18,6 @@ from .services.registry import REGISTRY
 
 
 # ── Portfolio CRUD ────────────────────────────────────────────────────────────
-
-def _validate_delegation(governorate: str, delegation: str) -> tuple[bool, str]:
-    """
-    Validate that delegation exists and belongs to the governorate.
-    Returns (is_valid, error_message).
-    """
-    if not delegation:
-        return True, ""  # Allow empty delegation
-    
-    from estatemind.market.core.models import Delegation
-    
-    # Check if delegation exists
-    if not Delegation.objects.filter(name=delegation).exists():
-        return False, f"Invalid delegation '{delegation}'"
-    
-    # Verify delegation belongs to the governorate if governorate provided
-    if governorate:
-        valid = Delegation.objects.filter(
-            name=delegation,
-            region__governorate=governorate
-        ).exists()
-        if not valid:
-            return False, f"Delegation '{delegation}' does not belong to governorate '{governorate}'"
-    
-    return True, ""
-
 
 def _asset_to_dict(asset: PortfolioAsset) -> dict:
     return {
@@ -77,12 +53,18 @@ def portfolio_list(request):
 
     data = request.data
     
-    # Validate delegation if provided
+    # Validate the area (case/accent-insensitive, must be in the governorate) and the figures
     gov = data.get('governorate', '')
     deleg = data.get('delegation', '')
-    is_valid, error_msg = _validate_delegation(gov, deleg)
-    if not is_valid:
-        return Response({'error': error_msg}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        match = check_delegation(gov, deleg)
+        if data.get('acquisition_price_tnd') and data.get('surface_m2'):
+            check_listing(data['acquisition_price_tnd'], data['surface_m2'], data.get('property_type', 'apartment'),
+                          gov, deleg)
+    except InvalidListing as exc:
+        return Response({'error': str(exc), 'field': exc.field}, status=status.HTTP_400_BAD_REQUEST)
+    if match is not None:  # store the canonical spelling ('carthage' -> 'Carthage')
+        deleg, gov = match.name, match.region.governorate
     
     try:
         from datetime import date
@@ -127,14 +109,15 @@ def portfolio_detail(request, pk):
 
     data = request.data
     
-    # Validate delegation if being updated
+    # Validate the area if it is being updated (case/accent-insensitive, within the governorate)
     if 'delegation' in data:
-        gov = data.get('governorate', asset.governorate)
-        deleg = data.get('delegation', '')
-        is_valid, error_msg = _validate_delegation(gov, deleg)
-        if not is_valid:
-            return Response({'error': error_msg}, status=status.HTTP_400_BAD_REQUEST)
-    
+        try:
+            match = check_delegation(data.get('governorate', asset.governorate), data.get('delegation', ''))
+        except InvalidListing as exc:
+            return Response({'error': str(exc), 'field': exc.field}, status=status.HTTP_400_BAD_REQUEST)
+        if match is not None:
+            data = {**data, 'delegation': match.name, 'governorate': match.region.governorate}
+
     for field in ['property_name', 'property_type', 'governorate', 'delegation',
                   'surface_m2', 'room_count', 'floor_level', 'amenity_score',
                   'acquisition_price_tnd', 'current_value_tnd', 'is_rented',
@@ -187,10 +170,17 @@ def scanner_score(request):
     """
     inp = request.data
     if not inp.get('listing_price_tnd') or not inp.get('surface_m2'):
-        return Response({'error': 'listing_price_tnd and surface_m2 are required'},
+        return Response({'error': 'Enter the asking price and the surface area.'},
                         status=status.HTTP_400_BAD_REQUEST)
+    try:
+        input_warnings = check_listing(inp.get('listing_price_tnd'), inp.get('surface_m2'),
+                                       inp.get('property_type', 'apartment'), inp.get('governorate', ''),
+                                       inp.get('delegation', ''))
+    except InvalidListing as exc:
+        return Response({'error': str(exc), 'field': exc.field}, status=status.HTTP_400_BAD_REQUEST)
 
     result = score_listing(inp)
+    result['input_warnings'] = input_warnings
 
     # Persist to scan history
     try:
