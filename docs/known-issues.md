@@ -88,8 +88,8 @@ See [ml/valuation-training-data.md](ml/valuation-training-data.md):
 
 - Rate limits exist (see settings `DEFAULT_THROTTLE_RATES`). They need `CACHE_URL` (shared Redis)
   to hold across several processes, and `NUM_PROXIES` behind a proxy.
-- `checkout.session.completed` webhooks handle subscriptions, but checkout creates one-off
-  PaymentIntents. Real upgrades go through `confirm-payment`, and renewals aren't automatic.
+- Automatic renewal needs a monthly Price per plan in the Stripe account (`STRIPE_PRICE_PRO`,
+  `STRIPE_PRICE_INVESTOR`); until they exist, a payment gives 30 days of the plan.
 - Frontend test coverage is thin (see frontend.md).
 - The dev database starts empty by design; run `migrate` then `seed_demo_data`. Only about half
   of the real listings match a delegation; listing coordinates are delegation centroids.

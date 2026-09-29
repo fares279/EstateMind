@@ -421,3 +421,9 @@ LEGAL_RAG = {
 STRIPE_PUBLIC_KEY = config('STRIPE_PUBLIC_KEY', default='')
 STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY', default='')
 STRIPE_WEBHOOK_SECRET = config('STRIPE_WEBHOOK_SECRET', default='')
+# Stripe Price ids (price_...) for monthly plans. When set, checkout creates a renewing
+# subscription; when blank, a one-off payment gives 30 days of the plan.
+STRIPE_PRICE_IDS = {
+    'pro': config('STRIPE_PRICE_PRO', default=''),
+    'investor': config('STRIPE_PRICE_INVESTOR', default=''),
+}

@@ -65,8 +65,13 @@ class StripeWebhookTests(_WebhookCase):
         invoice = {'customer': 'cus_123', 'subscription': 'sub_123'}
         self._post(self._event('invoice.payment_failed', invoice))
         self.assertEqual(Subscription.objects.get(user=self.user).status, 'past_due')
-        self._post(self._event('invoice.payment_succeeded', invoice))
+        renewed = {'id': 'sub_123', 'status': 'active', 'metadata': {'plan': 'pro'}, **PERIOD}
+        with mock.patch.object(billing_views.stripe.Subscription, 'retrieve', return_value=renewed):
+            self._post(self._event('invoice.payment_succeeded', invoice))
         self.assertEqual(Subscription.objects.get(user=self.user).status, 'active')
+        # a paid invoice extends the plan to the end of the paid period (renewals used not to)
+        self.user.refresh_from_db()
+        self.assertEqual((self.user.plan, self.user.plan_expires_at.month), ('pro', 2))
 
     def test_subscription_deleted_downgrades_to_free(self):
         self._subscribe()
@@ -175,3 +180,54 @@ class ConfirmPaymentTests(TestCase):
 
     def test_unfinished_payment_is_rejected(self):
         self.assertEqual(self._confirm(self._intent(status='requires_payment_method')).status_code, 400)
+
+
+class PaymentIntentWebhookTests(_WebhookCase):
+    def test_paid_intent_upgrades_without_confirm_payment(self):
+        intent = {'id': 'pi_9', 'amount': 2500, 'currency': 'usd',
+                  'metadata': {'user_id': str(self.user.id), 'plan': 'pro'}}
+        self.assertEqual(self._post(self._event('payment_intent.succeeded', intent)).status_code, 200)
+        self._post(self._event('payment_intent.succeeded', intent))  # Stripe retries: no double extension
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.plan, 'pro')
+        self.assertEqual(Payment.objects.filter(stripe_payment_intent_id='pi_9').count(), 1)
+
+    def test_subscription_invoice_intent_is_left_to_invoice_events(self):
+        self._post(self._event('payment_intent.succeeded', {'id': 'pi_10', 'amount': 2500, 'currency': 'usd',
+                                                             'metadata': {}}))
+        self.assertFalse(Payment.objects.exists())
+
+
+@override_settings(STRIPE_PRICE_IDS={'pro': 'price_pro', 'investor': ''})
+class SubscriptionCheckoutTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(email='sub@example.com', password='pw12345!x', full_name='Sub')
+        StripeCustomer.objects.create(user=self.user, stripe_customer_id='cus_9')
+        self.client.force_authenticate(self.user)
+
+    def test_configured_price_creates_a_subscription(self):
+        sub = {'id': 'sub_9', 'latest_invoice': {'confirmation_secret': {'client_secret': 'pi_x_secret_y'}}}
+        with mock.patch.object(billing_views.stripe.Customer, 'retrieve', return_value={'id': 'cus_9'}), \
+                mock.patch.object(billing_views.stripe.Subscription, 'create', return_value=sub) as create, \
+                mock.patch.object(billing_views.stripe.PaymentIntent, 'create') as one_off:
+            response = self.client.post('/api/billing/create-checkout-session/', {'plan': 'pro'})
+        self.assertEqual(response.status_code, 200, response.content)
+        body = response.json()
+        self.assertEqual((body['mode'], body['client_secret'], body['subscription_id']),
+                         ('subscription', 'pi_x_secret_y', 'sub_9'))
+        self.assertEqual(create.call_args.kwargs['items'], [{'price': 'price_pro'}])
+        one_off.assert_not_called()
+
+    def test_confirming_the_first_invoice_activates_the_subscription(self):
+        intent = billing_views.stripe.StripeObject.construct_from(
+            {'id': 'pi_x', 'status': 'succeeded', 'amount': 2500, 'currency': 'usd', 'customer': 'cus_9',
+             'metadata': {}}, 'sk_test')
+        active = {'data': [{'id': 'sub_9', 'status': 'active', 'metadata': {'plan': 'pro'}, **PERIOD}]}
+        with mock.patch.object(billing_views.stripe.PaymentIntent, 'retrieve', return_value=intent), \
+                mock.patch.object(billing_views.stripe.Subscription, 'list', return_value=active):
+            response = self.client.post('/api/billing/confirm-payment/', {'intent_id': 'pi_x', 'plan': 'pro'})
+        self.assertEqual(response.status_code, 200, response.content)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.plan, 'pro')
+        self.assertEqual(Subscription.objects.get(user=self.user).stripe_subscription_id, 'sub_9')

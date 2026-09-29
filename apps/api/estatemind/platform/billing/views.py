@@ -49,6 +49,54 @@ def _invoice_subscription(invoice: dict):
     return invoice.get('subscription') or details.get('subscription')
 
 
+def _grant_one_off(user, intent: dict, plan: str):
+    """Record a succeeded one-off PaymentIntent and give 30 days of the plan. Idempotent:
+    confirm-payment and the payment_intent.succeeded webhook both call it."""
+    with transaction.atomic():
+        payment, created = Payment.objects.get_or_create(
+            stripe_payment_intent_id=intent['id'],
+            defaults={
+                'user': user,
+                'amount': Decimal(intent['amount']) / 100,  # cents -> currency units
+                'currency': str(intent.get('currency', '')).upper(),
+                'status': 'succeeded',
+                'plan': plan,
+            },
+        )
+        if created:  # a repeated confirmation must not extend the plan again
+            user.plan = plan
+            user.plan_expires_at = timezone.now() + timedelta(days=30)
+            user.save(update_fields=['plan', 'plan_expires_at'])
+    return created
+
+
+def _activate_subscription(user, subscription: dict, plan: str | None = None):
+    """Record an active Stripe subscription and keep the plan until the end of the
+    paid period, so each renewal (invoice.payment_succeeded) extends access."""
+    plan = plan or (subscription.get('metadata') or {}).get('plan')
+    period_start, period_end = _billing_period(subscription)
+    defaults = {'stripe_subscription_id': subscription['id'], 'status': 'active',
+                'current_period_start': period_start, 'current_period_end': period_end}
+    if plan:
+        defaults['plan'] = plan
+    Subscription.objects.update_or_create(user=user, defaults=defaults)
+    if plan:
+        user.plan = plan
+    user.plan_expires_at = period_end
+    user.save(update_fields=['plan', 'plan_expires_at'])
+
+
+def _subscription_client_secret(subscription: dict) -> str | None:
+    """Client secret of the first invoice's payment: `confirmation_secret` on API
+    versions from 2025-03-31, the invoice's payment_intent before."""
+    invoice = subscription.get('latest_invoice') or {}
+    secret = (invoice.get('confirmation_secret') or {}).get('client_secret')
+    if secret:
+        return secret
+    intent = invoice.get('payment_intent') or {}
+    return intent.get('client_secret') if isinstance(intent, dict) else None
+
+
 class BillingViewSet(viewsets.ViewSet):
     """Billing and payment endpoints"""
     permission_classes = [IsAuthenticated]
@@ -57,7 +105,7 @@ class BillingViewSet(viewsets.ViewSet):
     def create_checkout_session(self, request):
         """
         Create a Stripe checkout session for subscription upgrade.
-        
+
         Request body:
         {
             "plan": "pro" or "investor"
@@ -123,6 +171,28 @@ class BillingViewSet(viewsets.ViewSet):
                     )
                     stripe_customer.stripe_customer_id = stripe_cust.id
                     stripe_customer.save()
+
+            # With a Stripe Price configured for the plan, create a real subscription:
+            # Stripe renews it monthly and the invoice webhooks extend the plan. Without
+            # one, a one-off payment gives 30 days (no automatic renewal).
+            price_id = (getattr(settings, 'STRIPE_PRICE_IDS', {}) or {}).get(plan)
+            if price_id:
+                meta = {'user_id': str(user.id), 'plan': plan, 'email': user.email}
+                create = dict(customer=stripe_customer.stripe_customer_id, items=[{'price': price_id}],
+                              payment_behavior='default_incomplete',
+                              payment_settings={'save_default_payment_method': 'on_subscription'},
+                              metadata=meta)
+                try:
+                    sub = _as_dict(stripe.Subscription.create(**create, expand=['latest_invoice.confirmation_secret']))
+                except stripe.error.InvalidRequestError:  # API versions before 2025-03-31
+                    sub = _as_dict(stripe.Subscription.create(**create, expand=['latest_invoice.payment_intent']))
+                client_secret = _subscription_client_secret(sub)
+                if not client_secret:
+                    raise stripe.error.StripeError('Subscription has no payment to confirm')
+                logger.info(f"Subscription {sub['id']} created for user {user.email}, plan {plan}")
+                return Response({'client_secret': client_secret, 'subscription_id': sub['id'],
+                                 'mode': 'subscription', 'plan': plan, 'email': user.email},
+                                status=status.HTTP_200_OK)
 
             # Create PaymentIntent for embedded payment form
             intent = stripe.PaymentIntent.create(
@@ -201,7 +271,7 @@ class BillingViewSet(viewsets.ViewSet):
     def confirm_payment(self, request):
         """
         Confirm payment after user completes Payment Element form.
-        
+
         Request body:
         {
             "intent_id": "pi_xxxxx",
@@ -231,6 +301,10 @@ class BillingViewSet(viewsets.ViewSet):
             # The plan paid for and its owner come from the intent, not the request:
             # otherwise a Pro payment could be confirmed as Investor, or by another user.
             metadata = intent.get('metadata') or {}
+            if not metadata.get('plan'):
+                # a subscription's first invoice: its intent carries no metadata; the
+                # subscription (created for this user's Stripe customer) does
+                return self._confirm_subscription(user, intent, plan)
             if metadata.get('user_id') != str(user.id):
                 return Response({'error': 'This payment belongs to another account.'},
                                 status=status.HTTP_403_FORBIDDEN)
@@ -238,21 +312,7 @@ class BillingViewSet(viewsets.ViewSet):
                 return Response({'error': 'Plan does not match the payment.'},
                                 status=status.HTTP_400_BAD_REQUEST)
 
-            with transaction.atomic():
-                payment, created = Payment.objects.get_or_create(
-                    stripe_payment_intent_id=intent['id'],
-                    defaults={
-                        'user': user,
-                        'amount': Decimal(intent['amount']) / 100,  # cents -> currency units
-                        'currency': str(intent.get('currency', '')).upper(),
-                        'status': 'succeeded',
-                        'plan': plan,
-                    },
-                )
-                if created:  # a repeated confirmation must not extend the plan again
-                    user.plan = plan
-                    user.plan_expires_at = timezone.now() + timedelta(days=30)
-                    user.save(update_fields=['plan', 'plan_expires_at'])
+            _grant_one_off(user, intent, plan)
 
             logger.info(f"Payment confirmed for user {user.email}, plan {plan}, intent_id {intent_id}")
 
@@ -278,6 +338,21 @@ class BillingViewSet(viewsets.ViewSet):
                 {'error': 'Error confirming payment. Please try again.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+    def _confirm_subscription(self, user, intent: dict, plan: str):
+        customer = StripeCustomer.objects.filter(user=user).first()
+        if not customer or intent.get('customer') != customer.stripe_customer_id:
+            return Response({'error': 'This payment belongs to another account.'},
+                            status=status.HTTP_403_FORBIDDEN)
+        subs = _as_dict(stripe.Subscription.list(customer=customer.stripe_customer_id, status='active', limit=10))
+        sub = next((x for x in subs.get('data', []) if (x.get('metadata') or {}).get('plan') == plan), None)
+        if sub is None:
+            return Response({'error': 'No active subscription for this plan yet. It can take a few seconds.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        _activate_subscription(user, sub, plan)
+        return Response({'success': True, 'plan': plan, 'message': f'Successfully subscribed to {plan} plan',
+                         'plan_expires_at': user.plan_expires_at.isoformat() if user.plan_expires_at else None},
+                        status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['post'], url_path='dev-upgrade')
     def dev_upgrade(self, request):
@@ -316,7 +391,7 @@ class BillingViewSet(viewsets.ViewSet):
     def subscription_status(self, request):
         """Get current subscription status"""
         user = request.user
-        
+
         try:
             subscription = Subscription.objects.get(user=user)
             serializer = SubscriptionSerializer(subscription)
@@ -334,7 +409,7 @@ class BillingViewSet(viewsets.ViewSet):
 def stripe_webhook(request):
     """
     Handle Stripe webhook events.
-    
+
     CRITICAL: This endpoint must be called by Stripe with proper signature verification.
     Only process events after verifying the webhook signature.
     """
@@ -359,22 +434,25 @@ def stripe_webhook(request):
         if event['type'] == 'checkout.session.completed':
             session = event['data']['object']
             handle_checkout_session_completed(session)
-            
+
         elif event['type'] == 'customer.subscription.updated':
             subscription = event['data']['object']
             handle_subscription_updated(subscription)
-            
+
         elif event['type'] == 'customer.subscription.deleted':
             subscription = event['data']['object']
             handle_subscription_deleted(subscription)
-            
+
         elif event['type'] == 'invoice.payment_succeeded':
             invoice = event['data']['object']
             handle_invoice_payment_succeeded(invoice)
-            
+
         elif event['type'] == 'invoice.payment_failed':
             invoice = event['data']['object']
             handle_invoice_payment_failed(invoice)
+
+        elif event['type'] == 'payment_intent.succeeded':
+            handle_payment_intent_succeeded(event['data']['object'])
 
         return JsonResponse({'status': 'success'}, status=200)
 
@@ -391,27 +469,27 @@ def handle_checkout_session_completed(session):
     try:
         user_id = session.get('metadata', {}).get('user_id')
         plan = session.get('metadata', {}).get('plan')
-        
+
         if not user_id or not plan:
             logger.error(f"Missing metadata in session {session['id']}")
             return
 
         user = User.objects.get(id=user_id)
-        
+
         # Get subscription from session
         subscription_id = session.get('subscription')
-        
+
         if subscription_id:
             stripe_subscription = _as_dict(stripe.Subscription.retrieve(subscription_id))
-            
+
             # Update user plan
             user.plan = plan
             user.plan_expires_at = timezone.now() + timedelta(days=30)
             user.save(update_fields=['plan', 'plan_expires_at', 'updated_at'])
-            
+
             # Create/update subscription record
             period_start, period_end = _billing_period(stripe_subscription)
-            
+
             Subscription.objects.update_or_create(
                 user=user,
                 defaults={
@@ -422,11 +500,11 @@ def handle_checkout_session_completed(session):
                     'current_period_end': period_end,
                 }
             )
-            
+
             logger.info(f"User {user.email} upgraded to {plan} plan (subscription: {subscription_id})")
-        
+
         return True
-        
+
     except User.DoesNotExist:
         logger.error(f"User not found for session {session['id']}")
         return False
@@ -435,18 +513,37 @@ def handle_checkout_session_completed(session):
         return False
 
 
+def handle_payment_intent_succeeded(intent):
+    """A one-off plan payment succeeded: grant the plan even if the browser never
+    called confirm-payment (closed tab, lost connection). checkout creates one-off
+    PaymentIntents, and only checkout.session.completed was handled, so no webhook
+    ever upgraded anyone. Subscription invoices carry no plan metadata and are
+    handled by the invoice events."""
+    metadata = intent.get('metadata') or {}
+    user_id, plan = metadata.get('user_id'), metadata.get('plan')
+    if not user_id or not plan:
+        return
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        logger.warning(f"User {user_id} not found for payment intent {intent.get('id')}")
+        return
+    if _grant_one_off(user, intent, plan):
+        logger.info(f"Webhook granted {plan} to {user.email} (payment intent {intent.get('id')})")
+
+
 def handle_subscription_updated(subscription):
     """Handle subscription updates"""
     try:
         stripe_customer_id = subscription.get('customer')
         stripe_subscription_id = subscription.get('id')
-        
+
         stripe_customer = StripeCustomer.objects.get(stripe_customer_id=stripe_customer_id)
         user = stripe_customer.user
-        
+
         status_value = subscription.get('status')
         period_start, period_end = _billing_period(subscription)
-        
+
         # Map Stripe status to our status
         status_map = {
             'active': 'active',
@@ -456,9 +553,13 @@ def handle_subscription_updated(subscription):
             'incomplete': 'active',
             'incomplete_expired': 'expired',
         }
-        
+
         our_status = status_map.get(status_value, 'active')
-        
+        if status_value == 'active':
+            _activate_subscription(user, subscription)
+            logger.info(f"Subscription active for user {user.email} until {period_end}")
+            return
+
         Subscription.objects.update_or_create(
             user=user,
             defaults={
@@ -468,9 +569,9 @@ def handle_subscription_updated(subscription):
                 'current_period_end': period_end,
             }
         )
-        
+
         logger.info(f"Subscription updated for user {user.email}: {our_status}")
-        
+
     except StripeCustomer.DoesNotExist:
         logger.warning(f"Stripe customer {stripe_customer_id} not found")
     except Exception as e:
@@ -483,7 +584,7 @@ def handle_subscription_deleted(subscription):
         stripe_customer_id = subscription.get('customer')
         stripe_customer = StripeCustomer.objects.get(stripe_customer_id=stripe_customer_id)
         user = stripe_customer.user
-        
+
         # Update subscription status
         try:
             sub = Subscription.objects.get(user=user)
@@ -492,14 +593,14 @@ def handle_subscription_deleted(subscription):
             sub.save(update_fields=['status', 'canceled_at', 'updated_at'])
         except Subscription.DoesNotExist:
             pass
-        
+
         # Downgrade user plan to free
         user.plan = 'free'
         user.plan_expires_at = timezone.now()
         user.save(update_fields=['plan', 'plan_expires_at', 'updated_at'])
-        
+
         logger.info(f"Subscription canceled for user {user.email}, plan downgraded to free")
-        
+
     except StripeCustomer.DoesNotExist:
         logger.warning(f"Stripe customer {stripe_customer_id} not found")
     except Exception as e:
@@ -512,20 +613,15 @@ def handle_invoice_payment_succeeded(invoice):
         stripe_customer_id = invoice.get('customer')
         stripe_customer = StripeCustomer.objects.get(stripe_customer_id=stripe_customer_id)
         user = stripe_customer.user
-        
-        # Get subscription
+
+        # A paid invoice (first payment or renewal) extends the plan to the end of the
+        # new period. This used to only flip past_due back to active, so renewals
+        # never extended plan_expires_at and subscribers lost access after 30 days.
         subscription_id = _invoice_subscription(invoice)
         if subscription_id:
-            try:
-                sub = Subscription.objects.get(user=user, stripe_subscription_id=subscription_id)
-                # Subscription is already active, just update the status
-                if sub.status == 'past_due':
-                    sub.status = 'active'
-                    sub.save(update_fields=['status', 'updated_at'])
-                    logger.info(f"Subscription payment succeeded for {user.email}, status changed to active")
-            except Subscription.DoesNotExist:
-                pass
-        
+            _activate_subscription(user, _as_dict(stripe.Subscription.retrieve(subscription_id)))
+            logger.info(f"Invoice paid for {user.email}; subscription {subscription_id} active")
+
     except StripeCustomer.DoesNotExist:
         logger.warning(f"Stripe customer {stripe_customer_id} not found")
     except Exception as e:
@@ -538,7 +634,7 @@ def handle_invoice_payment_failed(invoice):
         stripe_customer_id = invoice.get('customer')
         stripe_customer = StripeCustomer.objects.get(stripe_customer_id=stripe_customer_id)
         user = stripe_customer.user
-        
+
         # Get subscription
         subscription_id = _invoice_subscription(invoice)
         if subscription_id:
@@ -549,7 +645,7 @@ def handle_invoice_payment_failed(invoice):
                 logger.warning(f"Invoice payment failed for {user.email}, subscription marked as past_due")
             except Subscription.DoesNotExist:
                 pass
-        
+
     except StripeCustomer.DoesNotExist:
         logger.warning(f"Stripe customer {stripe_customer_id} not found")
     except Exception as e:

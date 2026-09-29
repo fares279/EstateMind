@@ -35,6 +35,7 @@ All are listed with placeholders in `apps/api/.env.example`. The ones that matte
 | `REDIS_URL` | Celery broker and results |
 | `EMAIL_*`, `DEFAULT_FROM_EMAIL` | OTP and password-reset mail |
 | `STRIPE_PUBLIC_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | Blank by default; billing needs all three |
+| `STRIPE_PRICE_PRO`, `STRIPE_PRICE_INVESTOR` | Monthly Price ids. Set: renewing subscriptions. Blank: one-off payments for 30 days |
 | `LEGAL_LLM_*`, `LEGAL_LLM_FALLBACK_*` | Legal assistant LLM endpoints (see ml.md) |
 | `ESTATEMIND_ARTIFACTS_URL` | Bundle to fetch when artifacts are missing |
 | `VALUATION_CV_PRICE_ADJUSTMENT`, `VALUATION_SENTIMENT_PRICE_ADJUSTMENT` | Keep `False` (see ml.md) |
@@ -50,7 +51,11 @@ Web: `API_BASE_URL` (runtime). `REACT_APP_API_URL` (build time) is an optional d
       hard-coded in the original `settings.py`; they are blank defaults now. Steps below.
 - [ ] Set `SECRET_KEY` and `SIMPLE_JWT_SIGNING_KEY` to new random values (done for the local dev
       `.env` on 2026-09-29; do it again for each deployment).
-- [ ] Configure the Stripe webhook endpoint `/api/billing/webhook/stripe/` with its signing secret.
+- [ ] Configure the Stripe webhook endpoint `/api/billing/webhook/stripe/` with its signing secret, for
+      `payment_intent.succeeded`, `invoice.payment_succeeded`, `invoice.payment_failed`,
+      `customer.subscription.updated` and `customer.subscription.deleted`.
+- [ ] For automatic renewals, create a monthly Price per plan in Stripe and set
+      `STRIPE_PRICE_PRO` / `STRIPE_PRICE_INVESTOR`.
 - [ ] Publish the artifact bundle as a GitHub Release and set `ESTATEMIND_ARTIFACTS_URL`
       (artifacts.md).
 - [ ] Postgres backups.
