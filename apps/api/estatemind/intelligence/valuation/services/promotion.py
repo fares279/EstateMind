@@ -25,6 +25,13 @@ CANONICAL_TEST_PROPERTY = {
     'image_count': 0,
 }
 
+# Each by-type model is tested on its own kind of property.
+_REQUEST_TYPE = {'appartement': 'apartment', 'maison': 'house', 'terrain': 'land'}
+CANONICAL_BY_TYPE = {
+    'maison': {'size_m2': 250, 'bedrooms': 4, 'bathrooms': 2},
+    'terrain': {'size_m2': 500, 'bedrooms': 0, 'bathrooms': 0},
+}
+
 FEATURE_NAMES = [
     'property_type',
     'transaction_type',
@@ -59,11 +66,20 @@ class ValuationPromotionGate:
     RMSE_TOLERANCE_PCT = 2.0
 
     def run(self, version: ValuationModelVersion, model: Any, champion: ValuationModelVersion | None = None) -> dict[str, Any]:
-        tester = SHAPStabilityTester()
-        stability = tester.run_stability_test(
-            model=model,
-            base_property=CANONICAL_TEST_PROPERTY,
-            feature_names=FEATURE_NAMES,
+        """`model` is the version's ModelHandle (what both callers pass). The
+        stability check runs on the served bundle, as users would get it."""
+        from .model_registry import ValuationModelRegistry
+
+        handle = ValuationModelRegistry().maybe_load_bundle(model)
+        bundle = getattr(handle, 'bundle', None)
+        if bundle is None:
+            return {'promoted': False, 'reason': 'The model could not be loaded for serving', 'stability_report': {}}
+        scope = version.model_name.split(':', 1)[-1]
+        model_type = scope if scope in _REQUEST_TYPE else 'appartement'
+        stability = SHAPStabilityTester().run_served_stability_test(
+            bundle,
+            {**CANONICAL_TEST_PROPERTY, **CANONICAL_BY_TYPE.get(model_type, {}), 'property_type': _REQUEST_TYPE[model_type]},
+            model_property_type=model_type,
         )
         if stability['status'] == 'fail':
             return {
