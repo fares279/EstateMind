@@ -92,8 +92,8 @@ export const KPIGrid = ({ refresh = true }) => {
       // Distinguish 401 (authentication) errors from other errors
       const is401 = err?.response?.status === 401 || err?.status === 401;
       const errorObj = is401 
-        ? { ...err, type: 'AUTH_ERROR', message: 'Authentication expired. Please log in again.' }
-        : err instanceof Error ? err : new Error('Failed to load KPIs');
+        ? { ...err, type: 'AUTH_ERROR', message: 'Sign in to see these figures.' }
+        : new Error('Market figures could not be loaded. Please try again.');
       setError(errorObj);
     } finally {
       setLoading(false);

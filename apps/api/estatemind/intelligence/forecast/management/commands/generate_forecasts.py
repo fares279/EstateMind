@@ -1,8 +1,11 @@
 """
-Generate 12-month price forecasts from delegations.csv (compound-growth method).
+Generate 12-month price outlooks from delegations.csv (benchmark trend extrapolation).
 
-For each delegation × property type, applies compound monthly growth derived
-from the CSV annual trend to produce Jan–Dec 2026 forecasts.
+For each delegation × property type, the reference price (benchmark average) is
+extended by the CSV's annual trend, compounded monthly, over the 12 months starting
+with the current month. This is an extrapolation, not a trained model: no forecast
+error has been measured (there is no price history), so model_mape_pct is left empty.
+The series used to start at a fixed January 2026.
 
 Result: 278 delegations × 4 types × 12 months = 13,344 DelegationForecast rows
         278 delegations × 4 types              =  1,112 DelegationPriceData rows
@@ -27,7 +30,7 @@ CSV_PATH = DATA_DIR / 'delegations.csv'
 if not CSV_PATH.exists():
     CSV_PATH = EXTERNAL_DATA_DIR / 'delegations' / 'delegations.csv'
 
-FORECAST_ORIGIN = date(2026, 1, 1)
+FORECAST_ORIGIN = date.today().replace(day=1)  # series starts at the current month
 
 PROPERTY_CONFIG = {
     'apartment': {
@@ -109,8 +112,7 @@ class Command(BaseCommand):
                         notes=notes,
                     ))
 
-                    # h=1 → Jan 2026 base price (no growth yet)
-                    # h=12 → Dec 2026 after 11 months of compound growth
+                    # h=1 → current month (benchmark price); h=12 → 11 months of compound growth later
                     monthly_factor = (1 + annual_trend_pct / 100) ** (1 / 12)
                     for h in range(1, 13):
                         price_tnd = price_avg * (monthly_factor ** (h - 1))
@@ -122,8 +124,8 @@ class Command(BaseCommand):
                             forecast_month=_add_months(FORECAST_ORIGIN, h - 1),
                             horizon_idx=h,
                             predicted_price_per_m2=price_tnd * 1000,  # store in millimes
-                            model_mape_pct=2.50,
-                            model_version='csv_v2',
+                            model_mape_pct=None,
+                            model_version='benchmark_trend',
                         ))
 
         self.stdout.write(

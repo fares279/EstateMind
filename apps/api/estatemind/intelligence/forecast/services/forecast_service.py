@@ -232,6 +232,11 @@ def get_market_data(property_type: str = 'apartment'):
         .filter(property_type=property_type, horizon_idx=12)
         .values('delegation_name', 'predicted_price_per_m2')
     }
+    # the page coloured and compared coastal delegations using is_coastal, which was never sent
+    from estatemind.intelligence.valuation.inference.location import plain
+    from estatemind.market.core.models import Delegation
+    coastal = {(plain(d.name), plain(d.region.governorate)): d.is_coastal
+               for d in Delegation.objects.select_related('region')}
 
     delegations = []
     avgs = []
@@ -256,6 +261,7 @@ def get_market_data(property_type: str = 'apartment'):
             'price_max':        pd.price_max,
             'price_12m':        price_12m,
             'annual_trend_pct': pd.annual_trend_pct,
+            'is_coastal':       coastal.get((plain(pd.delegation_name), plain(pd.governorate)), False),
             'growth_pct_12m':   growth_12m,
             'trend':            _trend(growth_12m),
             'notes':            pd.notes,
@@ -269,6 +275,9 @@ def get_market_data(property_type: str = 'apartment'):
         'property_type':     property_type,
         'total_delegations': len(delegations),
         'national_avg':      national_avg,
+        # the outlook's first and last months (it used to be a fixed Jan-Dec 2026)
+        'horizon':           _horizon(property_type),
+        'price_basis':       'reference benchmarks (delegations.csv): asking-price min, average and max per m2',
         'top_price':  {'delegation': by_price[0]['delegation'],  'governorate': by_price[0]['governorate'],  'value': by_price[0]['price_avg']}  if by_price  else None,
         'top_growth': {'delegation': by_growth[0]['delegation'], 'governorate': by_growth[0]['governorate'], 'pct':   by_growth[0]['annual_trend_pct']} if by_growth else None,
         'top_decline':{'delegation': by_growth[-1]['delegation'],'governorate': by_growth[-1]['governorate'],'pct':   by_growth[-1]['annual_trend_pct']} if by_growth else None,
@@ -382,6 +391,16 @@ def _get_top_delegations(governorate: str, property_type: str, limit: int = 5):
 
 # ── National top-movers ───────────────────────────────────────────────────────
 
+def _horizon(property_type: str):
+    """First and last month of the latest outlook, as labels."""
+    from django.db.models import Max, Min
+    from estatemind.intelligence.forecast.models import DelegationForecast
+    latest = DelegationForecast.objects.filter(property_type=property_type).aggregate(o=Max('forecast_origin'))['o']
+    span = (DelegationForecast.objects.filter(property_type=property_type, forecast_origin=latest)
+            .aggregate(start=Min('forecast_month'), end=Max('forecast_month')))
+    return {'start': _month_label(span['start']), 'end': _month_label(span['end'])} if span['start'] else None
+
+
 def get_national_summary(property_type: str = 'apartment'):
     from estatemind.intelligence.forecast.models import DelegationForecast
     from django.db.models import Avg
@@ -437,6 +456,7 @@ def get_national_summary(property_type: str = 'apartment'):
         'top_delegations':    dels[:10],
         'total_governorates': len(govs),
         'total_delegations':  len(dels),
+        'horizon':            _horizon(property_type),
     }
 
 

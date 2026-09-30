@@ -56,7 +56,8 @@ class DelegationForecast(models.Model):
     forecast_month         = models.DateField()
     horizon_idx            = models.IntegerField()        # 1–12
     predicted_price_per_m2 = models.FloatField()          # millimes; ÷1 000 = TND/m²
-    model_mape_pct         = models.FloatField(default=2.50)
+    # measured forecast error; None when not measured (it used to default to a constant 2.5%)
+    model_mape_pct         = models.FloatField(null=True, blank=True, default=None)
     model_version          = models.CharField(max_length=50, default='csv_v2')
     created_at             = models.DateTimeField(auto_now_add=True)
 

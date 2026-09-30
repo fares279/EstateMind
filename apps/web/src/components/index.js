@@ -26,7 +26,6 @@ export { ValuationResultPanel } from '../features/valuation/components/PropertyV
 export { LegalAnswerCard, LegalQAInterface } from '../features/legal/components/LegalAnswerCard';
 
 // Price Forecast Engine
-export { ForecastFanChart } from '../features/forecast/components/PriceForecastChart';
 
 // Investment Intelligence
 export { InvestmentGradeCard, PortfolioRiskPanel } from '../features/invest/components/InvestmentGradeCard';

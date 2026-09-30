@@ -1,7 +1,7 @@
 /**
  * AnalyzePage — Market Intelligence Hub
  * Tab 1: Market Dashboard — all 278 delegations, real prices from CSV
- * Tab 2: Price Forecast — 12-month forecasts per delegation (Jan–Dec 2026)
+ * Tab 2: Price Outlook — 12-month benchmark trend extrapolation per delegation, from the current month
  */
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
@@ -17,7 +17,6 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { KPIGrid } from '../features/dashboard/components/MarketKPIGrid';
-import { ForecastFanChart } from '../features/forecast/components/PriceForecastChart';
 import {
   getForecastGovernorateList,
   getForecastDelegationList,
@@ -52,7 +51,14 @@ const SEL_CLS =
   'transition-colors cursor-pointer';
 
 const fmt = (n) => (n ?? 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
-const fmtP = (n) => `${n > 0 ? '+' : ''}${(n ?? 0).toFixed(2)}%`;
+const fmtP = (n) => `${n > 0 ? '+' : ''}${(n ?? 0).toFixed(1)}%`;
+// Axis ticks in thousands without duplicates: 0, 500, 1k, 1.5k, 2k… (whole thousands
+// used to repeat labels: '2k' for both 1,500 and 2,000)
+const fmtK = (v) => (Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(v % 1000 === 0 ? 0 : 1)}k` : `${v}`);
+// One definition of growing / stable / declining for the whole page (it used 0%, 2% and a
+// third rule in different places, so the counts disagreed)
+const TREND_BAND = 2;
+const trendClass = (t) => ((t ?? 0) >= TREND_BAND ? 'growing' : (t ?? 0) <= -TREND_BAND ? 'declining' : 'stable');
 
 // Why a request failed, in words: the server's own message, or that it was unreachable.
 function loadErrorReason(err) {
@@ -94,18 +100,18 @@ function TrendBadge({ growth }) {
   if (growth >= 2)
     return (
       <span className="inline-flex items-center gap-1 rounded-full border border-green-500/30 bg-green-500/15 px-2.5 py-1 text-xs font-semibold text-green-400">
-        <TrendingUp size={11} /> +{growth}%
+        <TrendingUp size={11} /> {fmtP(growth)}
       </span>
     );
   if (growth <= -2)
     return (
       <span className="inline-flex items-center gap-1 rounded-full border border-red-500/30 bg-red-500/15 px-2.5 py-1 text-xs font-semibold text-red-400">
-        <TrendingDown size={11} /> {growth}%
+        <TrendingDown size={11} /> {fmtP(growth)}
       </span>
     );
   return (
     <span className="inline-flex items-center gap-1 rounded-full border border-gray-500/30 bg-gray-500/15 px-2.5 py-1 text-xs font-semibold text-gray-400">
-      <Minus size={11} /> {growth > 0 ? '+' : ''}{growth}%
+      <Minus size={11} /> {fmtP(growth)}
     </span>
   );
 }
@@ -255,12 +261,14 @@ function PriceForecastSection() {
       {/* Header */}
       <div>
         <div className="inline-flex items-center gap-2 rounded-full border border-[#FF6B35]/30 bg-[#FF6B35]/10 px-3 py-1.5 text-xs font-semibold text-[#FFB38F] mb-3">
-          <BarChart3 size={13} /> AI Price Forecast · 278 Delegations · Jan–Dec 2026
+          <BarChart3 size={13} /> Price Outlook · {nationalData?.total_delegations ?? 278} Delegations
+          {nationalData?.horizon ? ` · ${nationalData.horizon.start} – ${nationalData.horizon.end}` : ''}
         </div>
-        <h2 className="text-3xl font-black text-white">12-Month Price Forecast</h2>
+        <h2 className="text-3xl font-black text-white">12-Month Price Outlook</h2>
         <p className="mt-1.5 text-gray-400 max-w-2xl">
-          Select a property type and delegation to see its individual 12-month price trajectory,
-          based on current market data and annual growth trends.
+          Each delegation's reference price per m², extended by its annual benchmark trend over the next
+          12 months. This is an extrapolation, not a trained model: its accuracy has not been measured,
+          because no price history exists yet.
         </p>
       </div>
 
@@ -322,30 +330,25 @@ function PriceForecastSection() {
         <LoadError message={error} onRetry={selDel ? null : () => setReloadKey(k => k + 1)} />
       )}
 
-      {/* Forecast Fan Chart Module */}
-      {!loading && !error && forecastData && (
-        <ForecastFanChart delegation={selDel} propertyType={propType} />
-      )}
-
       {/* Delegation forecast view */}
       {!loading && !error && forecastData && chartData.length > 0 && (
         <div className="space-y-5">
           {/* Metric strip */}
           <div className="grid grid-cols-3 gap-4">
             <MetricCard
-              label="Jan 2026"
+              label={chartData[0]?.month_label}
               value={`${fmt(summary?.current_price_per_m2)} TND/m²`}
-              sub="Forecast start"
+              sub="Starting point"
             />
             <MetricCard
-              label="Jun 2026"
+              label={chartData[Math.min(5, chartData.length - 1)]?.month_label}
               value={`${fmt(summary?.price_6m)} TND/m²`}
-              sub={summary?.growth_pct_6m != null ? `${fmtP(summary.growth_pct_6m)} vs Jan` : ''}
+              sub={summary?.growth_pct_6m != null ? `${fmtP(summary.growth_pct_6m)} vs ${chartData[0]?.month_label}` : ''}
             />
             <MetricCard
-              label="Dec 2026"
+              label={chartData[chartData.length - 1]?.month_label}
               value={`${fmt(summary?.price_12m)} TND/m²`}
-              sub={summary?.growth_pct_12m != null ? `${fmtP(summary.growth_pct_12m)} vs Jan` : ''}
+              sub={summary?.growth_pct_12m != null ? `${fmtP(summary.growth_pct_12m)} vs ${chartData[0]?.month_label}` : ''}
               highlight
             />
           </div>
@@ -353,7 +356,7 @@ function PriceForecastSection() {
           {/* Trend + band note */}
           <div className="flex items-center gap-3 flex-wrap">
             <TrendBadge growth={summary?.growth_pct_12m ?? 0} />
-            <span className="text-xs text-gray-500">Shaded area = ±2.5% confidence band</span>
+            <span className="text-xs text-gray-500">Shaded area: an illustrative ±2.5% band, not a measured confidence interval</span>
           </div>
 
           {/* 12-month chart */}
@@ -361,7 +364,7 @@ function PriceForecastSection() {
             <p className="text-xs uppercase tracking-widest text-gray-500 mb-1">
               {selDel} — {PROP_TYPES.find(p => p.id === propType)?.label} · Price per m²
             </p>
-            <p className="text-xs text-gray-600 mb-5">Jan 2026 → Dec 2026</p>
+            <p className="text-xs text-gray-600 mb-5">{chartData[0]?.month_label} → {chartData[chartData.length - 1]?.month_label}</p>
             <ResponsiveContainer width="100%" height={300}>
               <AreaChart data={chartData} margin={{ left: 10, right: 10, top: 10, bottom: 0 }}>
                 <defs>
@@ -377,7 +380,7 @@ function PriceForecastSection() {
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
                 <XAxis dataKey="month_label" tick={{ fill: '#6b7280', fontSize: 11 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: '#6b7280', fontSize: 11 }} axisLine={false} tickLine={false}
-                  tickFormatter={v => `${(v / 1000).toFixed(1)}k`} />
+                  tickFormatter={fmtK} />
                 <Tooltip content={<ForecastTooltip />} />
                 <Area type="monotone" dataKey="upper" stroke="none" fill="url(#bandGrad)" fillOpacity={1} />
                 <Area type="monotone" dataKey="lower" stroke="none" fill="white"           fillOpacity={0} />
@@ -392,38 +395,34 @@ function PriceForecastSection() {
           {priceRange && (
             <div className={CARD}>
               <p className="text-xs uppercase tracking-widest text-gray-500 mb-4">
-                Current Market Data · {selDel} ({forecastData.governorate})
+                Reference Benchmark · {selDel} ({forecastData.governorate})
               </p>
               <div className="grid grid-cols-3 gap-4 mb-4">
                 <div className="text-center">
-                  <p className="text-xs text-gray-500 mb-1">Asking Min</p>
+                  <p className="text-xs text-gray-500 mb-1">Benchmark Min</p>
                   <p className="text-base font-bold text-white">{fmt(priceRange.min)} TND/m²</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-xs text-gray-500 mb-1">Market Avg</p>
+                  <p className="text-xs text-gray-500 mb-1">Benchmark Average</p>
                   <p className="text-base font-bold text-[#FF6B35]">{fmt(priceRange.avg)} TND/m²</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-xs text-gray-500 mb-1">Asking Max</p>
+                  <p className="text-xs text-gray-500 mb-1">Benchmark Max</p>
                   <p className="text-base font-bold text-white">{fmt(priceRange.max)} TND/m²</p>
                 </div>
               </div>
               {/* Price bar */}
               {priceRange.min != null && priceRange.max != null && priceRange.avg != null && (
                 <div className="relative h-2 bg-white/10 rounded-full overflow-hidden">
-                  <div className="absolute h-full rounded-full"
-                    style={{
-                      left:  `${Math.max(0, ((priceRange.min - priceRange.min) / (priceRange.max - priceRange.min || 1)) * 100)}%`,
-                      width: `100%`,
-                      background: 'linear-gradient(90deg, #4ECDC4, #FF6B35)',
-                    }} />
+                  <div className="absolute inset-0 rounded-full"
+                    style={{ background: 'linear-gradient(90deg, #4ECDC4, #FF6B35)' }} />
                   <div className="absolute h-full w-1 bg-white rounded-full -translate-x-1/2"
                     style={{ left: `${((priceRange.avg - priceRange.min) / (priceRange.max - priceRange.min || 1)) * 100}%` }} />
                 </div>
               )}
               <div className="flex items-center gap-2 mt-3">
                 <TrendBadge growth={priceRange.annual_trend_pct ?? 0} />
-                <span className="text-xs text-gray-500">annual market trend</span>
+                <span className="text-xs text-gray-500">annual benchmark trend</span>
               </div>
               {priceRange.notes && (
                 <p className="text-xs text-gray-500 mt-2 flex items-start gap-1.5">
@@ -439,14 +438,16 @@ function PriceForecastSection() {
       {!loading && !error && !selDel && nationalData && (
         <div className="space-y-5">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            <MetricCard label="Delegations" value={nationalData.total_delegations} sub="Individual forecasts" />
-            <MetricCard label="Horizon"     value="12 months" sub="Jan–Dec 2026" />
-            <MetricCard label="Accuracy"    value="~97.5%" sub="Model MAPE 2.5%" highlight />
+            <MetricCard label="Delegations" value={nationalData.total_delegations} sub="One outlook each" />
+            <MetricCard label="Horizon"     value="12 months"
+              sub={nationalData.horizon ? `${nationalData.horizon.start} – ${nationalData.horizon.end}` : 'From this month'} />
+            {/* this card used to say "Accuracy ~97.5%, MAPE 2.5%": a constant, never measured */}
+            <MetricCard label="Method"      value="Trend extrapolation" sub="Accuracy not measured" highlight />
           </div>
 
           <div className={CARD}>
             <p className="text-xs uppercase tracking-widest text-gray-500 mb-1">
-              Top 10 Delegations — Highest Projected Growth
+              Top 10 Delegations — Highest Projected Growth (12 months)
             </p>
             <p className="text-xs text-gray-600 mb-4">
               Select a governorate above, then a delegation, to view its full 12-month price chart.
@@ -461,7 +462,7 @@ function PriceForecastSection() {
                     <p className="text-xs text-gray-500">{d.governorate}</p>
                   </div>
                   <span className="text-xs text-gray-400 hidden sm:block">
-                    {fmt(d.price_jan_tnd)} TND/m²
+                    {fmt(d.price_jan_tnd)} TND/m² now
                   </span>
                   <TrendBadge growth={d.growth_pct_12m} />
                 </div>
@@ -638,14 +639,11 @@ function DashboardSection() {
 
   useEffect(() => { loadMarket(propType); }, [propType, loadMarket]);
 
-  // Get authentication context
-  const { isAuthenticated } = useAuth();
-
+  // public market-wide figures (these calls used to need a login)
   useEffect(() => {
-    if (!isAuthenticated) return;  // Guard against unauthenticated requests
     getKpiFreshness().then((r) => setFreshness(r.data || {})).catch(() => setFreshness({}));
     getMarketDashboard().then((r) => setMaterialized(r.data || null)).catch(() => setMaterialized(null));
-  }, [isAuthenticated]);
+  }, []);
 
   const allDelegations = marketData?.delegations || [];
 
@@ -658,9 +656,7 @@ function DashboardSection() {
   const filtered = useMemo(() => {
     return allDelegations.filter(d => {
       if (filterGov && d.governorate !== filterGov) return false;
-      if (filterTrend === 'growing'  && (d.annual_trend_pct || 0) <= 0) return false;
-      if (filterTrend === 'declining'&& (d.annual_trend_pct || 0) >= 0) return false;
-      if (filterTrend === 'stable'   && Math.abs(d.annual_trend_pct || 0) > 2) return false;
+      if (filterTrend !== 'all' && trendClass(d.annual_trend_pct) !== filterTrend) return false;
       if (filterCoastal && !d.is_coastal) return false;
       if (priceMin && (d.price_avg || 0) < parseFloat(priceMin)) return false;
       if (priceMax && (d.price_avg || 0) > parseFloat(priceMax)) return false;
@@ -683,11 +679,11 @@ function DashboardSection() {
     [...filtered].sort((a,b) => (b.price_avg||0)-(a.price_avg||0)).slice(0,20), [filtered]);
 
   const top10Growing = useMemo(() =>
-    [...filtered].filter(d=>(d.annual_trend_pct||0)>0)
+    [...filtered].filter(d=>trendClass(d.annual_trend_pct)==='growing')
       .sort((a,b)=>(b.annual_trend_pct||0)-(a.annual_trend_pct||0)).slice(0,10), [filtered]);
 
   const top10Declining = useMemo(() =>
-    [...filtered].filter(d=>(d.annual_trend_pct||0)<0)
+    [...filtered].filter(d=>trendClass(d.annual_trend_pct)==='declining')
       .sort((a,b)=>(a.annual_trend_pct||0)-(b.annual_trend_pct||0)).slice(0,10), [filtered]);
 
   const scatterData = useMemo(() =>
@@ -713,7 +709,9 @@ function DashboardSection() {
   const govAgg = useMemo(() => {
     const m = {};
     filtered.forEach(d => {
-      if (!m[d.governorate]) m[d.governorate] = { prices:[], trends:[], count:0, coastal: d.is_coastal };
+      if (!m[d.governorate]) m[d.governorate] = { prices:[], trends:[], count:0, coastal: false };
+      // a governorate counts as coastal if any of its delegations is
+      m[d.governorate].coastal = m[d.governorate].coastal || Boolean(d.is_coastal);
       m[d.governorate].prices.push(d.price_avg||0);
       m[d.governorate].trends.push(d.annual_trend_pct||0);
       m[d.governorate].count++;
@@ -765,13 +763,14 @@ function DashboardSection() {
     const coastalAvg = coastal.length ? coastal.reduce((s,d)=>s+(d.price_avg||0),0)/coastal.length : 0;
     const inlandAvg  = inland.length  ? inland.reduce((s,d) =>s+(d.price_avg||0),0)/inland.length  : 0;
     const natAvg = prices.reduce((a,b)=>a+b,0)/(prices.length||1);
-    const growing = filtered.filter(d=>(d.annual_trend_pct||0)>0).length;
-    const declining = filtered.filter(d=>(d.annual_trend_pct||0)<0).length;
+    const growing = filtered.filter(d=>trendClass(d.annual_trend_pct)==='growing').length;
+    const declining = filtered.filter(d=>trendClass(d.annual_trend_pct)==='declining').length;
     const topP = [...filtered].sort((a,b)=>(b.price_avg||0)-(a.price_avg||0))[0];
-    const topG = [...filtered].filter(d=>(d.annual_trend_pct||0)>0).sort((a,b)=>(b.annual_trend_pct||0)-(a.annual_trend_pct||0))[0];
+    const topG = [...filtered].filter(d=>trendClass(d.annual_trend_pct)==='growing').sort((a,b)=>(b.annual_trend_pct||0)-(a.annual_trend_pct||0))[0];
     const cheapest = [...filtered].sort((a,b)=>(a.price_avg||Infinity)-(b.price_avg||Infinity))[0];
     return { natAvg, growing, declining, topP, topG, cheapest,
-      coastalPremium: inlandAvg ? ((coastalAvg/inlandAvg-1)*100).toFixed(1) : '—',
+      // needs both groups: it read -100% when no delegation was marked coastal
+      coastalPremium: coastal.length && inland.length && inlandAvg ? (coastalAvg/inlandAvg-1)*100 : null,
       total: filtered.length };
   }, [filtered]);
 
@@ -800,15 +799,16 @@ function DashboardSection() {
       {/* ── Header ── */}
       <div>
         <div className="inline-flex items-center gap-2 rounded-full border border-[#FF6B35]/30 bg-[#FF6B35]/10 px-3 py-1.5 text-xs font-semibold text-[#FFB38F] mb-3">
-          <LayoutDashboard size={13} /> Real Market Data · {marketData?.total_delegations} Delegations · 2026
+          <LayoutDashboard size={13} /> Reference Price Benchmarks · {marketData?.total_delegations} Delegations
         </div>
         <h2 className="text-3xl font-black text-white">Market Intelligence Dashboard</h2>
         <p className="mt-1.5 text-gray-400 max-w-2xl">
-          Comprehensive price analytics, geographic distribution, growth trends and investment signals across all 278 Tunisian delegations.
+          Asking-price benchmarks per m² (minimum, average, maximum) and annual trends for every Tunisian
+          delegation. The cards directly below come from real listings instead, so their figures differ.
         </p>
         {materialized?.freshness && (
           <p className="mt-2 text-xs text-gray-500">
-            Materialized snapshot {materialized.date} · {materialized.freshness.source_app || 'core'} · {materialized.freshness.age_human}
+            Listing figures updated {materialized.freshness.age_human} · {fmt(materialized.national_listing_count)} listings
           </p>
         )}
       </div>
@@ -889,7 +889,7 @@ function DashboardSection() {
           <div className="w-8 h-8 rounded-xl flex items-center justify-center mb-1" style={{background:'#FF6B3520',border:'1px solid #FF6B3530'}}>
             <Building2 size={14} className="text-[#FF6B35]" />
           </div>
-          <p className="text-xs uppercase tracking-widest text-gray-500">National Avg</p>
+          <p className="text-xs uppercase tracking-widest text-gray-500">Benchmark Average</p>
           <p className={`text-2xl font-black ${isNationalStale ? 'text-gray-500' : 'text-white'}`}>
             {isNationalStale
               ? <span className="text-base">Data out of date</span>
@@ -906,7 +906,7 @@ function DashboardSection() {
           <p className={`text-2xl font-black ${growthFreshness?.status === 'stale' ? 'text-gray-500' : 'text-green-400'}`}>
             {growthFreshness?.status === 'stale' ? <span className="text-base">Data out of date</span> : kpis.growing}
           </p>
-          <p className="text-xs text-gray-500">{kpis.declining} declining · {(kpis.total||0)-(kpis.growing||0)-(kpis.declining||0)} stable</p>
+          <p className="text-xs text-gray-500">{kpis.declining} declining · {(kpis.total||0)-(kpis.growing||0)-(kpis.declining||0)} stable (±{TREND_BAND}%)</p>
           <FreshnessPill freshness={growthFreshness} />
         </div>
         <div className="rounded-2xl border border-yellow-500/20 bg-yellow-500/8 p-5 flex flex-col gap-1">
@@ -924,7 +924,7 @@ function DashboardSection() {
           </div>
           <p className="text-xs uppercase tracking-widest text-gray-500">Fastest Growing</p>
           <p className={`text-base font-black leading-tight truncate ${growthFreshness?.status === 'stale' ? 'text-gray-500' : 'text-white'}`}>{growthFreshness?.status === 'stale' ? 'Data out of date' : (kpis.topG?.delegation || 'No growth data')}</p>
-          <p className="text-xs text-gray-500">{growthFreshness?.status === 'stale' ? 'Waiting for a data refresh' : (kpis.topG ? `+${kpis.topG.annual_trend_pct}% · ${kpis.topG.governorate}` : 'No growth data')}</p>
+          <p className="text-xs text-gray-500">{growthFreshness?.status === 'stale' ? 'Waiting for a data refresh' : (kpis.topG ? `${fmtP(kpis.topG.annual_trend_pct)} a year · ${kpis.topG.governorate}` : 'No growing delegation')}</p>
           <FreshnessPill freshness={growthFreshness} />
         </div>
       </div>
@@ -938,8 +938,8 @@ function DashboardSection() {
         </div>
         <div className="rounded-2xl border border-white/10 bg-white/5 p-5 flex flex-col gap-1">
           <p className="text-xs uppercase tracking-widest text-gray-500">Coastal Premium</p>
-          <p className="text-2xl font-black text-[#4ECDC4]">{kpis.coastalPremium !== '—' ? `+${kpis.coastalPremium}%` : <span className="text-base">Not enough data</span>}</p>
-          <p className="text-xs text-gray-500">vs inland avg</p>
+          <p className="text-2xl font-black text-[#4ECDC4]">{kpis.coastalPremium != null ? fmtP(kpis.coastalPremium) : <span className="text-base">Not enough data</span>}</p>
+          <p className="text-xs text-gray-500">coastal vs inland benchmark average</p>
           <FreshnessPill freshness={nationalFreshness} />
         </div>
         <div className="rounded-2xl border border-white/10 bg-white/5 p-5 flex flex-col gap-1">
@@ -1028,10 +1028,10 @@ function DashboardSection() {
           {/* Growing vs Declining donut */}
           <div className={CARD + ' flex-1'}>
             <p className="text-xs uppercase tracking-widest text-gray-500 mb-1">Market Health</p>
-            <p className="text-xs text-gray-600 mb-4">Growing vs stable vs declining</p>
+            <p className="text-xs text-gray-600 mb-4">Annual benchmark trend: growing ≥ +{TREND_BAND}%, declining ≤ −{TREND_BAND}%</p>
             {(() => {
-              const grow = filtered.filter(d=>(d.annual_trend_pct||0)>2).length;
-              const decl = filtered.filter(d=>(d.annual_trend_pct||0)<-2).length;
+              const grow = filtered.filter(d=>trendClass(d.annual_trend_pct)==='growing').length;
+              const decl = filtered.filter(d=>trendClass(d.annual_trend_pct)==='declining').length;
               const stbl = filtered.length - grow - decl;
               const healthData = [
                 {name:'Growing',value:grow,color:'#16a34a'},
@@ -1078,13 +1078,13 @@ function DashboardSection() {
       {/* ── Top 20 by Price (horizontal bar) ── */}
       <div className={CARD}>
         <p className="text-xs uppercase tracking-widest text-gray-500 mb-1">Price Ranking — Top 20 Delegations</p>
-        <p className="text-xs text-gray-600 mb-5">Current avg asking price per m² (TND) · filtered view</p>
+        <p className="text-xs text-gray-600 mb-5">Benchmark average price per m² (TND) · filtered view</p>
         {top20Price.length > 0 ? (
           <ResponsiveContainer width="100%" height={520}>
             <BarChart data={top20Price} layout="vertical" margin={{left:0,right:70,top:0,bottom:0}}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false}/>
               <XAxis type="number" tick={{fill:'#6b7280',fontSize:10}} axisLine={false} tickLine={false}
-                tickFormatter={v=>`${(v/1000).toFixed(0)}k`}/>
+                tickFormatter={fmtK}/>
               <YAxis type="category" dataKey="delegation" tick={{fill:'#9ca3af',fontSize:10}}
                 axisLine={false} tickLine={false} width={110}/>
               <Tooltip content={({active,payload,label}) => {
@@ -1206,7 +1206,7 @@ function DashboardSection() {
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)"/>
                 <XAxis type="number" dataKey="price_avg" name="Price/m²"
                   tick={{fill:'#6b7280',fontSize:10}} axisLine={false} tickLine={false}
-                  tickFormatter={v=>`${(v/1000).toFixed(0)}k`}
+                  tickFormatter={fmtK}
                   label={{value:'Price/m² (TND)',position:'insideBottom',offset:-18,fill:'#6b7280',fontSize:10}}/>
                 <YAxis type="number" dataKey="annual_trend_pct" name="Trend %"
                   tick={{fill:'#6b7280',fontSize:10}} axisLine={false} tickLine={false}
@@ -1227,7 +1227,7 @@ function DashboardSection() {
                 <Scatter data={scatterData} fill={ORANGE}>
                   {scatterData.map((e,i) => (
                     <Cell key={`${e.delegation}-${i}`}
-                      fill={(e.annual_trend_pct||0)>=0?'#4ECDC4':'#EF4444'} fillOpacity={0.72}/>
+                      fill={{growing:'#4ECDC4',declining:'#EF4444',stable:'#9ca3af'}[trendClass(e.annual_trend_pct)]} fillOpacity={0.72}/>
                   ))}
                 </Scatter>
               </ScatterChart>
@@ -1235,6 +1235,7 @@ function DashboardSection() {
           ) : <div className="h-48 flex items-center justify-center text-gray-600 text-sm">No scatter data</div>}
           <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
             <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#4ECDC4] inline-block"/> Growing</span>
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-gray-400 inline-block"/> Stable</span>
             <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-red-500 inline-block"/> Declining</span>
           </div>
         </div>
@@ -1249,7 +1250,9 @@ function DashboardSection() {
           {govAgg.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <Treemap data={treemapData.children} dataKey="size" aspectRatio={4/3}
-                content={({ x, y, width, height, name, size, trend }) => {
+                content={({ x, y, width, height, name, size, depth }) => {
+                  // the root node has no name or size (it printed 'NaN')
+                  if (!name || depth === 0 || !Number.isFinite(size)) return null;
                   if (!width || !height || width < 20 || height < 14) return null;
                   const fill = dashPriceColor(size);
                   return (
@@ -1291,14 +1294,14 @@ function DashboardSection() {
         {/* Radar chart */}
         <div className={CARD}>
           <p className="text-xs uppercase tracking-widest text-gray-500 mb-1">Governorate Radar Comparison</p>
-          <p className="text-xs text-gray-600 mb-4">Top 8 governorates · avg price index</p>
+          <p className="text-xs text-gray-600 mb-4">Top 8 governorates · benchmark average price per m²</p>
           {radarGovs.length >= 3 ? (
             <ResponsiveContainer width="100%" height={300}>
-              <RadarChart data={radarGovs.map(g => ({...g, score: Math.round(g.avg_price/100) }))}>
+              <RadarChart data={radarGovs}>
                 <PolarGrid stroke="rgba(255,255,255,0.06)"/>
                 <PolarAngleAxis dataKey="governorate" tick={{fill:'#9ca3af',fontSize:10}}/>
-                <PolarRadiusAxis tick={{fill:'#6b7280',fontSize:8}} axisLine={false}/>
-                <Radar name="Avg Price Index" dataKey="score" stroke="#FF6B35" fill="#FF6B35" fillOpacity={0.22} strokeWidth={2}/>
+                <PolarRadiusAxis tick={{fill:'#6b7280',fontSize:8}} axisLine={false} tickFormatter={fmtK}/>
+                <Radar name="Average price (TND/m²)" dataKey="avg_price" stroke="#FF6B35" fill="#FF6B35" fillOpacity={0.22} strokeWidth={2}/>
                 <Tooltip content={({active,payload}) => {
                   if (!active||!payload?.length) return null;
                   const d=payload[0]?.payload;
@@ -1326,7 +1329,7 @@ function DashboardSection() {
             <ComposedChart data={govAgg} layout="vertical" margin={{left:0,right:70,top:0,bottom:0}}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false}/>
               <XAxis type="number" tick={{fill:'#6b7280',fontSize:10}} axisLine={false} tickLine={false}
-                tickFormatter={v=>`${(v/1000).toFixed(0)}k`}/>
+                tickFormatter={fmtK}/>
               <YAxis type="category" dataKey="governorate" tick={{fill:'#9ca3af',fontSize:10}}
                 axisLine={false} tickLine={false} width={90}/>
               <Tooltip content={({active,payload,label}) => {
@@ -1368,7 +1371,7 @@ function DashboardSection() {
                 <XAxis dataKey="name" tick={{fill:'#9ca3af',fontSize:9}} axisLine={false} tickLine={false}
                   angle={-30} textAnchor="end" interval={0}/>
                 <YAxis tick={{fill:'#6b7280',fontSize:10}} axisLine={false} tickLine={false}
-                  tickFormatter={v=>`${(v/1000).toFixed(0)}k`}/>
+                  tickFormatter={fmtK}/>
                 <Tooltip content={({active,payload,label}) => {
                   if (!active||!payload?.length) return null;
                   const d=payload[0]?.payload;
@@ -1398,7 +1401,7 @@ function DashboardSection() {
       {/* ── Radial gauge: top 10 by price ── */}
       <div className={CARD}>
         <p className="text-xs uppercase tracking-widest text-gray-500 mb-1">Price Gauge — Top 10</p>
-        <p className="text-xs text-gray-600 mb-5">Radial bars showing relative price per m² across top delegations</p>
+        <p className="text-xs text-gray-600 mb-5">Price per m² of each delegation as % of the highest-priced one</p>
         {(() => {
           const top10 = [...filtered].sort((a,b)=>(b.price_avg||0)-(a.price_avg||0)).slice(0,10);
           const maxP = top10[0]?.price_avg || 1;
@@ -1451,7 +1454,7 @@ function DashboardSection() {
                 <SortTh label="Avg Price"    col="price_avg"        active={sortKey==='price_avg'}        dir={sortDir} onClick={()=>handleSort('price_avg')}/>
                 <SortTh label="Min"          col="price_min"        active={sortKey==='price_min'}        dir={sortDir} onClick={()=>handleSort('price_min')}/>
                 <SortTh label="Max"          col="price_max"        active={sortKey==='price_max'}        dir={sortDir} onClick={()=>handleSort('price_max')}/>
-                <SortTh label="12M Forecast" col="price_12m"        active={sortKey==='price_12m'}        dir={sortDir} onClick={()=>handleSort('price_12m')}/>
+                <SortTh label="12M Outlook" col="price_12m"        active={sortKey==='price_12m'}        dir={sortDir} onClick={()=>handleSort('price_12m')}/>
                 <SortTh label="Trend"        col="annual_trend_pct" active={sortKey==='annual_trend_pct'} dir={sortDir} onClick={()=>handleSort('annual_trend_pct')}/>
               </tr>
             </thead>
@@ -1484,7 +1487,7 @@ function DashboardSection() {
           <p className="text-xs text-gray-600 mt-3">Showing first 50 of {sorted.length} results — use filters to narrow down.</p>
         )}
         <p className="text-xs text-gray-600 mt-2 flex items-center gap-1.5">
-          <Info size={11}/>All prices TND/m². 12M = Dec 2026 projection. Trend = annual growth rate.
+          <Info size={11}/>Reference benchmark prices, TND/m². 12M = extrapolated to {marketData?.horizon?.end || 'twelve months from now'}. Trend = annual benchmark growth rate.
         </p>
       </div>
 
@@ -1495,7 +1498,7 @@ function DashboardSection() {
 // ── Page root ──────────────────────────────────────────────────────────────────
 const TABS = [
   { id: 'dashboard', label: 'Market Dashboard', icon: LayoutDashboard },
-  { id: 'forecast',  label: 'Price Forecast',   icon: BarChart3       },
+  { id: 'forecast',  label: 'Price Outlook',    icon: BarChart3       },
 ];
 
 export default function AnalyzePage() {
@@ -1513,7 +1516,7 @@ export default function AnalyzePage() {
         <section>
           <h1 className="text-4xl md:text-5xl font-black text-white mb-2">Analyze</h1>
           <p className="text-gray-400 text-lg max-w-2xl">
-            Market intelligence for every delegation in Tunisia: current prices and 12-month forecasts.
+            Market intelligence for every delegation in Tunisia: reference prices, real listing figures and 12-month outlooks.
           </p>
         </section>
 

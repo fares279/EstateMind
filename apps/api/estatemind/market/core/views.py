@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -8,7 +8,8 @@ from estatemind.market.core.models import DashboardKPIAnomaly, DashboardKPIMetad
 
 
 class DashboardFreshnessView(APIView):
-    permission_classes = [IsAuthenticated]
+    # market-wide figures shown on the public Analyze page; no personal data
+    permission_classes = [AllowAny]
 
     def get(self, request):
         metadata = DashboardKPIMetadata.objects.all()
@@ -54,7 +55,8 @@ class DashboardAnomaliesView(APIView):
 
 
 class MarketDashboardView(APIView):
-    permission_classes = [IsAuthenticated]
+    # market-wide figures shown on the public Analyze page; no personal data
+    permission_classes = [AllowAny]
 
     def get(self, request):
         today_analytics = (

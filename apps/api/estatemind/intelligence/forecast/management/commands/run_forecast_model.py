@@ -32,7 +32,7 @@ _TABLE_CSV   = _OUTER / 'Price-Trend-Forecasting' / 'forecast_only_artifacts_h12
 _ENG_FEAT    = _OUTER / 'Price-Trend-Forecasting' / 'data' / 'engineered_features.csv'
 _DELEG_CSV   = _OUTER / 'delegations' / 'delegations.csv'
 
-FORECAST_ORIGIN = date(2026, 1, 1)
+FORECAST_ORIGIN = date.today().replace(day=1)  # series starts at the current month
 
 
 def _add_months(d, n):
@@ -265,7 +265,7 @@ class Command(BaseCommand):
                     forecast_month=fm,
                     horizon_idx=horizon_idx,
                     predicted_price_per_m2=pred_millimes,
-                    model_mape_pct=2.92,
+                    model_mape_pct=None,  # not measured on held-out data
                     model_version='ml_histgbt_h12',
                 ))
 
@@ -291,7 +291,7 @@ class Command(BaseCommand):
                         forecast_month=_add_months(FORECAST_ORIGIN, h - 1),
                         horizon_idx=h,
                         predicted_price_per_m2=price_tnd * 1000,
-                        model_mape_pct=2.50,
+                        model_mape_pct=None,  # extrapolation: no error measured
                         model_version='csv_v2',
                     ))
         self.stdout.write(f'  Built {len(rows)} compound-growth rows.')
