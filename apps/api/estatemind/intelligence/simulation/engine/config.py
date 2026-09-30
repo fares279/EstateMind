@@ -372,9 +372,17 @@ def national_avg_price() -> float:
     return sum(d["apartment_avg"] * d["population"] for d in DELEGATION_DATA) / total_w
 
 
+# Parameters the page's sliders show and can override (the policy_overrides keys).
+SLIDER_PARAMS = ("bct_rate", "credit_approval_rate", "investor_multiplier", "demand_multiplier",
+                 "developer_activity")
+
+
 def scenarios_list() -> list:
-    """Return the public-facing scenario list (id, label, description, icon, color, type, category)."""
+    """Public scenario list, with the parameters the sliders start from: the page used to
+    send its own slider defaults with every run, which overwrote the scenario's settings
+    (a 'Rate Hike' ran at the default rate)."""
     return [
-        {k: v for k, v in s.items() if k in ("id", "label", "description", "icon", "color", "type", "category")}
+        {**{k: v for k, v in s.items() if k in ("id", "label", "description", "icon", "color", "type", "category")},
+         "params": {k: s[k] for k in SLIDER_PARAMS if k in s}}
         for s in SCENARIOS.values()
     ]

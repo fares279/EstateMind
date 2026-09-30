@@ -10,9 +10,10 @@ import {
   FlaskConical, Map, ChevronDown, ChevronUp, Clock,
   ArrowUpRight, ArrowDownRight, Minus, Cpu,
 } from 'lucide-react';
-import { ScenarioBuilder, SimulationResultPanel } from '../features/simulator/components/MarketSimulatorPanel';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import {
-  simStart, simListRuns, simGetRunDetail, simDeleteRun,
+  simGetScenarios, simStart, simListRuns, simGetRunDetail, simDeleteRun,
   simGetTimeseries, simGetMetrics, simGetAgents, simCompare, simGetZones,
 } from '../services/api';
 
@@ -222,11 +223,15 @@ export default function SimulatePage() {
   const [scenario,   setScenario]    = useState('baseline');
   const [scale,      setScale]       = useState('medium');
   const [months,     setMonths]      = useState(12);
-  const [bctRate,    setBctRate]     = useState(8);
-  const [maxLtv,     setMaxLtv]      = useState(80);
-  const [diaspora,   setDiaspora]    = useState(15);
-  const [tourism,    setTourism]     = useState(1.0);
-  const [supplyShock,setSupplyShock] = useState(0);
+  // Sliders start at the selected scenario's own parameters (from the API); only values
+  // the user changes are sent as overrides.
+  const { user } = useAuth();
+  const [scenarioParams, setScenarioParams] = useState({});
+  const [bctRate,     setBctRate]     = useState(8);
+  const [creditRate,  setCreditRate]  = useState(55);
+  const [investorPct, setInvestorPct] = useState(0);
+  const [demandMult,  setDemandMult]  = useState(1.0);
+  const [buildPct,    setBuildPct]    = useState(0);
 
   const [phase,    setPhase]    = useState('idle');
   const [runId,    setRunId]    = useState(null);
@@ -260,13 +265,36 @@ export default function SimulatePage() {
 
   useEffect(() => { loadRuns(); }, [loadRuns]);
 
-  const buildOverrides = useCallback(() => ({
-    bct_rate:             bctRate/100,
-    credit_approval_rate: (maxLtv-20)/80,
-    investor_multiplier:  1.0+diaspora/100,
-    developer_activity:   1.0+supplyShock/100,
-    demand_multiplier:    tourism,
-  }), [bctRate,maxLtv,diaspora,supplyShock,tourism]);
+  useEffect(() => {
+    simGetScenarios()
+      .then(r => setScenarioParams(Object.fromEntries((r.data?.scenarios || []).map(s => [s.id, s.params || {}]))))
+      .catch(() => setScenarioParams({}));
+  }, []);
+
+  // reset the sliders to the scenario's values when it changes
+  useEffect(() => {
+    const p = scenarioParams[scenario];
+    if (!p) return;
+    if (p.bct_rate != null)             setBctRate(Math.round(p.bct_rate * 1000) / 10);
+    if (p.credit_approval_rate != null) setCreditRate(Math.round(p.credit_approval_rate * 100));
+    if (p.investor_multiplier != null)  setInvestorPct(Math.round((p.investor_multiplier - 1) * 100));
+    if (p.demand_multiplier != null)    setDemandMult(Math.round(p.demand_multiplier * 10) / 10);
+    if (p.developer_activity != null)   setBuildPct(Math.round((p.developer_activity - 1) * 100));
+  }, [scenario, scenarioParams]);
+
+  const buildOverrides = useCallback(() => {
+    const p = scenarioParams[scenario] || {};
+    const values = {
+      bct_rate:             bctRate / 100,
+      credit_approval_rate: creditRate / 100,
+      investor_multiplier:  1 + investorPct / 100,
+      demand_multiplier:    demandMult,
+      developer_activity:   1 + buildPct / 100,
+    };
+    // only what differs from the scenario (more than rounding), so the scenario keeps its settings
+    return Object.fromEntries(Object.entries(values).filter(([k, v]) => p[k] == null || Math.abs(v - p[k]) > 1e-6
+      && Math.abs(v - p[k]) > Math.abs(p[k]) * 0.005));
+  }, [scenario, scenarioParams, bctRate, creditRate, investorPct, demandMult, buildPct]);
 
   const stopPolling = useCallback(() => {
     if (pollRef.current) { clearInterval(pollRef.current); pollRef.current=null; }
@@ -529,19 +557,28 @@ export default function SimulatePage() {
             <div className="flex items-center gap-2.5 mb-5">
               <div className="w-1 h-4 rounded-full bg-[#FF6B35]" />
               <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Policy Overrides</span>
+              <span className="text-[11px] text-gray-600">Start at the scenario's settings; only changes are applied</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-x-8 gap-y-6">
-              <Slider label="BCT Rate"      hint="Central bank"  min={3}   max={18}  step={0.5} value={bctRate}     onChange={setBctRate}     display={v => `${v}%`} />
-              <Slider label="Max LTV"       hint="Loan-to-value" min={50}  max={90}  step={5}   value={maxLtv}      onChange={setMaxLtv}      display={v => `${v}%`} />
-              <Slider label="Diaspora"      hint="Buyer demand"  min={0}   max={30}  step={1}   value={diaspora}    onChange={setDiaspora}    display={v => `+${v}%`} />
-              <Slider label="Tourism Index" hint="Multiplier"    min={0.3} max={2.5} step={0.1} value={tourism}     onChange={setTourism}     display={v => `${v}×`} />
-              <Slider label="Supply Shock"  hint="New builds"    min={-30} max={30}  step={5}   value={supplyShock} onChange={setSupplyShock} display={v => `${v > 0 ? '+' : ''}${v}%`} />
+              {/* labels say what each value drives in the model (they were "Max LTV", "Diaspora" and
+                  "Tourism Index" for credit approval, investor demand and overall demand) */}
+              <Slider label="BCT Rate"         hint="Central bank key rate"    min={3}   max={18}  step={0.25} value={bctRate}     onChange={setBctRate}     display={v => `${v}%`} />
+              <Slider label="Credit Approval"  hint="Mortgages approved"       min={20}  max={90}  step={5}    value={creditRate}  onChange={setCreditRate}  display={v => `${v}%`} />
+              <Slider label="Investor Demand"  hint="Incl. diaspora buyers"    min={-50} max={100} step={5}    value={investorPct} onChange={setInvestorPct} display={v => `${v > 0 ? '+' : ''}${v}%`} />
+              <Slider label="Overall Demand"   hint="Buyer demand multiplier"  min={0.3} max={2.5} step={0.1}  value={demandMult}  onChange={setDemandMult}  display={v => `${v}×`} />
+              <Slider label="New Construction" hint="Developer activity"       min={-50} max={100} step={5}    value={buildPct}    onChange={setBuildPct}    display={v => `${v > 0 ? '+' : ''}${v}%`} />
             </div>
           </div>
 
           {/* ── 4. Run button ───────────────────────────────────────────────── */}
           <div className="flex items-center gap-3">
-            {!isRunning ? (
+            {!isRunning && !user ? (
+              // running needs an account; say so up front instead of an error after clicking
+              <Link to="/login"
+                className="flex items-center gap-2.5 px-8 py-3.5 rounded-xl bg-[#FF6B35] hover:bg-[#e85d2a] text-white font-black text-sm transition-all shadow-lg shadow-[#FF6B35]/20">
+                <Play size={14} /> Sign in to run a simulation
+              </Link>
+            ) : !isRunning ? (
               <button onClick={handleRun}
                 className="flex items-center gap-2.5 px-8 py-3.5 rounded-xl bg-[#FF6B35] hover:bg-[#e85d2a] text-white font-black text-sm transition-all active:scale-[0.98] shadow-lg shadow-[#FF6B35]/20">
                 <Play size={14} /> Run Simulation
