@@ -26,7 +26,8 @@ class SeedDemoDataTests(TestCase):
     def test_reference_geography(self):
         self.assertEqual(Region.objects.count(), 24)
         self.assertEqual(Delegation.objects.count(), 278)
-        self.assertEqual(Delegation.objects.filter(centroid_lat__isnull=True).count(), 1)  # Hammamet: flagged gap
+        self.assertEqual(Delegation.objects.filter(centroid_lat__isnull=True).count(), 0)  # Hammamet now has coordinates
+        self.assertTrue(all(Delegation.objects.filter(name__startswith='Djerba').values_list('is_coastal', flat=True)))
         tunis = Region.objects.get(governorate='Tunis')
         self.assertEqual(tunis.population, sum(tunis.delegations.values_list('population', flat=True)))
 
