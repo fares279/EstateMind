@@ -183,8 +183,8 @@ export default function PaymentModal({
   };
 
   const planPrices = {
-    pro: { amount: 2500, currency: 'usd', display: '$25.00/month' },
-    investor: { amount: 5000, currency: 'usd', display: '$50.00/month' },
+    pro: { amount: 5000, currency: 'usd', display: '$50.00/month' },
+    investor: { amount: 10000, currency: 'usd', display: '$100.00/month' },
   };
 
   const currentPlan = planPrices[plan] || { amount: 0, currency: 'tnd', display: 'Custom' };

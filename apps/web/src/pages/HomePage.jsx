@@ -550,11 +550,12 @@ function AarefBledekSection() {
 function TrustSection() {
   const [ref, inView] = useInView({ threshold: 0.2, triggerOnce: true });
 
+  // Facts only: the '94%' model figure and '20+ data sources' were not measured or true.
   const stats = [
-    { label: '20+ Data Sources', value: '✓' },
-    { label: 'AI-Powered Model', value: '94%' },
-    { label: 'Explainable AI', value: '✓' },
-    { label: 'Local Adaptation', value: '24' },
+    { label: 'Delegations covered', value: '278' },
+    { label: 'Governorates', value: '24' },
+    { label: 'Price drivers explained per estimate', value: '✓' },
+    { label: 'Sample data always labelled', value: '✓' },
   ];
 
   return (

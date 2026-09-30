@@ -121,15 +121,15 @@ class BillingViewSet(viewsets.ViewSet):
         # Define pricing for each plan
         prices = {
             'pro': {
-                'amount': 2500,  # $25.00 USD
+                'amount': 5000,  # $50.00 USD, as the Stripe Price for Pro
                 'currency': 'usd',
-                'description': 'Pro Plan - $25.00/month',
+                'description': 'Pro Plan - $50.00/month',
                 'product': 'EstateMind Pro Plan'
             },
             'investor': {
-                'amount': 5000,  # $50.00 USD
+                'amount': 10000,  # $100.00 USD, as the Stripe Price for Investor
                 'currency': 'usd',
-                'description': 'Investor Plan - $50.00/month',
+                'description': 'Investor Plan - $100.00/month',
                 'product': 'EstateMind Investor Plan'
             }
         }
@@ -191,7 +191,8 @@ class BillingViewSet(viewsets.ViewSet):
                     raise stripe.error.StripeError('Subscription has no payment to confirm')
                 logger.info(f"Subscription {sub['id']} created for user {user.email}, plan {plan}")
                 return Response({'client_secret': client_secret, 'subscription_id': sub['id'],
-                                 'mode': 'subscription', 'plan': plan, 'email': user.email},
+                                 'mode': 'subscription', 'plan': plan, 'email': user.email,
+                                 'amount': pricing['amount'], 'currency': pricing['currency']},
                                 status=status.HTTP_200_OK)
 
             # Create PaymentIntent for embedded payment form

@@ -22,8 +22,8 @@ export function planActionLabel(currentPlan, plan) {
 
 const PLAN_META = {
   free: { label: 'Free', price: 'Free' },
-  pro: { label: 'Pro', price: '$25.00/month' },
-  investor: { label: 'Investor', price: '$50.00/month' },
+  pro: { label: 'Pro', price: '$50.00/month' },
+  investor: { label: 'Investor', price: '$100.00/month' },
 };
 
 export default function AccountDashboardPage() {
