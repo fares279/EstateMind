@@ -59,6 +59,7 @@ class LegalResponseLog(models.Model):
 
     OUTCOME_ANSWERED = 'answered'
     OUTCOME_ANSWERED_FLAGGED = 'answered_flagged'
+    OUTCOME_ANSWERED_EXTRACTIVE = 'answered_extractive'  # quoted from the sources, no LLM
     OUTCOME_NO_SOURCES = 'refused_no_sources'
     OUTCOME_UNGROUNDED = 'refused_ungrounded'
     OUTCOME_OUT_OF_SCOPE = 'out_of_scope'
@@ -68,6 +69,7 @@ class LegalResponseLog(models.Model):
     OUTCOME_CHOICES = [
         (OUTCOME_ANSWERED, 'Answered, grounded'),
         (OUTCOME_ANSWERED_FLAGGED, 'Answered, some sentences not verified'),
+        (OUTCOME_ANSWERED_EXTRACTIVE, 'Answered with quotations from the sources (no language model)'),
         (OUTCOME_NO_SOURCES, 'Refused: no relevant legal source'),
         (OUTCOME_UNGROUNDED, 'Refused: answer not supported by sources'),
         (OUTCOME_OUT_OF_SCOPE, 'Not a legal question'),

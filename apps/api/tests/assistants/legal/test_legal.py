@@ -170,6 +170,13 @@ _REWARD = SimpleNamespace(predict_quality=lambda q, a: 0.5)
 ANSWER = 'Acquisitions from property developers of land for housing are registered at the fixed duty [1].'
 
 
+def _bow_embed(texts):
+    """Bag-of-words vectors: enough to rank sentences by word overlap in tests."""
+    import re as _re
+    vocab = sorted({w for t in texts for w in _re.findall(r'\w+', t.lower())})
+    return [[t.lower().count(w) for w in vocab] for t in texts]
+
+
 def _assistant(in_scope=True, sufficient=True, decisions=(PASS,)):
     return LegalAssistant(_FakeClassifier(in_scope), _FakeRetriever(sufficient), _FakeDetector(decisions),
                           _FakeQuality(), _REWARD)
@@ -223,11 +230,23 @@ class TestLegalAssistantPipeline(TestCase):
         self.assertEqual(result['outcome'], LegalResponseLog.OUTCOME_ANSWERED_FLAGGED)
         self.assertIn('Unverified', result['answer'])
 
-    def test_llm_unavailable_still_returns_sources(self):
-        with patch.object(llm_service, 'chat', side_effect=llm_service.LLMUnavailable('down')):
-            result = _assistant().answer('Which contracts pay the fixed duty?')
-        self.assertEqual(result['outcome'], LegalResponseLog.OUTCOME_LLM_UNAVAILABLE)
+    def test_without_llm_the_sources_are_quoted(self):
+        # used to answer only "the answer-writing service is unreachable"
+        with patch.object(llm_service, 'chat', side_effect=llm_service.LLMUnavailable('down')), \
+                patch('estatemind.assistants.legal.services.embedding_service.embed_texts', side_effect=_bow_embed):
+            result = _assistant().answer('Which contracts are registered at the fixed duty?')
+        self.assertEqual(result['outcome'], LegalResponseLog.OUTCOME_ANSWERED_EXTRACTIVE)
+        self.assertIn('enregistrés au droit fixe', result['answer'])
+        self.assertIn('[1]', result['answer'])
         self.assertEqual(len(result['citations']), 1)
+
+    def test_greeting_gets_an_introduction(self):
+        result = _assistant().answer('hello')
+        self.assertEqual(result['outcome'], LegalResponseLog.OUTCOME_CONVERSATION)
+        self.assertIn('Tunisian property law', result['answer'])
+        # a greeting followed by a real question is still answered as a question
+        from estatemind.assistants.legal.services.rag_engine import _small_talk
+        self.assertIsNone(_small_talk('hello, what are the registration fees?'))
 
     def test_session_memory_and_follow_up_retrieval(self):
         assistant = _assistant(decisions=(PASS, PASS))
@@ -297,12 +316,14 @@ class TestLegalViews(TestCase):
         s = self.client.get('/api/legal/session/', {'session_id': body['session_id']})
         self.assertEqual(s.json()['turn_count'], 1)
 
-    def test_ask_returns_503_when_llm_unreachable(self):
+    def test_ask_answers_by_quoting_when_llm_unreachable(self):
         with patch('estatemind.assistants.legal.services.rag_engine.get_assistant', return_value=_assistant()), \
-                patch.object(llm_service, 'chat', side_effect=llm_service.LLMUnavailable('down')):
-            r = self.client.post('/api/legal/ask/', {'question': 'Which contracts pay the fixed duty?'},
+                patch.object(llm_service, 'chat', side_effect=llm_service.LLMUnavailable('down')), \
+                patch('estatemind.assistants.legal.services.embedding_service.embed_texts', side_effect=_bow_embed):
+            r = self.client.post('/api/legal/ask/', {'question': 'Which contracts are registered at the fixed duty?'},
                                  format='json')
-        self.assertEqual(r.status_code, 503)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json()['outcome'], 'answered_extractive')
         self.assertEqual(len(r.json()['sources']), 1)
 
     def test_feedback_rejects_bad_payloads(self):

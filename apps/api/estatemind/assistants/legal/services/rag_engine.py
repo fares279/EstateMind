@@ -10,6 +10,7 @@ Same shape as the chatbot's chat_message pipeline:
   7. log the turn (quality, sources, outcome) and update memory
 """
 import logging
+import re
 import time
 import uuid
 
@@ -75,6 +76,26 @@ def _citations(passages) -> list[dict]:
     ]
 
 
+_GREETING = re.compile(
+    r"^\W*(hello|hi|hey|good (morning|afternoon|evening)|bonjour|bonsoir|salut|salam|marhaba|"
+    r"مرحبا|السلام عليكم|أهلا)\b[\W]*$", re.IGNORECASE)
+_THANKS = re.compile(r"^\W*(thanks?( you)?|merci( beaucoup)?|شكرا)\b[\W]*$", re.IGNORECASE)
+_CAPABILITIES = re.compile(
+    r"^\W*(who are you|what (can|do) you (do|know)|help|aide|que (sais|peux)-tu faire|qui es-tu)\W*$",
+    re.IGNORECASE)
+
+
+def _small_talk(question: str) -> str | None:
+    """'greeting' for a greeting or 'what can you do', 'thanks' for thanks, else None.
+    Whole messages only: 'hello, what are the registration fees?' is a real question."""
+    text = question.strip()
+    if _THANKS.match(text):
+        return 'thanks'
+    if _GREETING.match(text) or _CAPABILITIES.match(text):
+        return 'greeting'
+    return None
+
+
 class LegalAssistant:
     def __init__(self, classifier, retriever, detector, quality_monitor, reward_model):
         self.classifier = classifier
@@ -98,6 +119,22 @@ class LegalAssistant:
         if stated_name or is_name_question(question):
             reply = (name_acknowledgement(stated_name, language) if stated_name
                      else name_response(memory.extracted_facts.get('user_name'), language))
+            memory.add_turn(user_message=question, assistant_response=reply, intent='conversation', entities={})
+            _save_session(session, memory, session.last_domain)
+            return {'session_id': session.session_id, 'turn_index': memory.turn_count - 1, 'response_log_id': None,
+                    'outcome': O.OUTCOME_CONVERSATION, 'answer': reply, 'language': language,
+                    'domain': 'conversation', 'in_scope': True, 'citations': [], 'sentences': [],
+                    'grounding_score': None, 'grounding_label': None, 'quality_label': None,
+                    'overall_quality': None, 'reward_score': None, 'feedback_requested': False}
+
+        # 1c. greetings, thanks, 'what can you do': a short introduction with example
+        # questions (a greeting used to get "This is not a legal question")
+        small_talk = _small_talk(question)
+        if small_talk:
+            reply = prompts.message(small_talk, language)
+            if small_talk == 'greeting':
+                from estatemind.assistants.legal.views import SAMPLE_QUESTIONS
+                reply += '\n' + '\n'.join(f'- {q}' for q in SAMPLE_QUESTIONS[:3])
             memory.add_turn(user_message=question, assistant_response=reply, intent='conversation', entities={})
             _save_session(session, memory, session.last_domain)
             return {'session_id': session.session_id, 'turn_index': memory.turn_count - 1, 'response_log_id': None,
@@ -134,7 +171,7 @@ class LegalAssistant:
             else:
                 outcome, answer_text, grounding = self._generate_grounded(
                     question, retrieval.context_passages, language, memory, log)
-                if outcome in (O.OUTCOME_ANSWERED, O.OUTCOME_ANSWERED_FLAGGED):
+                if outcome in (O.OUTCOME_ANSWERED, O.OUTCOME_ANSWERED_FLAGGED, O.OUTCOME_ANSWERED_EXTRACTIVE):
                     quality = self.quality.evaluate(question, answer_text, grounding,
                                                     len(retrieval.context_passages))
 
@@ -183,8 +220,8 @@ class LegalAssistant:
                 answer = llm_service.chat(messages)
                 log['llm_model'] = llm_service.model_name()
             except llm_service.LLMUnavailable as exc:
-                logger.warning('Legal LLM unavailable: %s', exc)
-                return O.OUTCOME_LLM_UNAVAILABLE, prompts.message('llm_unavailable', language), {}
+                logger.warning('Legal LLM unavailable, quoting the sources instead: %s', exc)
+                return self._extractive(question, passages, language, log)
             grounding = self.detector.check_answer(answer, texts)
             if not answer.strip():  # declined / empty output: nothing to show
                 grounding = {**grounding, 'decision': FAIL, 'grounded_ratio': 0.0}
@@ -197,6 +234,18 @@ class LegalAssistant:
             logger.info('Legal answer failed grounding (ratio %.2f), attempt %d',
                         grounding['grounded_ratio'], log['generation_attempts'])
         return O.OUTCOME_UNGROUNDED, prompts.message('ungrounded', language), grounding
+
+    def _extractive(self, question, passages, language, log):
+        """Quote the most relevant sentences of the retrieved texts (no LLM needed)."""
+        from . import embedding_service, extractive
+
+        selected = extractive.select(question, passages, embedding_service.embed_texts)
+        if not selected:
+            return O.OUTCOME_NO_SOURCES, prompts.message('no_sources', language), {}
+        answer = extractive.compose(selected, language)
+        log['llm_model'] = 'extractive'
+        grounding = self.detector.check_answer(' '.join(s for _, s, _ in selected), [p.text for p in passages])
+        return O.OUTCOME_ANSWERED_EXTRACTIVE, answer, grounding
 
     @staticmethod
     def _grounding_label(grounding: dict) -> str | None:
@@ -231,6 +280,8 @@ def get_status() -> dict:
         'llm_available': llm_ok,
         'model': llm_service.model_name(),
         'retrieval_ready': docs > 0,
-        'ready': docs > 0 and llm_ok,
+        # without an LLM the assistant still answers, by quoting the sources
+        'ready': docs > 0,
+        'answer_mode': 'written' if llm_ok else 'quoted',
         'llm_endpoint': getattr(settings, 'LEGAL_RAG', {}).get('LLM_API_URL', ''),
     }

@@ -49,6 +49,19 @@ def build_messages(question: str, passages, language: str, history: list[dict] |
 
 
 MESSAGES = {
+    'greeting': {
+        'en': "Hello! I answer questions about Tunisian property law, from the official legal texts I have "
+              "indexed, and I cite the articles I rely on. For example:",
+        'fr': "Bonjour ! Je réponds aux questions sur le droit immobilier tunisien, à partir des textes "
+              "officiels que j'ai indexés, en citant les articles utilisés. Par exemple :",
+        'ar': "مرحبا! أجيب عن الأسئلة المتعلقة بالقانون العقاري التونسي انطلاقا من النصوص الرسمية المفهرسة، "
+              "مع ذكر الفصول التي أعتمد عليها. مثلا:",
+    },
+    'thanks': {
+        'en': "You're welcome. Ask me another question about Tunisian property law whenever you like.",
+        'fr': "Avec plaisir. Posez-moi une autre question sur le droit immobilier tunisien quand vous voulez.",
+        'ar': "على الرحب والسعة. يمكنك طرح سؤال آخر عن القانون العقاري التونسي متى شئت.",
+    },
     'out_of_scope': {
         'en': "I answer questions about Tunisian property law. For prices, valuations, forecasts or investment "
               "picks, please use the EstateMind advisor or the valuation tool.",

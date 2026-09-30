@@ -15,6 +15,7 @@ const OUTCOME_NOTES = {
   refused_no_sources: 'No relevant legal text was found, so no answer was generated.',
   refused_ungrounded: 'The generated answer was not supported by the sources and was withheld.',
   llm_unavailable: 'The answer service is unreachable; showing the most relevant legal texts.',
+  answered_extractive: 'Quoted directly from the official texts: the answer-writing model is unavailable, so no summary was written.',
   out_of_scope: 'This is not a legal question.',
 };
 
@@ -23,6 +24,13 @@ function StatusChip({ s }) {
   if (!s) return (
     <span className="inline-flex items-center gap-1.5 text-[11px] text-gray-500">
       <Loader2 size={10} className="animate-spin" /> Connecting
+    </span>
+  );
+  if (s.ready && s.answer_mode === 'quoted') return (
+    <span className="inline-flex items-center gap-1.5 text-[11px] text-amber-300 font-medium"
+      title="The answer-writing model is unreachable; answers quote the official texts directly.">
+      <span className="w-1.5 h-1.5 rounded-full bg-amber-300" />
+      Ready · quoting the texts
     </span>
   );
   if (s.ready) return (
@@ -340,20 +348,23 @@ export default function LegalAIPage() {
   const [inputFocused, setInputFocused] = useState(false);
   const [sessionId, setSessionId] = useState(null);
 
-  const bottomRef = useRef(null);
+  const listRef = useRef(null);
   const textareaRef = useRef(null);
 
   useEffect(() => {
     getLegalStatus()
       .then(r => setStatus(r.data))
-      .catch(() => setStatus({ ready: false, llm_available: false, documents_indexed: 0, model: 'Llama 3.1 70B' }));
+      .catch(() => setStatus({ ready: false, llm_available: false, documents_indexed: 0 }));
     getLegalSampleQuestions()
       .then(r => setQuestions(r.data.questions || []))
       .catch(() => {});
   }, []);
 
+  // Scroll the message list only. scrollIntoView also scrolled the window, which sent
+  // the page down to the footer after each message.
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const list = listRef.current;
+    if (list) list.scrollTo({ top: list.scrollHeight, behavior: 'smooth' });
   }, [messages, loading]);
 
   useEffect(() => {
@@ -417,7 +428,7 @@ export default function LegalAIPage() {
   // Refocus after the reply has rendered (focusing inside the request handler ran
   // before the re-render, so focus was lost).
   useEffect(() => {
-    if (!loading) requestAnimationFrame(() => textareaRef.current?.focus());
+    if (!loading) requestAnimationFrame(() => textareaRef.current?.focus({ preventScroll: true }));
   }, [loading]);
 
   const handleKeyDown = (e) => {
@@ -426,10 +437,6 @@ export default function LegalAIPage() {
       send();
     }
   };
-
-  const modelLabel = status?.model
-    ? status.model.replace('hosted_vllm/', '')
-    : 'Llama 3.1 70B';
 
   const hasChat = messages.length > 0;
   const canSend = input.trim() && !loading;
@@ -444,6 +451,7 @@ export default function LegalAIPage() {
 
         {/* Messages / empty state */}
         <div
+          ref={listRef}
           className="flex-1 overflow-y-auto"
           style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.05) transparent' }}
         >
@@ -453,10 +461,8 @@ export default function LegalAIPage() {
             <div className="py-8 space-y-5">
               {messages.map(m => <Message key={m.id} msg={m} />)}
               {loading && <Thinking />}
-              <div ref={bottomRef} />
             </div>
           )}
-          {hasChat && !loading && <div ref={bottomRef} />}
         </div>
 
         {/* ── Input bar ──────────────────────────────────────────────────── */}
