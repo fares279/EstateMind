@@ -189,19 +189,19 @@ export const ForecastFanChart = ({ delegation, propertyType }) => {
       <div className="grid grid-cols-3 gap-3 mb-4">
         <div className="bg-gray-750 rounded p-3">
           <div className="text-xs text-gray-500">Current Price</div>
-          <div className="text-lg font-bold text-white">{Math.round(currentPrice).toLocaleString('fr-TN')} TND</div>
+          <div className="text-lg font-bold text-white">{Math.round(currentPrice).toLocaleString('en-US')} TND</div>
         </div>
         <div className="bg-gray-750 rounded p-3">
           <div className="text-xs text-gray-500">6-Month Forecast</div>
           <div className="text-lg font-bold text-green-400">
-            {Math.round(forecast6m).toLocaleString('fr-TN')}
+            {Math.round(forecast6m).toLocaleString('en-US')}
             <span className="text-xs ml-1">{forecast6mChange > 0 ? '+' : ''}{forecast6mChange.toFixed(1)}%</span>
           </div>
         </div>
         <div className="bg-gray-750 rounded p-3">
           <div className="text-xs text-gray-500">12-Month Forecast</div>
           <div className="text-lg font-bold text-green-400">
-            {Math.round(forecast12m).toLocaleString('fr-TN')}
+            {Math.round(forecast12m).toLocaleString('en-US')}
             <span className="text-xs ml-1">{forecast12mChange > 0 ? '+' : ''}{forecast12mChange.toFixed(1)}%</span>
           </div>
         </div>

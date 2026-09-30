@@ -126,3 +126,29 @@ class MapApiTests(TestCase):
         data = response.json()
         self.assertIn("status", data)
         self.assertIn("weights", data)
+
+
+class ListingDealAssessmentTests(TestCase):
+    def setUp(self):
+        from estatemind.market.core.models import Delegation, Property, Region
+        region = Region.objects.create(governorate='Tunis')
+        self.d = Delegation.objects.create(region=region, name='La Marsa')
+        for i, ppm in enumerate([2800, 2900, 3000, 3100, 3200]):
+            Property.objects.create(external_id=f'c{i}', title=f'c{i}', description='', property_type='apartment',
+                                    transaction_type='sale', region=region, delegation=self.d, price=ppm * 100,
+                                    area_sqm=100, source='listings_csv')
+        Property.objects.create(external_id='cheap', title='cheap', description='', property_type='apartment',
+                                transaction_type='sale', region=region, delegation=self.d, price=200_000,
+                                area_sqm=100, source='listings_csv')
+        Property.objects.create(external_id='land', title='land', description='', property_type='land',
+                                transaction_type='sale', region=region, delegation=self.d, price=100_000,
+                                area_sqm=500, source='listings_csv')
+
+    def test_listings_are_assessed_against_real_comparables(self):
+        from rest_framework.test import APIClient
+        rows = {r['external_id']: r for r in APIClient().get('/api/map/listings/').json()['results']}
+        self.assertEqual(rows['cheap']['deal'], 'good')          # 2,000/m2 vs a 2,950 median
+        self.assertEqual(rows['c2']['deal'], 'fair')
+        self.assertEqual(rows['cheap']['deal_median_ppm'], 2950)  # median of all six
+        self.assertIsNone(rows['land']['deal'])                  # one land listing: not assessed
+        self.assertEqual(rows['cheap']['transaction_type'], 'sale')

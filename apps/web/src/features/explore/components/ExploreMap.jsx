@@ -133,8 +133,8 @@ function priceTip(item) {
       <div style="font-weight:700;font-size:13px;margin-bottom:4px">${p.delegation_name || p.governorate || 'Zone'}</div>
       ${p.governorate ? `<div style="font-size:10px;color:#6b7280;margin-bottom:6px">${p.governorate}</div>` : ''}
       <div style="display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:11px">
-        <span style="color:#6b7280">Avg price</span><span style="font-weight:600">${avg.toLocaleString('fr-TN')} TND/m²</span>
-        ${min ? `<span style="color:#6b7280">Range</span><span>${min.toLocaleString('fr-TN')} – ${max.toLocaleString('fr-TN')}</span>` : ''}
+        <span style="color:#6b7280">Avg price</span><span style="font-weight:600">${avg.toLocaleString('en-US')} TND/m²</span>
+        ${min ? `<span style="color:#6b7280">Range</span><span>${min.toLocaleString('en-US')} – ${max.toLocaleString('en-US')}</span>` : ''}
         ${tArrow ? `<span style="color:#6b7280">12M trend</span><span>${tArrow}</span>` : ''}
       </div>
     </div>`;
@@ -267,6 +267,7 @@ export default function ExploreMap({
 
   const [hoverInfo,  setHoverInfo]  = useState(null);
   const [layerStats, setLayerStats] = useState(null);
+  const [layerNotice, setLayerNotice] = useState('');
   const [dataLoading, setDataLoading] = useState(false);
 
   /* ── Init Leaflet once ────────────────────────────────────────────────── */
@@ -282,11 +283,11 @@ export default function ExploreMap({
       zoomControl: false,
     });
 
-    // Dark satellite-style basemap option + clean light fallback
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      attribution: '© OpenStreetMap © CARTO',
-      subdomains: 'abcd',
-      maxZoom: 20,
+    // OpenStreetMap standard tiles: no API key. (CARTO's basemaps now answer
+    // "API KEY REQUIRED" tiles without one.) Override with REACT_APP_MAP_TILE_URL.
+    L.tileLayer(process.env.REACT_APP_MAP_TILE_URL || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 19,
     }).addTo(map);
 
     L.control.zoom({ position: 'bottomright' }).addTo(map);
@@ -330,7 +331,7 @@ export default function ExploreMap({
         zIndexOffset: isSelected ? 1000 : 0,
       });
       marker.bindTooltip(
-        `<b>${p.title || 'Property'}</b><br/>${(p.price || 0).toLocaleString('fr-TN')} TND — ${p.location || ''}`,
+        `<b>${p.title || 'Property'}</b><br/>${(p.price || 0).toLocaleString('en-US')} TND — ${p.location || ''}`,
         { direction: 'top', className: 'em-tip' }
       );
       marker.on('click', () => onPropertySelect?.(p));
@@ -353,6 +354,7 @@ export default function ExploreMap({
     hl.clearLayers();
     setHoverInfo(null);
     setLayerStats(null);
+    setLayerNotice('');
     setDataLoading(true);
 
     const addHeatCircle = (lat, lon, colorInfo, tooltip, rawData) => {
@@ -462,8 +464,16 @@ export default function ExploreMap({
         } else {
           setLayerStats({ type: 'demand', total: features.length });
         }
-      } catch {
+      } catch (err) {
         hl.clearLayers();
+        // the price, demand and opportunity layers are Pro features; say so instead of
+        // leaving an empty map
+        const code = err?.response?.status;
+        if (!cancelled) {
+          setLayerNotice(code === 401 ? 'Sign in with a Pro plan to see this layer.'
+            : code === 403 ? 'This layer is part of the Pro plan.'
+            : 'This layer could not be loaded. Please try again.');
+        }
       } finally {
         if (!cancelled) setDataLoading(false);
       }
@@ -483,8 +493,8 @@ export default function ExploreMap({
       return (
         <>
           <StatChip label="Delegations" value={layerStats.total} />
-          <StatChip label="Nat. avg" value={`${(layerStats.avg || 0).toLocaleString('fr-TN')} TND/m²`} />
-          <StatChip label="Highest" value={`${(layerStats.max || 0).toLocaleString('fr-TN')} TND/m²`} />
+          <StatChip label="Nat. avg" value={`${(layerStats.avg || 0).toLocaleString('en-US')} TND/m²`} />
+          <StatChip label="Highest" value={`${(layerStats.max || 0).toLocaleString('en-US')} TND/m²`} />
         </>
       );
     if (layerStats.type === 'climate')
@@ -572,6 +582,12 @@ export default function ExploreMap({
         <div className="absolute bottom-20 right-3 z-[1001] bg-white/97 border border-gray-200 rounded-xl shadow-xl p-3 max-w-[220px] text-[11px] text-gray-700"
           style={{ backdropFilter: 'blur(12px)', animation: 'emFadeIn .15s ease' }}>
           <HoverPanel info={hoverInfo} />
+        </div>
+      )}
+
+      {layerNotice && (
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1002] rounded-xl border border-gray-200 bg-white/95 px-4 py-2 text-xs font-semibold text-gray-700 shadow-md">
+          {layerNotice}
         </div>
       )}
 
@@ -718,9 +734,9 @@ function HoverPanel({ info }) {
       <div>
         <div className="font-bold text-[12px] text-gray-800 mb-1">{info.delegation_name}</div>
         {info.governorate && <div className="text-[10px] text-gray-400 mb-2">{info.governorate}</div>}
-        <Row k="Avg price"  v={`${(Number(info.avg_price_tnd || 0)).toLocaleString('fr-TN')} TND/m²`} />
-        {info.min_price_tnd && <Row k="Min"  v={`${(Number(info.min_price_tnd)).toLocaleString('fr-TN')} TND/m²`} />}
-        {info.max_price_tnd && <Row k="Max"  v={`${(Number(info.max_price_tnd)).toLocaleString('fr-TN')} TND/m²`} />}
+        <Row k="Avg price"  v={`${(Number(info.avg_price_tnd || 0)).toLocaleString('en-US')} TND/m²`} />
+        {info.min_price_tnd && <Row k="Min"  v={`${(Number(info.min_price_tnd)).toLocaleString('en-US')} TND/m²`} />}
+        {info.max_price_tnd && <Row k="Max"  v={`${(Number(info.max_price_tnd)).toLocaleString('en-US')} TND/m²`} />}
         {info.annual_trend_pct != null && (
           <Row k="12M trend" v={`${info.annual_trend_pct >= 0 ? '+' : ''}${Number(info.annual_trend_pct).toFixed(1)}%`}
             c={info.annual_trend_pct >= 0 ? '#22c55e' : '#ef4444'} />

@@ -51,7 +51,7 @@ const SEL_CLS =
   'focus:border-[#FF6B35]/60 focus:outline-none focus:ring-1 focus:ring-[#FF6B35]/30 ' +
   'transition-colors cursor-pointer';
 
-const fmt = (n) => (n ?? 0).toLocaleString('fr-TN', { maximumFractionDigits: 0 });
+const fmt = (n) => (n ?? 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
 const fmtP = (n) => `${n > 0 ? '+' : ''}${(n ?? 0).toFixed(2)}%`;
 
 // Why a request failed, in words: the server's own message, or that it was unreachable.

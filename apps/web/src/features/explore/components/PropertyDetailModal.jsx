@@ -2,30 +2,21 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, MapPin, Ruler, Bed, Bath, Check, TrendingUp, Tag } from 'lucide-react';
 import SampleBadge from './SampleBadge';
+import { dealMeta, priceLabel, sourceLabel } from '../listingFormat';
 
-const DEAL_META = {
-  good:  { icon: '🟢', label: 'Good Deal',    desc: 'Below typical market price',    border: 'border-emerald-500/30', bg: 'from-emerald-500/10 to-emerald-500/5' },
-  fair:  { icon: '🟡', label: 'Fair Value',   desc: 'In line with market pricing',   border: 'border-yellow-500/30',  bg: 'from-yellow-500/10  to-yellow-500/5'  },
-  above: { icon: '🔴', label: 'Above Market', desc: 'Premium or overpriced listing', border: 'border-red-500/30',     bg: 'from-red-500/10     to-red-500/5'     },
+const DEAL_STYLE = {
+  good:  { border: 'border-emerald-500/30', bg: 'from-emerald-500/10 to-emerald-500/5' },
+  fair:  { border: 'border-yellow-500/30',  bg: 'from-yellow-500/10 to-yellow-500/5' },
+  above: { border: 'border-red-500/30',     bg: 'from-red-500/10 to-red-500/5' },
+  none:  { border: 'border-slate-600/40',   bg: 'from-slate-500/10 to-slate-500/5' },
 };
-
-function fmtSource(source) {
-  if (!source) return null;
-  const MAP = {
-    'tunisie_annonce': 'Tunisie Annonce', 'tunisie annonce': 'Tunisie Annonce',
-    'mubawab': 'Mubawab', 'tayara': 'Tayara', 'afariat': 'Afariat',
-  };
-  return MAP[source.toLowerCase()] || source.split(/[_\s]+/).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-}
 
 export default function PropertyDetailModal({ property, isOpen, onClose }) {
   if (!property) return null;
 
-  const deal       = DEAL_META[property.deal] || DEAL_META.fair;
-  const sourceName = fmtSource(property.source);
-  const priceK = property.price >= 1_000_000
-    ? `${(property.price / 1_000_000).toFixed(2)}M`
-    : `${Math.round(property.price / 1000)}K`;
+  const deal       = { ...dealMeta(property.deal), ...(DEAL_STYLE[property.deal] || DEAL_STYLE.none) };
+  const sourceName = sourceLabel(property.source);
+  const priceText  = priceLabel(property.price, property.transactionType);
 
   const handleImageError = (e) => { e.target.src = '/images/property_listing_placeholder.png'; };
 
@@ -92,10 +83,10 @@ export default function PropertyDetailModal({ property, isOpen, onClose }) {
 
                     {/* Price overlay */}
                     <div className="absolute bottom-0 left-0 right-0 p-4">
-                      <p className="text-3xl font-black text-white drop-shadow-lg">{priceK} TND</p>
+                      <p className="text-3xl font-black text-white drop-shadow-lg">{priceText}</p>
                       {property.pricePerM2 && (
                         <p className="text-sm text-[#FF6B35] font-semibold mt-0.5">
-                          {property.pricePerM2.toLocaleString('fr-TN')} TND / m²
+                          {property.pricePerM2.toLocaleString('en-US')} TND/m²
                         </p>
                       )}
                     </div>
@@ -146,8 +137,8 @@ export default function PropertyDetailModal({ property, isOpen, onClose }) {
                     </div>
                     <div className="text-center">
                       <Bed className="w-4 h-4 text-[#FF6B35] mx-auto mb-1.5" />
-                      <p className="text-base font-black text-white">{property.rooms || 'Not listed'}</p>
-                      <p className="text-xs text-gray-500">Rooms</p>
+                      <p className="text-base font-black text-white">{property.bedrooms ?? 'Not listed'}</p>
+                      <p className="text-xs text-gray-500">Bedrooms</p>
                     </div>
                     <div className="text-center">
                       <Bath className="w-4 h-4 text-[#FF6B35] mx-auto mb-1.5" />
@@ -162,7 +153,7 @@ export default function PropertyDetailModal({ property, isOpen, onClose }) {
                       <TrendingUp className="w-4 h-4 text-[#FF6B35] flex-shrink-0" />
                       <div>
                         <p className="text-xs text-gray-500 uppercase tracking-wider font-mono">Price per m²</p>
-                        <p className="text-sm font-bold text-white">{property.pricePerM2.toLocaleString('fr-TN')} TND</p>
+                        <p className="text-sm font-bold text-white">{property.pricePerM2.toLocaleString('en-US')} TND</p>
                       </div>
                     </div>
                   )}
@@ -174,7 +165,9 @@ export default function PropertyDetailModal({ property, isOpen, onClose }) {
                       <div>
                         <p className="text-xs text-gray-500 uppercase tracking-wider font-mono">Market Assessment</p>
                         <p className="text-sm font-bold text-white">{deal.label}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">{deal.desc}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{deal.desc}{property.dealMedianPpm
+                          ? ` (local median ${property.dealMedianPpm.toLocaleString('en-US')} TND/m², ${property.dealComparables} listings)`
+                          : ''}</p>
                       </div>
                     </div>
                   </div>

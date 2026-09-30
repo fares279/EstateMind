@@ -212,6 +212,47 @@ class ClimateRiskViewSet(viewsets.ReadOnlyModelViewSet):
         })
 
 
+# A listing is assessed against at least this many real listings of its delegation, type and
+# transaction; below that it is left unassessed (the page used to call it 'Fair Value').
+DEAL_MIN_COMPARABLES = 5
+DEAL_BELOW, DEAL_ABOVE = 0.85, 1.15
+
+
+def _real_ppm_medians() -> dict:
+    """{(delegation_id, property_type, transaction_type): (median price per m2, count)} over
+    real listings with a measured price and area."""
+    from statistics import median
+
+    from estatemind.market.core.models import SYNTHETIC_SOURCE
+
+    groups: dict = {}
+    rows = (Property.objects.filter(is_active=True, delegation__isnull=False, price__gt=0, area_sqm__gt=0,
+                                    price_imputed=False, area_imputed=False)
+            .exclude(source=SYNTHETIC_SOURCE)
+            .values_list('delegation_id', 'property_type', 'transaction_type', 'price', 'area_sqm'))
+    for d, ptype, tx, price, area in rows:
+        groups.setdefault((d, ptype, tx), []).append(price / area)
+    return {k: (median(v), len(v)) for k, v in groups.items() if len(v) >= DEAL_MIN_COMPARABLES}
+
+
+def _deal_assessment(row: dict, medians: dict) -> dict:
+    """Price per m2 of the listing against its delegation's median for the same type and
+    transaction: 'good' below 85%, 'fair' 85-115%, 'above' over 115%, None when there are
+    too few comparables or the listing is a sample."""
+    from estatemind.market.core.models import SYNTHETIC_SOURCE
+
+    none = {'deal': None, 'deal_median_ppm': None, 'deal_comparables': 0}
+    if row.get('source') == SYNTHETIC_SOURCE or row.get('price_imputed') or row.get('area_imputed'):
+        return none
+    found = medians.get((row.get('delegation'), row.get('property_type'), row.get('transaction_type')))
+    if not found or not row.get('area_sqm'):
+        return none
+    med, n = found
+    ratio = float(row['price']) / float(row['area_sqm']) / med
+    deal = 'good' if ratio < DEAL_BELOW else 'above' if ratio > DEAL_ABOVE else 'fair'
+    return {'deal': deal, 'deal_median_ppm': round(med), 'deal_comparables': n}
+
+
 class MapViewSet(viewsets.ViewSet):
     """Endpoints backing the Interactive Intelligent Map."""
     permission_classes = [IsAuthenticated]
@@ -274,10 +315,14 @@ class MapViewSet(viewsets.ViewSet):
         queryset = queryset.order_by('id')
 
         serialized = PropertyMapSerializer(queryset, many=True)
+        rows = serialized.data
+        medians = _real_ppm_medians()
+        for row in rows:
+            row.update(_deal_assessment(row, medians))
         return Response(
             {
                 'total_count': queryset.count(),
-                'results': serialized.data,
+                'results': rows,
             },
             status=status.HTTP_200_OK,
         )

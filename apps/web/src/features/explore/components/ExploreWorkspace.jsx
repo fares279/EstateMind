@@ -43,33 +43,22 @@ function extractFeatures(rawTitle) {
 }
 
 // Build a clean English title from structured data + extracted features
-function buildEnglishTitle(rawTitle, propertyType, rooms, area, delegationName, governorate) {
+function buildEnglishTitle(rawTitle, propertyType, bedrooms, area, delegationName, governorate, transactionType) {
   const features = extractFeatures(rawTitle);
   const typeLabel = PROP_TYPE_LABELS[propertyType] || 'Property';
   const loc = delegationName || governorate || 'Tunisia';
 
+  // bedrooms as listed; no count is guessed (rooms used to be area / 45 when missing)
   let roomPart = '';
-  if (rooms > 0 && propertyType !== 'land' && propertyType !== 'commercial') {
-    roomPart = rooms === 1 ? 'Studio ' : `${rooms}-Room `;
+  if (bedrooms != null && propertyType !== 'land' && propertyType !== 'commercial') {
+    roomPart = bedrooms === 0 && propertyType === 'apartment' ? 'Studio ' : bedrooms > 0 ? `${bedrooms}-Bedroom ` : '';
   }
 
   // Include area so listings in the same delegation are always distinguishable
   const areaSuffix = area > 0 ? ` · ${area}m²` : '';
   const featPart   = features.length > 0 ? features.join(' · ') + ' ' : '';
-  return `${featPart}${roomPart}${typeLabel}${areaSuffix} in ${loc}`;
-}
-
-// Price-per-m² based deal assessment using delegation median (not hardcoded thresholds)
-function assessDeal(price, area, delegationMedianPpm2) {
-  if (!area || !price || !delegationMedianPpm2) {
-    return 'fair';  // Default to fair if we lack data
-  }
-  const ppm2 = price / area;
-  // Compare to delegation median: 80-100% is good, 100-120% is fair, >120% is above market
-  const percentOfMedian = (ppm2 / delegationMedianPpm2) * 100;
-  if (percentOfMedian < 100) return 'good';
-  if (percentOfMedian < 120) return 'fair';
-  return 'above';
+  const txPart     = transactionType === 'rent' ? ' for Rent' : '';
+  return `${featPart}${roomPart}${typeLabel}${txPart}${areaSuffix} in ${loc}`;
 }
 
 function inTunisia(lat, lng) {
@@ -94,21 +83,16 @@ function resolveCoords(raw) {
 
 function normalizeProperty(raw, delegationKpis) {
   const location = [raw.governorate, raw.delegation_name].filter(Boolean).join(', ');
-  const bedrooms = Number(raw.bedrooms || 0);
-  const rooms    = bedrooms > 0 ? bedrooms : Math.max(1, Math.round(Number(raw.area_sqm || 0) / 45));
+  const bedrooms  = raw.bedrooms == null ? null : Number(raw.bedrooms);
+  const bathrooms = raw.bathrooms == null || Number(raw.bathrooms) === 0 ? null : Number(raw.bathrooms);
   const { lat, lng } = resolveCoords(raw);
   const price  = Number(raw.price || 0);
   const area   = Number(raw.area_sqm || 0);
   const ptype  = raw.property_type || 'apartment';
 
-  // Find delegation KPI to get median price per m²
-  const delegationKpi = delegationKpis?.find(
-    (kpi) => kpi.delegation_name === raw.delegation_name && kpi.governorate === raw.governorate
-  );
-  const delegationMedianPpm2 = delegationKpi?.median_price_per_m2 || null;
-
   // Build clean English title from structured data + features extracted from raw title
-  const title = buildEnglishTitle(raw.title, ptype, rooms, area, raw.delegation_name, raw.governorate);
+  const title = buildEnglishTitle(raw.title, ptype, bedrooms, area, raw.delegation_name, raw.governorate,
+                                  raw.transaction_type);
 
   // Meaningful feature tags (from raw title extraction)
   const featureTags = extractFeatures(raw.title);
@@ -124,9 +108,9 @@ function normalizeProperty(raw, delegationKpis) {
     type:          PROP_TYPE_LABELS[ptype] || 'Property',
     property_type: ptype,
     area,
-    rooms,
-    bathrooms:     Number(raw.bathrooms || 0),
     bedrooms,
+    bathrooms,
+    transactionType: raw.transaction_type || 'sale',
     location:      location || 'Tunisia',
     lat,
     lng,
@@ -136,7 +120,10 @@ function normalizeProperty(raw, delegationKpis) {
     governorate:   raw.governorate,
     delegationName: raw.delegation_name,
     image:         '/images/property_listing_placeholder.png',
-    deal:          assessDeal(price, area, delegationMedianPpm2),
+    // computed by the API against real comparables; null = not assessed
+    deal:          raw.deal || null,
+    dealMedianPpm: raw.deal_median_ppm || null,
+    dealComparables: raw.deal_comparables || 0,
     tags,
   };
 }

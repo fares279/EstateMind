@@ -2,25 +2,10 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { MapPin, Ruler, Bed, Bath, TrendingUp, ChevronRight } from 'lucide-react';
 import SampleBadge from './SampleBadge';
+import { dealMeta, priceCaption, priceLabel } from '../listingFormat';
 
 export default function PropertyCard({ property, isSelected, onViewDetails }) {
-  const getDealIcon = (deal) => {
-    switch (deal) {
-      case 'good':  return '🟢';
-      case 'fair':  return '🟡';
-      case 'above': return '🔴';
-      default:      return '⚪';
-    }
-  };
-
-  const getDealLabel = (deal) => {
-    switch (deal) {
-      case 'good':  return 'Good Deal';
-      case 'fair':  return 'Fair Value';
-      case 'above': return 'Above Market';
-      default:      return 'Market Price';
-    }
-  };
+  const deal = dealMeta(property.deal);
 
   const handleImageError = (e) => {
     e.target.src = '/images/property_listing_placeholder.png';
@@ -50,12 +35,8 @@ export default function PropertyCard({ property, isSelected, onViewDetails }) {
 
         {/* Price Badge */}
         <div className="absolute top-4 right-4 bg-black/80 backdrop-blur-sm border border-[#FF6B35]/40 rounded-lg px-3 py-2">
-          <p className="text-2xl font-black text-[#FF6B35]">
-            {property.price >= 1_000_000
-              ? `${(property.price / 1_000_000).toFixed(1)}M`
-              : `${Math.round(property.price / 1000)}K`} TND
-          </p>
-          <p className="text-xs text-gray-400">List Price</p>
+          <p className="text-2xl font-black text-[#FF6B35]">{priceLabel(property.price, property.transactionType)}</p>
+          <p className="text-xs text-gray-400">{priceCaption(property.transactionType)}</p>
         </div>
 
         {/* Property Type Badge */}
@@ -89,23 +70,23 @@ export default function PropertyCard({ property, isSelected, onViewDetails }) {
             <div className="flex items-center justify-center gap-1 mb-1">
               <Bed className="w-3.5 h-3.5 text-[#FF6B35]" />
             </div>
-            <p className="text-sm font-black text-white">{property.rooms}</p>
-            <p className="text-xs text-gray-500">Rooms</p>
+            <p className="text-sm font-black text-white">{property.bedrooms ?? 'Not listed'}</p>
+            <p className="text-xs text-gray-500">Bedrooms</p>
           </div>
           <div className="text-center">
             <div className="flex items-center justify-center gap-1 mb-1">
               <Bath className="w-3.5 h-3.5 text-[#FF6B35]" />
             </div>
-            <p className="text-sm font-black text-white">{property.bathrooms}</p>
-            <p className="text-xs text-gray-500">Bath</p>
+            <p className="text-sm font-black text-white">{property.bathrooms ?? 'Not listed'}</p>
+            <p className="text-xs text-gray-500">Bathrooms</p>
           </div>
         </div>
 
         {/* Deal Assessment */}
         <div className="flex items-center justify-between gap-3 p-3 bg-slate-800/30 rounded-lg border border-slate-700/50">
           <div className="flex items-center gap-2">
-            <span className="text-lg">{getDealIcon(property.deal)}</span>
-            <span className="text-sm font-medium text-gray-300">{getDealLabel(property.deal)}</span>
+            <span className="text-lg">{deal.icon}</span>
+            <span className="text-sm font-medium text-gray-300" title={deal.desc}>{deal.label}</span>
           </div>
           <TrendingUp className="w-4 h-4 text-[#FF6B35]" />
         </div>

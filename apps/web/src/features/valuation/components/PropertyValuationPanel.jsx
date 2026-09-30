@@ -40,7 +40,7 @@ export const ValuationResultPanel = ({ result }) => {
         <div>
           <div className="text-sm text-gray-400">Estimated Price</div>
           <div className="text-4xl font-bold text-white">
-            {estimated_price ? Math.round(estimated_price).toLocaleString('fr-TN') : 'N/A'} <span className="text-lg text-gray-500">TND</span>
+            {estimated_price ? Math.round(estimated_price).toLocaleString('en-US') : 'N/A'} <span className="text-lg text-gray-500">TND</span>
           </div>
         </div>
       </div>
@@ -61,11 +61,11 @@ export const ValuationResultPanel = ({ result }) => {
           <div className="flex gap-4">
             <div className="flex-1 bg-green-900/30 rounded p-3">
               <div className="text-xs text-gray-400">Lower</div>
-              <div className="text-lg font-bold text-green-400">{Math.round(lower_bound).toLocaleString('fr-TN')} TND</div>
+              <div className="text-lg font-bold text-green-400">{Math.round(lower_bound).toLocaleString('en-US')} TND</div>
             </div>
             <div className="flex-1 bg-red-900/30 rounded p-3">
               <div className="text-xs text-gray-400">Upper</div>
-              <div className="text-lg font-bold text-red-400">{Math.round(upper_bound).toLocaleString('fr-TN')} TND</div>
+              <div className="text-lg font-bold text-red-400">{Math.round(upper_bound).toLocaleString('en-US')} TND</div>
             </div>
           </div>
         </div>
