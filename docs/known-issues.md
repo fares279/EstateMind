@@ -23,11 +23,10 @@ project. Fixed issues are in the git history.
 
 See [ml/valuation-training-data.md](ml/valuation-training-data.md):
 
-- In `listings.csv`, the governorate and town columns are swapped for most rows. The model's town
-  feature is the governorate name in 73% of rows.
-- 17% of kept surfaces have decimals, and 8 rows in different towns share an identical price and
-  surface. These values look generated.
-- v2 challengers stay at 0% traffic until that review.
+- `listings.csv` (source data, kept as is) has the governorate and town columns swapped in most
+  rows, and generated-looking rows. The training pipeline fixes the location per row and drops
+  those rows (variant E). The house champion still predates that fix (see Valuation serving).
+- The previous v2 models remain registered at 0% traffic; variant E supersedes them.
 
 ## Scraper
 
@@ -85,11 +84,9 @@ See [ml/valuation-training-data.md](ml/valuation-training-data.md):
 
 ## Platform
 
-- Rate limits exist (see settings `DEFAULT_THROTTLE_RATES`). They need `CACHE_URL` (shared Redis)
-  to hold across several processes, and `NUM_PROXIES` behind a proxy.
 - Automatic renewal needs a monthly Price per plan in the Stripe account (`STRIPE_PRICE_PRO`,
   `STRIPE_PRICE_INVESTOR`); until they exist, a payment gives 30 days of the plan.
-- Frontend test coverage is thin (see frontend.md).
+- The valuation form and the simulator page have no frontend tests (see frontend.md).
 - 54% of the real listings (2,875 of 5,306) match a delegation. Of the sale listings, 1,554 name
   no town, and about 700 name neighbourhoods missing from the scraper's town table; those stay at
   governorate level. Listing coordinates are delegation centroids.

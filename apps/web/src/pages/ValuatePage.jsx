@@ -415,7 +415,7 @@ function ComparablesTable({ rows }) {
 }
 
 // ── Market context ────────────────────────────────────────────────────────────
-function MarketContext({ market }) {
+export function MarketContext({ market }) {
   if (!market) return null;
   const posColor = { above_market:'text-orange-400', below_market:'text-green-400', at_market:'text-blue-400', unknown:'text-gray-400' };
   const posLabel = { above_market:'Above market', below_market:'Below market', at_market:'In line with market' };
@@ -736,7 +736,7 @@ function CounterfactualsList({ counterfactuals }) {
 }
 
 // ── Results panel ─────────────────────────────────────────────────────────────
-function Results({ result, txType }) {
+export function Results({ result, txType }) {
   const [tab, setTab] = useState('overview');
   const TABS = [
     { id:'overview',      l:'Overview',      I:Home },
