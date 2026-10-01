@@ -1,0 +1,4188 @@
+{
+ "generated": "2026-10-01",
+ "method": "Median asking price per m2 of real sale listings where a delegation has at least 5; elsewhere the benchmark times the median listing/benchmark ratio of its governorate (at least 3 delegations) or of the country, for types where that beats the raw benchmark out of sample.",
+ "scope": "Starting price levels only; agent behaviour is not calibrated (no transaction data).",
+ "report": {
+  "apartment": {
+   "delegations_with_listings": 34,
+   "listings": 988,
+   "median_listing_to_benchmark": 0.746,
+   "benchmark_median_ape": 0.34,
+   "corrected_median_ape_leave_one_out": 0.157,
+   "zones_without_listings": "ratio-corrected benchmark"
+  },
+  "house": {
+   "delegations_with_listings": 46,
+   "listings": 895,
+   "median_listing_to_benchmark": 0.594,
+   "benchmark_median_ape": 0.684,
+   "corrected_median_ape_leave_one_out": 0.194,
+   "zones_without_listings": "ratio-corrected benchmark"
+  },
+  "land": {
+   "delegations_with_listings": 10,
+   "listings": 171,
+   "median_listing_to_benchmark": 1.289,
+   "benchmark_median_ape": 0.586,
+   "corrected_median_ape_leave_one_out": 0.791,
+   "zones_without_listings": "benchmark (correction did not help)"
+  }
+ },
+ "zones": {
+  "Ariana Ville|apartment": {
+   "multiplier": 0.9239,
+   "basis": "listings",
+   "listings": 93
+  },
+  "Ettadhamen|apartment": {
+   "multiplier": 0.7705,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Kalâat el-Andalous|apartment": {
+   "multiplier": 0.7705,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "La Soukra|apartment": {
+   "multiplier": 0.7118,
+   "basis": "listings",
+   "listings": 90
+  },
+  "Mnihla|apartment": {
+   "multiplier": 0.7705,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Raoued|apartment": {
+   "multiplier": 0.7705,
+   "basis": "listings",
+   "listings": 8
+  },
+  "Sidi Thabet|apartment": {
+   "multiplier": 0.7705,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Amdoun|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Béja Nord|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Béja Sud|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Goubellat|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Medjez el-Bab|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Nefza|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Téboursouk|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Testour|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Thibar|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Ben Arous|apartment": {
+   "multiplier": 0.6835,
+   "basis": "listings",
+   "listings": 31
+  },
+  "Bou Mhel el-Bassatine|apartment": {
+   "multiplier": 0.8333,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "El Mourouj|apartment": {
+   "multiplier": 0.891,
+   "basis": "listings",
+   "listings": 26
+  },
+  "Ezzahra|apartment": {
+   "multiplier": 0.7757,
+   "basis": "listings",
+   "listings": 13
+  },
+  "Fouchana|apartment": {
+   "multiplier": 0.5853,
+   "basis": "listings",
+   "listings": 6
+  },
+  "Hammam Chott|apartment": {
+   "multiplier": 0.5528,
+   "basis": "listings",
+   "listings": 8
+  },
+  "Hammam Lif|apartment": {
+   "multiplier": 0.9005,
+   "basis": "listings",
+   "listings": 11
+  },
+  "Medina Jedida|apartment": {
+   "multiplier": 0.7591,
+   "basis": "listings",
+   "listings": 24
+  },
+  "Mégrine|apartment": {
+   "multiplier": 0.9594,
+   "basis": "listings",
+   "listings": 12
+  },
+  "Mohamedia|apartment": {
+   "multiplier": 0.8333,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Mornag|apartment": {
+   "multiplier": 1.0204,
+   "basis": "listings",
+   "listings": 5
+  },
+  "Radès|apartment": {
+   "multiplier": 0.8951,
+   "basis": "listings",
+   "listings": 11
+  },
+  "Bizerte Nord|apartment": {
+   "multiplier": 1.0759,
+   "basis": "listings",
+   "listings": 5
+  },
+  "Bizerte Sud|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "El Alia|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Ghar El Melh|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Ghezala|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Joumine|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Mateur|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Menzel Bourguiba|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Menzel Jemil|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Ras Jebel|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Sejnane|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Tinja|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Utique|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Zarzouna|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "El Hamma|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "El Hamma Ouest|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Gabès Médina|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Gabès Ouest|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Gabès Sud|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Ghannouch|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Mareth-Dkhila|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Matmata|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Menzel El Habib|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Métouia|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Nouvelle Matmata|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Oudhref|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Toujane|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Belkhir|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "El Guettar|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "El Ksar|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Gafsa Nord|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Gafsa Sud|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Mdhilla|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Métlaoui|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Moularès|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Redeyef|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Sened|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Sidi Aïch|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Sidi Boubaker|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Zannouch|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Aïn Draham|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Balta-Bou Aouane|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Bou Salem|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Fernana|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Ghardimaou|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Jendouba|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Jendouba Nord|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Oued Meliz|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Tabarka|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Aïn Djeloula|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Bou Hajla|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Chebika|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Echrarda|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "El Alâa|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Haffouz|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Hajeb El Ayoun|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Kairouan Nord|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Kairouan Sud|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Menzel Mehiri|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Nasrallah|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Oueslatia|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Sbikha|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "El Ayoun|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Ezzouhour|apartment": {
+   "multiplier": 0.7422,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Fériana|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Foussana|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Haïdra|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Hassi El Ferid|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Jedelienne|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Kasserine Nord|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Kasserine Sud|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Majel Bel Abbès|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Sbeïtla|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Sbiba|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Thala|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Douz Nord|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Douz Sud|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Faouar|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Kébili Nord|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Kébili Sud|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Rjim Maatoug|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Souk Lahad|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Borj El Amri|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Djedeida|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Douar Hicher|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "El Batan|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "La Manouba|apartment": {
+   "multiplier": 0.8095,
+   "basis": "listings",
+   "listings": 35
+  },
+  "Mornaguia|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Oued Ellil|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Tebourba|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Dahmani|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "El Ksour|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Jérissa|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Kalâat Khasba|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Kalaat Senan|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Kef Est|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Kef Ouest|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Nebeur|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Sakiet Sidi Youssef|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Sers|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Tajerouine|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Touiref|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Bou Merdes|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Chebba|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Chorbane|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "El Bradâa|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "El Jem|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Essouassi|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Hebira|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Ksour Essef|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Mahdia|apartment": {
+   "multiplier": 1.1028,
+   "basis": "listings",
+   "listings": 65
+  },
+  "Melloulèche|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Ouled Chamekh|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Rejiche|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Sidi Alouane|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Ben Gardane|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Beni Khedache|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Djerba - Ajim|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Djerba - Houmt Souk|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Djerba - Midoun|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Médenine Nord|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Médenine Sud|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Sidi Makhlouf|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Zarzis|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Bekalta|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Bembla|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Beni Hassen|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Jemmal|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Ksar Hellal|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Ksibet el-Médiouni|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Moknine|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Monastir|apartment": {
+   "multiplier": 0.7265,
+   "basis": "listings",
+   "listings": 56
+  },
+  "Ouerdanine|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Sahline|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Sayada-Lamta-Bou Hajar|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Téboulba|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Zéramdine|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Béni Khalled|apartment": {
+   "multiplier": 0.6518,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Béni Khiar|apartment": {
+   "multiplier": 0.6518,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Bou Argoub|apartment": {
+   "multiplier": 0.6518,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Dar Chaâbane El Fehri|apartment": {
+   "multiplier": 0.6518,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "El Haouaria|apartment": {
+   "multiplier": 0.6518,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "El Mida|apartment": {
+   "multiplier": 0.6518,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Grombalia|apartment": {
+   "multiplier": 0.6518,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Hammam Ghezèze|apartment": {
+   "multiplier": 0.6518,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Hammamet|apartment": {
+   "multiplier": 0.6395,
+   "basis": "listings",
+   "listings": 82
+  },
+  "Kélibia|apartment": {
+   "multiplier": 1.3389,
+   "basis": "listings",
+   "listings": 12
+  },
+  "Korba|apartment": {
+   "multiplier": 0.6518,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Menzel Bouzelfa|apartment": {
+   "multiplier": 0.6518,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Menzel Temime|apartment": {
+   "multiplier": 0.6518,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Nabeul|apartment": {
+   "multiplier": 0.6518,
+   "basis": "listings",
+   "listings": 9
+  },
+  "Soliman|apartment": {
+   "multiplier": 0.6518,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Takelsa|apartment": {
+   "multiplier": 0.6518,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Agareb|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Bir Ali Ben Khalifa|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "El Hencha|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Graïba|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Jebiniana|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Kerkennah|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Mahrès|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Menzel Chaker|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Sakiet Eddaïer|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Sakiet Ezzit|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Sfax Ouest|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Sfax Sud|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Sfax Ville|apartment": {
+   "multiplier": 0.6452,
+   "basis": "listings",
+   "listings": 11
+  },
+  "Skhira|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Thyna|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Bir El Hafey|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Cebbala Ouled Asker|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Essaïda|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Hichria|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Jilma|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Meknassy|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Menzel Bouzaiane|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Mezzouna|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Ouled Haffouz|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Regueb|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Sidi Ali Ben Aoun|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Sidi Bouzid Est|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Sidi Bouzid Ouest|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Souk Jedid|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Bargou|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Bou Arada|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "El Aroussa|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "El Krib|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Gaâfour|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Kesra|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Makthar|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Rouhia|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Sidi Bou Rouis|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Siliana Nord|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Siliana Sud|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Akouda|apartment": {
+   "multiplier": 0.6075,
+   "basis": "listings",
+   "listings": 26
+  },
+  "Bouficha|apartment": {
+   "multiplier": 0.5933,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Enfida|apartment": {
+   "multiplier": 0.5933,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Hammam Sousse|apartment": {
+   "multiplier": 0.5923,
+   "basis": "listings",
+   "listings": 60
+  },
+  "Hergla|apartment": {
+   "multiplier": 0.5942,
+   "basis": "listings",
+   "listings": 18
+  },
+  "Kalâa Kebira|apartment": {
+   "multiplier": 0.5933,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Kalâa Seghira|apartment": {
+   "multiplier": 0.5933,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Kondar|apartment": {
+   "multiplier": 0.5933,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "M'saken|apartment": {
+   "multiplier": 0.5933,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Sidi Bou Ali|apartment": {
+   "multiplier": 0.5933,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Sidi El Hani|apartment": {
+   "multiplier": 0.5933,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Sousse Jawhara|apartment": {
+   "multiplier": 1.065,
+   "basis": "listings",
+   "listings": 47
+  },
+  "Sousse Médina|apartment": {
+   "multiplier": 0.5382,
+   "basis": "listings",
+   "listings": 8
+  },
+  "Sousse Riadh|apartment": {
+   "multiplier": 0.3832,
+   "basis": "listings",
+   "listings": 22
+  },
+  "Sousse Sidi Abdelhamid|apartment": {
+   "multiplier": 0.5933,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Zaouiet Ksibet Thrayet|apartment": {
+   "multiplier": 0.5933,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Beni Mhira|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Bir Lahmar|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Dehiba|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Ghomrassen|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Remada|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Smâr|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Tataouine Nord|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Tataouine Sud|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Degache|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "El Hamma du Jérid|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Hazoua|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Nefta|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Tameghza|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Tozeur|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Bab El Bhar|apartment": {
+   "multiplier": 0.7422,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Bab Souika|apartment": {
+   "multiplier": 0.7422,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Carthage|apartment": {
+   "multiplier": 0.5834,
+   "basis": "listings",
+   "listings": 17
+  },
+  "Cité El Khadra|apartment": {
+   "multiplier": 0.7422,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Djebel Jelloud|apartment": {
+   "multiplier": 0.7422,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "El Kabaria|apartment": {
+   "multiplier": 0.7422,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "El Menzah|apartment": {
+   "multiplier": 0.8312,
+   "basis": "listings",
+   "listings": 10
+  },
+  "El Omrane|apartment": {
+   "multiplier": 0.7422,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "El Omrane supérieur|apartment": {
+   "multiplier": 0.7422,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "El Ouardia|apartment": {
+   "multiplier": 0.7422,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Ettahrir|apartment": {
+   "multiplier": 0.7422,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Hraïria|apartment": {
+   "multiplier": 0.7422,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "La Goulette|apartment": {
+   "multiplier": 0.9663,
+   "basis": "listings",
+   "listings": 14
+  },
+  "La Marsa|apartment": {
+   "multiplier": 0.7247,
+   "basis": "listings",
+   "listings": 102
+  },
+  "Le Bardo|apartment": {
+   "multiplier": 0.5655,
+   "basis": "listings",
+   "listings": 17
+  },
+  "Le Kram|apartment": {
+   "multiplier": 0.7422,
+   "basis": "listings",
+   "listings": 29
+  },
+  "Médina|apartment": {
+   "multiplier": 0.75,
+   "basis": "listings",
+   "listings": 5
+  },
+  "Séjoumi|apartment": {
+   "multiplier": 0.7422,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Sidi El Béchir|apartment": {
+   "multiplier": 0.7422,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Sidi Hassine|apartment": {
+   "multiplier": 0.7422,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Bir Mcherga|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "El Fahs|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Nadhour|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Saouaf|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Zaghouan|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Zriba|apartment": {
+   "multiplier": 0.7461,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Ariana Ville|house": {
+   "multiplier": 0.7736,
+   "basis": "listings",
+   "listings": 20
+  },
+  "Ettadhamen|house": {
+   "multiplier": 0.5921,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Kalâat el-Andalous|house": {
+   "multiplier": 0.5921,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "La Soukra|house": {
+   "multiplier": 0.5555,
+   "basis": "listings",
+   "listings": 72
+  },
+  "Mnihla|house": {
+   "multiplier": 0.6288,
+   "basis": "listings",
+   "listings": 8
+  },
+  "Raoued|house": {
+   "multiplier": 0.2602,
+   "basis": "listings",
+   "listings": 23
+  },
+  "Sidi Thabet|house": {
+   "multiplier": 0.5921,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Amdoun|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Béja Nord|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Béja Sud|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Goubellat|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Medjez el-Bab|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Nefza|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Téboursouk|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Testour|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Thibar|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Ben Arous|house": {
+   "multiplier": 0.5577,
+   "basis": "listings",
+   "listings": 33
+  },
+  "Bou Mhel el-Bassatine|house": {
+   "multiplier": 0.5896,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "El Mourouj|house": {
+   "multiplier": 0.7308,
+   "basis": "listings",
+   "listings": 17
+  },
+  "Ezzahra|house": {
+   "multiplier": 0.5661,
+   "basis": "listings",
+   "listings": 6
+  },
+  "Fouchana|house": {
+   "multiplier": 0.6131,
+   "basis": "listings",
+   "listings": 9
+  },
+  "Hammam Chott|house": {
+   "multiplier": 0.4563,
+   "basis": "listings",
+   "listings": 15
+  },
+  "Hammam Lif|house": {
+   "multiplier": 0.5896,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Medina Jedida|house": {
+   "multiplier": 0.7414,
+   "basis": "listings",
+   "listings": 7
+  },
+  "Mégrine|house": {
+   "multiplier": 0.6718,
+   "basis": "listings",
+   "listings": 6
+  },
+  "Mohamedia|house": {
+   "multiplier": 0.781,
+   "basis": "listings",
+   "listings": 10
+  },
+  "Mornag|house": {
+   "multiplier": 0.5172,
+   "basis": "listings",
+   "listings": 7
+  },
+  "Radès|house": {
+   "multiplier": 0.5595,
+   "basis": "listings",
+   "listings": 9
+  },
+  "Bizerte Nord|house": {
+   "multiplier": 0.6136,
+   "basis": "listings",
+   "listings": 5
+  },
+  "Bizerte Sud|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "El Alia|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Ghar El Melh|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Ghezala|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Joumine|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Mateur|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Menzel Bourguiba|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Menzel Jemil|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Ras Jebel|house": {
+   "multiplier": 0.5269,
+   "basis": "listings",
+   "listings": 8
+  },
+  "Sejnane|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Tinja|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Utique|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Zarzouna|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "El Hamma|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "El Hamma Ouest|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Gabès Médina|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Gabès Ouest|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Gabès Sud|house": {
+   "multiplier": 0.71,
+   "basis": "listings",
+   "listings": 6
+  },
+  "Ghannouch|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Mareth-Dkhila|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Matmata|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Menzel El Habib|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Métouia|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Nouvelle Matmata|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Oudhref|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Toujane|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Belkhir|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "El Guettar|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "El Ksar|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Gafsa Nord|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Gafsa Sud|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Mdhilla|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Métlaoui|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Moularès|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Redeyef|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Sened|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Sidi Aïch|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Sidi Boubaker|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Zannouch|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Aïn Draham|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Balta-Bou Aouane|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Bou Salem|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Fernana|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Ghardimaou|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Jendouba|house": {
+   "multiplier": 0.4086,
+   "basis": "listings",
+   "listings": 7
+  },
+  "Jendouba Nord|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Oued Meliz|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Tabarka|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Aïn Djeloula|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Bou Hajla|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Chebika|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Echrarda|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "El Alâa|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Haffouz|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Hajeb El Ayoun|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Kairouan Nord|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Kairouan Sud|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Menzel Mehiri|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Nasrallah|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Oueslatia|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Sbikha|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "El Ayoun|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Ezzouhour|house": {
+   "multiplier": 0.5938,
+   "basis": "listings",
+   "listings": 5
+  },
+  "Fériana|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Foussana|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Haïdra|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Hassi El Ferid|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Jedelienne|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Kasserine Nord|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Kasserine Sud|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Majel Bel Abbès|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Sbeïtla|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Sbiba|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Thala|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Douz Nord|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Douz Sud|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Faouar|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Kébili Nord|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Kébili Sud|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Rjim Maatoug|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Souk Lahad|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Borj El Amri|house": {
+   "multiplier": 0.5907,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Djedeida|house": {
+   "multiplier": 0.6686,
+   "basis": "listings",
+   "listings": 6
+  },
+  "Douar Hicher|house": {
+   "multiplier": 0.5907,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "El Batan|house": {
+   "multiplier": 0.5907,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "La Manouba|house": {
+   "multiplier": 0.7552,
+   "basis": "listings",
+   "listings": 39
+  },
+  "Mornaguia|house": {
+   "multiplier": 0.4545,
+   "basis": "listings",
+   "listings": 7
+  },
+  "Oued Ellil|house": {
+   "multiplier": 0.5128,
+   "basis": "listings",
+   "listings": 11
+  },
+  "Tebourba|house": {
+   "multiplier": 0.5907,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Dahmani|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "El Ksour|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Jérissa|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Kalâat Khasba|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Kalaat Senan|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Kef Est|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Kef Ouest|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Nebeur|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Sakiet Sidi Youssef|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Sers|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Tajerouine|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Touiref|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Bou Merdes|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Chebba|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Chorbane|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "El Bradâa|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "El Jem|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Essouassi|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Hebira|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Ksour Essef|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Mahdia|house": {
+   "multiplier": 0.6505,
+   "basis": "listings",
+   "listings": 48
+  },
+  "Melloulèche|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Ouled Chamekh|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Rejiche|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Sidi Alouane|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Ben Gardane|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Beni Khedache|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Djerba - Ajim|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Djerba - Houmt Souk|house": {
+   "multiplier": 0.5053,
+   "basis": "listings",
+   "listings": 10
+  },
+  "Djerba - Midoun|house": {
+   "multiplier": 0.5419,
+   "basis": "listings",
+   "listings": 9
+  },
+  "Médenine Nord|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Médenine Sud|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Sidi Makhlouf|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Zarzis|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Bekalta|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Bembla|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Beni Hassen|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Jemmal|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Ksar Hellal|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Ksibet el-Médiouni|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Moknine|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Monastir|house": {
+   "multiplier": 0.4894,
+   "basis": "listings",
+   "listings": 57
+  },
+  "Ouerdanine|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Sahline|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Sayada-Lamta-Bou Hajar|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Téboulba|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Zéramdine|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Béni Khalled|house": {
+   "multiplier": 0.6315,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Béni Khiar|house": {
+   "multiplier": 0.6315,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Bou Argoub|house": {
+   "multiplier": 0.6315,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Dar Chaâbane El Fehri|house": {
+   "multiplier": 0.6315,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "El Haouaria|house": {
+   "multiplier": 0.6315,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "El Mida|house": {
+   "multiplier": 0.6315,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Grombalia|house": {
+   "multiplier": 0.6315,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Hammam Ghezèze|house": {
+   "multiplier": 0.6315,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Hammamet|house": {
+   "multiplier": 0.2341,
+   "basis": "listings",
+   "listings": 153
+  },
+  "Kélibia|house": {
+   "multiplier": 0.6453,
+   "basis": "listings",
+   "listings": 24
+  },
+  "Korba|house": {
+   "multiplier": 0.6315,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Menzel Bouzelfa|house": {
+   "multiplier": 0.6315,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Menzel Temime|house": {
+   "multiplier": 0.6315,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Nabeul|house": {
+   "multiplier": 0.6315,
+   "basis": "listings",
+   "listings": 15
+  },
+  "Soliman|house": {
+   "multiplier": 0.6315,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Takelsa|house": {
+   "multiplier": 0.6315,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Agareb|house": {
+   "multiplier": 0.395,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Bir Ali Ben Khalifa|house": {
+   "multiplier": 0.395,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "El Hencha|house": {
+   "multiplier": 0.395,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Graïba|house": {
+   "multiplier": 0.395,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Jebiniana|house": {
+   "multiplier": 0.395,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Kerkennah|house": {
+   "multiplier": 0.395,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Mahrès|house": {
+   "multiplier": 1.0723,
+   "basis": "listings",
+   "listings": 6
+  },
+  "Menzel Chaker|house": {
+   "multiplier": 0.395,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Sakiet Eddaïer|house": {
+   "multiplier": 0.395,
+   "basis": "listings",
+   "listings": 6
+  },
+  "Sakiet Ezzit|house": {
+   "multiplier": 0.395,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Sfax Ouest|house": {
+   "multiplier": 0.395,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Sfax Sud|house": {
+   "multiplier": 0.395,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Sfax Ville|house": {
+   "multiplier": 0.395,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Skhira|house": {
+   "multiplier": 0.395,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Thyna|house": {
+   "multiplier": 0.3189,
+   "basis": "listings",
+   "listings": 6
+  },
+  "Bir El Hafey|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Cebbala Ouled Asker|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Essaïda|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Hichria|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Jilma|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Meknassy|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Menzel Bouzaiane|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Mezzouna|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Ouled Haffouz|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Regueb|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Sidi Ali Ben Aoun|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Sidi Bouzid Est|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Sidi Bouzid Ouest|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Souk Jedid|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Bargou|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Bou Arada|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "El Aroussa|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "El Krib|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Gaâfour|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Kesra|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Makthar|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Rouhia|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Sidi Bou Rouis|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Siliana Nord|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Siliana Sud|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Akouda|house": {
+   "multiplier": 0.4925,
+   "basis": "listings",
+   "listings": 14
+  },
+  "Bouficha|house": {
+   "multiplier": 0.5164,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Enfida|house": {
+   "multiplier": 0.5164,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Hammam Sousse|house": {
+   "multiplier": 0.506,
+   "basis": "listings",
+   "listings": 33
+  },
+  "Hergla|house": {
+   "multiplier": 0.417,
+   "basis": "listings",
+   "listings": 8
+  },
+  "Kalâa Kebira|house": {
+   "multiplier": 0.5268,
+   "basis": "listings",
+   "listings": 11
+  },
+  "Kalâa Seghira|house": {
+   "multiplier": 0.5164,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Kondar|house": {
+   "multiplier": 0.5164,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "M'saken|house": {
+   "multiplier": 0.5164,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Sidi Bou Ali|house": {
+   "multiplier": 0.5164,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Sidi El Hani|house": {
+   "multiplier": 0.5164,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Sousse Jawhara|house": {
+   "multiplier": 0.61,
+   "basis": "listings",
+   "listings": 23
+  },
+  "Sousse Médina|house": {
+   "multiplier": 0.5164,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Sousse Riadh|house": {
+   "multiplier": 0.6111,
+   "basis": "listings",
+   "listings": 13
+  },
+  "Sousse Sidi Abdelhamid|house": {
+   "multiplier": 0.5164,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Zaouiet Ksibet Thrayet|house": {
+   "multiplier": 0.5164,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Beni Mhira|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Bir Lahmar|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Dehiba|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Ghomrassen|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Remada|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Smâr|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Tataouine Nord|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Tataouine Sud|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Degache|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "El Hamma du Jérid|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Hazoua|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Nefta|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Tameghza|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Tozeur|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Bab El Bhar|house": {
+   "multiplier": 0.7149,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Bab Souika|house": {
+   "multiplier": 0.7149,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Carthage|house": {
+   "multiplier": 0.7576,
+   "basis": "listings",
+   "listings": 17
+  },
+  "Cité El Khadra|house": {
+   "multiplier": 0.7149,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Djebel Jelloud|house": {
+   "multiplier": 0.7149,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "El Kabaria|house": {
+   "multiplier": 0.9234,
+   "basis": "listings",
+   "listings": 6
+  },
+  "El Menzah|house": {
+   "multiplier": 0.7149,
+   "basis": "listings",
+   "listings": 23
+  },
+  "El Omrane|house": {
+   "multiplier": 0.7149,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "El Omrane supérieur|house": {
+   "multiplier": 0.7149,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "El Ouardia|house": {
+   "multiplier": 0.4774,
+   "basis": "listings",
+   "listings": 6
+  },
+  "Ettahrir|house": {
+   "multiplier": 0.7149,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Hraïria|house": {
+   "multiplier": 0.7149,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "La Goulette|house": {
+   "multiplier": 0.7149,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "La Marsa|house": {
+   "multiplier": 0.594,
+   "basis": "listings",
+   "listings": 42
+  },
+  "Le Bardo|house": {
+   "multiplier": 0.8199,
+   "basis": "listings",
+   "listings": 18
+  },
+  "Le Kram|house": {
+   "multiplier": 0.7149,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Médina|house": {
+   "multiplier": 0.7149,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Séjoumi|house": {
+   "multiplier": 0.7149,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Sidi El Béchir|house": {
+   "multiplier": 0.7149,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Sidi Hassine|house": {
+   "multiplier": 0.7149,
+   "basis": "governorate_ratio",
+   "listings": 0
+  },
+  "Bir Mcherga|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "El Fahs|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Nadhour|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Saouaf|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Zaghouan|house": {
+   "multiplier": 1.0784,
+   "basis": "listings",
+   "listings": 11
+  },
+  "Zriba|house": {
+   "multiplier": 0.5939,
+   "basis": "national_ratio",
+   "listings": 0
+  },
+  "Ariana Ville|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Ettadhamen|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Kalâat el-Andalous|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "La Soukra|land": {
+   "multiplier": 2.1538,
+   "basis": "listings",
+   "listings": 13
+  },
+  "Mnihla|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Raoued|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Sidi Thabet|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Amdoun|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Béja Nord|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Béja Sud|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Goubellat|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Medjez el-Bab|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Nefza|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Téboursouk|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Testour|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Thibar|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Ben Arous|land": {
+   "multiplier": 0.7687,
+   "basis": "listings",
+   "listings": 15
+  },
+  "Bou Mhel el-Bassatine|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "El Mourouj|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Ezzahra|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Fouchana|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Hammam Chott|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Hammam Lif|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Medina Jedida|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Mégrine|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Mohamedia|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Mornag|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Radès|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Bizerte Nord|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Bizerte Sud|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "El Alia|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Ghar El Melh|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Ghezala|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Joumine|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Mateur|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Menzel Bourguiba|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Menzel Jemil|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Ras Jebel|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Sejnane|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Tinja|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Utique|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Zarzouna|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "El Hamma|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "El Hamma Ouest|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Gabès Médina|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Gabès Ouest|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Gabès Sud|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Ghannouch|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Mareth-Dkhila|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Matmata|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Menzel El Habib|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Métouia|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Nouvelle Matmata|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Oudhref|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Toujane|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Belkhir|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "El Guettar|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "El Ksar|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Gafsa Nord|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Gafsa Sud|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Mdhilla|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Métlaoui|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Moularès|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Redeyef|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Sened|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Sidi Aïch|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Sidi Boubaker|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Zannouch|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Aïn Draham|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Balta-Bou Aouane|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Bou Salem|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Fernana|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Ghardimaou|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Jendouba|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Jendouba Nord|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Oued Meliz|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Tabarka|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Aïn Djeloula|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Bou Hajla|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Chebika|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Echrarda|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "El Alâa|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Haffouz|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Hajeb El Ayoun|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Kairouan Nord|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Kairouan Sud|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Menzel Mehiri|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Nasrallah|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Oueslatia|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Sbikha|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "El Ayoun|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Ezzouhour|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Fériana|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Foussana|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Haïdra|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Hassi El Ferid|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Jedelienne|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Kasserine Nord|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Kasserine Sud|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Majel Bel Abbès|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Sbeïtla|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Sbiba|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Thala|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Douz Nord|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Douz Sud|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Faouar|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Kébili Nord|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Kébili Sud|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Rjim Maatoug|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Souk Lahad|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Borj El Amri|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Djedeida|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Douar Hicher|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "El Batan|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "La Manouba|land": {
+   "multiplier": 1.4667,
+   "basis": "listings",
+   "listings": 5
+  },
+  "Mornaguia|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Oued Ellil|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Tebourba|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Dahmani|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "El Ksour|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Jérissa|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Kalâat Khasba|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Kalaat Senan|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Kef Est|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Kef Ouest|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Nebeur|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Sakiet Sidi Youssef|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Sers|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Tajerouine|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Touiref|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Bou Merdes|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Chebba|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Chorbane|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "El Bradâa|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "El Jem|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Essouassi|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Hebira|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Ksour Essef|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Mahdia|land": {
+   "multiplier": 0.3803,
+   "basis": "listings",
+   "listings": 45
+  },
+  "Melloulèche|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Ouled Chamekh|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Rejiche|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Sidi Alouane|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Ben Gardane|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Beni Khedache|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Djerba - Ajim|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Djerba - Houmt Souk|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Djerba - Midoun|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Médenine Nord|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Médenine Sud|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Sidi Makhlouf|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Zarzis|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Bekalta|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Bembla|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Beni Hassen|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Jemmal|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Ksar Hellal|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Ksibet el-Médiouni|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Moknine|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Monastir|land": {
+   "multiplier": 0.6111,
+   "basis": "listings",
+   "listings": 44
+  },
+  "Ouerdanine|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Sahline|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Sayada-Lamta-Bou Hajar|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Téboulba|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Zéramdine|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Béni Khalled|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Béni Khiar|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Bou Argoub|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Dar Chaâbane El Fehri|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "El Haouaria|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "El Mida|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Grombalia|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Hammam Ghezèze|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Hammamet|land": {
+   "multiplier": 1.6776,
+   "basis": "listings",
+   "listings": 19
+  },
+  "Kélibia|land": {
+   "multiplier": 5.8276,
+   "basis": "listings",
+   "listings": 7
+  },
+  "Korba|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Menzel Bouzelfa|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Menzel Temime|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Nabeul|land": {
+   "multiplier": 1.1111,
+   "basis": "listings",
+   "listings": 12
+  },
+  "Soliman|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Takelsa|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Agareb|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Bir Ali Ben Khalifa|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "El Hencha|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Graïba|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Jebiniana|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Kerkennah|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Mahrès|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Menzel Chaker|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Sakiet Eddaïer|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Sakiet Ezzit|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Sfax Ouest|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Sfax Sud|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Sfax Ville|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Skhira|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Thyna|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Bir El Hafey|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Cebbala Ouled Asker|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Essaïda|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Hichria|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Jilma|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Meknassy|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Menzel Bouzaiane|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Mezzouna|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Ouled Haffouz|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Regueb|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Sidi Ali Ben Aoun|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Sidi Bouzid Est|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Sidi Bouzid Ouest|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Souk Jedid|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Bargou|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Bou Arada|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "El Aroussa|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "El Krib|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Gaâfour|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Kesra|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Makthar|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Rouhia|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Sidi Bou Rouis|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Siliana Nord|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Siliana Sud|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Akouda|land": {
+   "multiplier": 0.3001,
+   "basis": "listings",
+   "listings": 5
+  },
+  "Bouficha|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Enfida|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Hammam Sousse|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Hergla|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Kalâa Kebira|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Kalâa Seghira|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Kondar|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "M'saken|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Sidi Bou Ali|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Sidi El Hani|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Sousse Jawhara|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Sousse Médina|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Sousse Riadh|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Sousse Sidi Abdelhamid|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Zaouiet Ksibet Thrayet|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Beni Mhira|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Bir Lahmar|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Dehiba|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Ghomrassen|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Remada|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Smâr|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Tataouine Nord|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Tataouine Sud|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Degache|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "El Hamma du Jérid|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Hazoua|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Nefta|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Tameghza|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Tozeur|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Bab El Bhar|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Bab Souika|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Carthage|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Cité El Khadra|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Djebel Jelloud|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "El Kabaria|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "El Menzah|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "El Omrane|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "El Omrane supérieur|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "El Ouardia|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Ettahrir|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Hraïria|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "La Goulette|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "La Marsa|land": {
+   "multiplier": 4.8795,
+   "basis": "listings",
+   "listings": 6
+  },
+  "Le Bardo|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Le Kram|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Médina|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Séjoumi|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Sidi El Béchir|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Sidi Hassine|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Bir Mcherga|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "El Fahs|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Nadhour|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Saouaf|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Zaghouan|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  },
+  "Zriba|land": {
+   "multiplier": 1.0,
+   "basis": "benchmark",
+   "listings": 0
+  }
+ }
+}

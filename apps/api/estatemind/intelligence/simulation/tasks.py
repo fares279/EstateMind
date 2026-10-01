@@ -4,8 +4,8 @@ Celery tasks for market simulator operations.
 Tasks:
 - run_ensemble_task: Execute ensemble in background
 - validate_scenario_task: Pre-submission validation
-- test_rl_policy_task: Test RL policy across scenarios
-- calibrate_agents_task: Inverse RL calibration
+- test_rl_policy_task: Strategy backtest (buy now vs wait) inside the simulator
+- calibrate_agents_task: Calibrate starting price levels to real listings
 """
 
 import logging
@@ -150,50 +150,39 @@ def validate_scenario_task(self, scenario_config, validation_mode='strict'):
 
 @shared_task(bind=True)
 def test_rl_policy_task(self, scenarios, n_runs_per_scenario=20):
-    """
-    Test RL investment policy across scenarios.
-    
-    Called by: Admin interface or scheduled RL validation workflow
-    """
-    
-    # Not implemented: RLPolicySimulationTester._run_with_strategy does not run
-    # the simulator (it samples returns from fixed distributions), so any
-    # ranking or DEPLOY/REJECT assessment it produced would be fabricated.
-    # Previously this task returned a hard-coded 'DEPLOY'.
-    logger.warning('test_rl_policy_task called, but RL policy backtesting is not implemented')
-    return {
-        'status': 'not_implemented',
-        'reason': 'RL policy backtesting inside the simulator is not implemented; '
-                  'no assessment is produced.',
-        'scenarios_requested': len(scenarios or []),
-    }
+    """Strategy backtest inside the simulator: buy now vs wait 6 or 12 months, scored on
+    price paths of the agent-based model (services/strategy_backtest.py). Results are
+    simulated outcomes, labelled as such. (The RL policy tester this name comes from
+    sampled returns from fixed distributions, so it is not used.)"""
+    from .services.strategy_backtest import backtest
+
+    try:
+        return backtest(scenarios, n_runs=n_runs_per_scenario)
+    except ValueError as e:
+        return {'status': 'invalid', 'reason': str(e)}
 
 
 @shared_task(bind=True)
-def calibrate_agents_task(self, agent_types=['buyer', 'developer', 'speculator']):
+def calibrate_agents_task(self, agent_types=None):
+    """Calibrate the simulator's starting price levels to real sale listings and write
+    data/simulator_calibration.json (engine/calibration.py); returns the error report.
+
+    Agent reward weights are not calibrated: inverse RL needs observed transactions
+    (who bought what, when, at what price), and the data holds asking prices only.
     """
-    Run inverse RL agent calibration.
-    
-    Called by: Scheduled job (e.g., weekly) or admin command
-    
-    Workflow:
-    1. Extract behavioral data from market history
-    2. Calibrate reward weights via MLE
-    3. Validate calibration quality
-    4. Persist AgentCalibrationProfile
-    5. Update is_active flag
-    """
-    
-    # Not implemented: AgentRewardCalibrator's likelihood does not depend on the
-    # weights and validate_calibration returns fixed errors, so persisting an
-    # AgentCalibrationProfile from them would record fabricated quality metrics.
-    # (The previous body also failed on import: it imported `.calibration`
-    # instead of `.services.calibration`.)
-    logger.warning('calibrate_agents_task called, but agent calibration is not implemented')
+    from .engine.calibration import CALIBRATION_PATH, calibrate_and_save
+
+    calibration = calibrate_and_save()
     return {
-        'status': 'not_implemented',
-        'reason': 'Inverse-RL agent calibration is not implemented; no profile is created.',
-        'agent_types_requested': list(agent_types),
+        'status': 'completed',
+        'calibrated': 'starting price levels',
+        'not_calibrated': {
+            'agent_types': list(agent_types or []),
+            'reason': 'Agent behaviour (reward weights) needs transaction data; only asking prices exist.',
+        },
+        'report': calibration['report'],
+        'zones': len(calibration['zones']),
+        'path': str(CALIBRATION_PATH),
     }
 
 

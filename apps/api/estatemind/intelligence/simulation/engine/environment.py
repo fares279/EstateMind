@@ -24,15 +24,20 @@ NATIONAL_ANNUAL_INCOME = 14_400.0   # TND
 # ---------------------------------------------------------------------------
 # Zone price index
 # ---------------------------------------------------------------------------
-def build_zone_price_index() -> dict:
+def build_zone_price_index(calibrated: bool = True) -> dict:
     """
     Returns a dict keyed by (delegation, property_type) with:
         { "avg_price", "min_price", "max_price", "trend", "is_coastal",
-          "governorate", "population" }
+          "governorate", "population", "calibration" }
 
-    Only apartment & house types have enough data coverage in the CSV;
-    commercial & land fall back gracefully.
+    Prices are per m², from the benchmark ranges in data/delegations.csv. With
+    `calibrated`, apartment, house and land levels are scaled to real listings by the
+    multipliers in data/simulator_calibration.json (see calibration.py); commercial
+    keeps its benchmark.
     """
+    from .calibration import load_multipliers
+
+    multipliers = load_multipliers() if calibrated else {}
     index: dict = {}
     for d in DELEGATION_DATA:
         for ptype in PROPERTY_TYPES:
@@ -45,10 +50,12 @@ def build_zone_price_index() -> dict:
                 avg   = d.get("apartment_avg", 1500.0) * (0.85 if ptype == "house" else 1.1)
                 mn    = avg * 0.6
                 mx    = avg * 1.5
+            m = multipliers.get((d["delegation"], ptype), 1.0)
             index[(d["delegation"], ptype)] = {
-                "avg_price":   avg,
-                "min_price":   max(1.0, mn),
-                "max_price":   mx,
+                "avg_price":   avg * m,
+                "min_price":   max(1.0, mn * m),
+                "max_price":   mx * m,
+                "calibration": m,
                 "trend":       trend,
                 "is_coastal":  d.get("is_coastal", False),
                 "governorate": d["governorate"],

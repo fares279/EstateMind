@@ -17,7 +17,8 @@ from config.paths import DATA_DIR
 
 _CSV_PATH = DATA_DIR / "delegations.csv"
 
-# Coastal governorates — used by climate_stress scenario
+# Coastal governorates (kept for reference; the per-delegation flag below now comes from
+# the distance to the coastline, so inland delegations of these governorates are not coastal)
 COASTAL_GOVERNORATES = {
     "Tunis", "Ariana", "Ben Arous", "La Manouba",
     "Nabeul", "Bizerte", "Béja",
@@ -51,6 +52,13 @@ def _parse_int(value: str) -> int:
         return int(value.strip().replace(",", ""))
     except (ValueError, AttributeError):
         return 0
+
+
+def _is_coastal(delegation: str, governorate: str) -> bool:
+    """Coastal from the delegation centre's distance to the coastline (market.core.coastline);
+    used by the climate_stress scenario."""
+    from estatemind.market.core.coastline import delegation_is_coastal
+    return delegation_is_coastal(delegation.strip(), governorate.strip())
 
 
 def load_delegations() -> list:
@@ -91,7 +99,7 @@ def load_delegations() -> list:
                     "land_avg":         _parse_float(raw.get("Land_Avg_TND", "0")),
                     "land_max":         _parse_float(raw.get("Land_Max_TND", "0")),
                     "land_trend":       _parse_pct(raw.get("Land_Trend_Percent", "0")),
-                    "is_coastal":       raw.get("Governorate", "").strip() in COASTAL_GOVERNORATES,
+                    "is_coastal":       _is_coastal(raw.get("Delegation", ""), raw.get("Governorate", "")),
                 }
                 if row["delegation"]:
                     rows.append(row)

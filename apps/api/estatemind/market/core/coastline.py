@@ -61,3 +61,25 @@ def is_coastal(lat: float | None, lon: float | None, name: str = '') -> bool | N
     if lat is None or lon is None:
         return None
     return distance_to_coast_km(lat, lon) <= COASTAL_KM
+
+
+@lru_cache(maxsize=1)
+def _delegation_centres() -> dict[tuple[str, str], tuple[float, float]]:
+    from estatemind.intelligence.valuation.inference.location import normalize_governorate, plain
+
+    centres = {}
+    with open(DATA_DIR / 'delegation_geography.csv', encoding='utf-8') as fh:
+        for r in csv.DictReader(fh):
+            if r.get('latitude') and r.get('longitude'):
+                centres[(plain(r['delegation']), normalize_governorate(r['governorate']))] = (
+                    float(r['latitude']), float(r['longitude']))
+    return centres
+
+
+def delegation_is_coastal(delegation: str, governorate: str) -> bool:
+    """is_coastal for a delegation of data/delegations.csv, from its centre in
+    data/delegation_geography.csv (False when the centre is unknown and it is not a known coastal one)."""
+    from estatemind.intelligence.valuation.inference.location import normalize_governorate, plain
+
+    centre = _delegation_centres().get((plain(delegation), normalize_governorate(governorate)))
+    return bool(is_coastal(*(centre or (None, None)), delegation))
