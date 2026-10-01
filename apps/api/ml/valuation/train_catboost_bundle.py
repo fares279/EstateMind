@@ -99,6 +99,8 @@ def main():
                         help="'v2': the default cleaning. 'e': variant E from docs/ml/valuation-training-data.md "
                              "(per-row location fix, generated-looking rows dropped, no coordinates), with the "
                              "previous v2 test listings held out so evaluate_served compares on unseen rows.")
+    parser.add_argument('--drop-features', nargs='*', default=[],
+                        help='Features to leave out (e.g. size_x_local_price, which repeats surface x local price).')
     parser.add_argument('--register-existing', action='store_true',
                         help='Register the already-trained --version from its priors.json; no training.')
     args = parser.parse_args()
@@ -116,21 +118,22 @@ def main():
     out_dir = ARTIFACTS_DIR / 'valuation' / 'models' / args.version
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    report = {'version': args.version, 'data_card': ds.card, 'models': {}}
+    report = {'version': args.version, 'data_card': ds.card, 'models': {}, 'dropped_features': args.drop_features}
     champions = champion_predictions(ds.test)
     for ptype in (*TYPES, 'global'):
         X, y, _ = ds.xy('train', None if ptype == 'global' else ptype)
+        X = X.drop(columns=args.drop_features)
         model = train_model(X, y, args.iterations, seed=42)
         name = 'global__catboost.joblib' if ptype == 'global' else f'bytype__{ptype}__catboost.joblib'
         joblib.dump(model, out_dir / name)
         entry = {'artifact': name, 'best_iteration': int(model.get_best_iteration() or 0)}
         if ptype == 'global':
             Xt, yt, _ = ds.xy('test')
-            entry['test'] = metrics(np.expm1(yt), np.expm1(model.predict(Xt)))
+            entry['test'] = metrics(np.expm1(yt), np.expm1(model.predict(Xt.drop(columns=args.drop_features))))
         else:
             Xt, yt, part = ds.xy('test', ptype)
             actual = np.expm1(yt)
-            entry['test'] = metrics(actual, np.expm1(model.predict(Xt[FEATURES])))
+            entry['test'] = metrics(actual, np.expm1(model.predict(Xt[FEATURES].drop(columns=args.drop_features))))
             old_pred, old_version = champions[ptype]
             entry['champion_on_same_test'] = {'version': old_version, **metrics(actual, old_pred)}
         report['models'][ptype] = entry

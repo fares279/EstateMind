@@ -61,11 +61,10 @@ See [ml/valuation-training-data.md](ml/valuation-training-data.md):
 
 ## Valuation serving
 
-- The house and land champions were trained with coordinates and on the swapped location
-  columns, but the API sends no coordinates and a correct governorate and town. Served error on
-  that input: houses 49.6%, land 59.2%. Variant E (31.5%, 35.5%) is registered at 0% traffic;
-  the stability gate blocks it (see [ml/valuation-training-data.md](ml/valuation-training-data.md)).
-  Apartments are served by E since 2026-09-29.
+- All three property types are served by models trained on the cleaned data without
+  coordinates: apartments and land by variant E, houses by E2 (E without the redundant
+  surface x local price feature; it passed the stability gate at 0.91 where E failed at 0.72).
+  Served median error: apartments 22.5%, houses 31.2%, land 35.5%.
 
 ## Forecast
 

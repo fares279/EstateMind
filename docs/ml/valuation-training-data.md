@@ -211,3 +211,16 @@ the top three as a set) was not done, because it would change the rule after see
 
 Rollback: `python manage.py promote_model --version-id <id>` with the previous `catboost-artifact`
 apartment row (id 5 in the dev database).
+
+### Houses: E2 (2026-10-01)
+
+E-house failed the stability gate at 0.72 under both rules: city and surface were nearly tied
+for third place. E2 is E without `size_x_local_price`, which only repeats surface x local price
+(`train_catboost_bundle --options e --drop-features size_x_local_price`). One variant was
+trained and checked once:
+
+- Served accuracy (user-style input, 350 held-out houses): median error 31.2% against the
+  champion's 49.6%, difference −18.4 points [−25.7, −12.8]; median predicted/actual 1.04.
+- Stability gate: 0.91 (pass), top three local price, surface, governorate.
+
+E2 serves houses. Rollback: `promote_model` with the previous `catboost-artifact` house row.
