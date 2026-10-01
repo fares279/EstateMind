@@ -48,7 +48,7 @@ class MarketDataRetriever:
         retrieval_errors = []
         
         if 'market_snapshot' in data_types:
-            snap = self._get_market_snapshot(location, location_type)
+            snap = self._get_market_snapshot(location, location_type, property_type)
             context['market'] = snap
             if not snap.get('available'):
                 retrieval_errors.append(snap.get('reason', 'Unknown error'))
@@ -100,11 +100,32 @@ class MarketDataRetriever:
         d = Delegation.objects.select_related('region').filter(name__icontains=location).first()
         return (d, d.region) if d else (None, None)
 
-    def _get_market_snapshot(self, location: str, location_type: str) -> Dict:
+    @staticmethod
+    def _type_figures(delegations, property_type: str) -> Dict | None:
+        """Median sale price per m2 of one property type over the given delegations: real
+        listings when there are at least MIN_REAL_LISTINGS, else real plus benchmark samples.
+        None when there is no listing of the type at all."""
+        from statistics import median
+
+        from estatemind.market.core.models import SYNTHETIC_SOURCE, Property
+
+        rows = (Property.objects.filter(is_active=True, transaction_type='sale', property_type=property_type,
+                                        delegation__in=delegations, price__gt=0, area_sqm__gt=0)
+                .values_list('price', 'area_sqm', 'source', 'price_imputed', 'area_imputed'))
+        real = [p / a for p, a, src, pi, ai in rows if src != SYNTHETIC_SOURCE and not pi and not ai]
+        sample = [p / a for p, a, src, *_ in rows if src == SYNTHETIC_SOURCE]
+        if len(real) >= MIN_REAL_LISTINGS:
+            return {'ppm': median(real), 'real': len(real), 'synthetic': 0}
+        if real or sample:
+            return {'ppm': median(real + sample), 'real': len(real), 'synthetic': len(sample)}
+        return None
+
+    def _get_market_snapshot(self, location: str, location_type: str, property_type: str | None = None) -> Dict:
         """Latest market snapshot (core.DelegationMarketSnapshot) for a delegation, or
-        the median over a governorate's delegations. Says when the figures rest on
-        EstateMind's price benchmarks (synthetic sample listings) rather than real ones.
-        (This used to read a hard-coded table of six cities.)"""
+        the median over a governorate's delegations. With a property type, the price and
+        listing counts are that type's (the snapshot mixes all types). Says when the figures
+        rest on EstateMind's price benchmarks (synthetic sample listings) rather than real
+        ones. (This used to read a hard-coded table of six cities.)"""
         try:
             from statistics import median
 
@@ -130,6 +151,12 @@ class MarketDataRetriever:
             ppm = median(float(s.median_price_per_sqm) for s in snaps)
             real = sum(s.real_listing_count for s in snaps)
             synthetic = sum(s.synthetic_listing_count for s in snaps)
+            figures = (self._type_figures([s.delegation for s in snaps], property_type)
+                       if property_type in ('apartment', 'house', 'land') else None)
+            if figures:
+                ppm, real, synthetic = figures['ppm'], figures['real'], figures['synthetic']
+            else:
+                property_type = None  # no listing of that type: the all-types figure, labelled as such
             growth = [(float(s.forecast_12m) / float(s.median_price_per_sqm) - 1) * 100
                       for s in snaps if s.forecast_12m and s.median_price_per_sqm]
             trend_pct = median(growth) if growth else 0.0
@@ -146,6 +173,7 @@ class MarketDataRetriever:
             return {
                 'available': True,
                 'delegation': name,
+                'property_type': property_type or 'all',
                 'median_price_per_sqm': ppm,
                 'median_price_total': median(sale_prices) if sale_prices else 0,
                 'listing_count': real,
@@ -340,6 +368,37 @@ class MarketDataRetriever:
             'location_type': 'national'
         }
     
+    def get_national_overview(self, property_type: str = 'apartment') -> Dict:
+        """Country-level figures for questions about Tunisia as a whole: the median sale price
+        per m2 of all real listings of the type, and the national 12-month growth of the
+        INS property price index (the outlook's national rate)."""
+        from statistics import median
+
+        from estatemind.intelligence.forecast.services import national_index
+        from estatemind.market.core.models import SYNTHETIC_SOURCE, Property
+
+        ppm = [p / a for p, a in Property.objects.filter(
+            is_active=True, transaction_type='sale', property_type=property_type, price__gt=0, area_sqm__gt=0)
+            .exclude(source=SYNTHETIC_SOURCE).exclude(price_imputed=True).exclude(area_imputed=True)
+            .values_list('price', 'area_sqm')]
+        if len(ppm) < MIN_REAL_LISTINGS:
+            national = {'available': False, 'reason': f'Not enough real {property_type} listings'}
+        else:
+            bt = national_index.backtest(property_type)
+            national = {
+                'available': True,
+                'property_type': property_type,
+                'median_price_per_sqm': round(median(ppm)),
+                'listing_count': len(ppm),
+                'growth_pct_12m': round(national_index.expected_annual_growth_pct(property_type), 1),
+                'index_last_quarter': bt['last_quarter'],
+                'index_last_year': int(bt['last_quarter'][:4]),  # so the year in the answer is grounded
+                'source_tag': f'national_listings_{timezone.now().date()}',
+            }
+        return {'context': {'national': national}, 'retrieval_errors': [] if national['available'] else [national['reason']],
+                'is_fully_grounded': national['available'], 'retrieved_at': timezone.now().isoformat(),
+                'location': 'TUNISIA', 'location_type': 'national'}
+
     @staticmethod
     def _real_medians(property_type: str) -> list[dict]:
         """Median sale price per m2 of real (not sample) listings of one property type,

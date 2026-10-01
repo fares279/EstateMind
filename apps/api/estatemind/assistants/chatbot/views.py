@@ -47,6 +47,10 @@ RANKING_PATTERN = re.compile(
     r"\b(top|best|highest|lowest|most|least|rank(ing)?s?|leading|worst|fastest|slowest|"
     r"cheapest|priciest|most expensive|which (delegations?|areas?|towns?|places?|governorates?)|"
     r"where (should|can|will|are|is)|meilleure?s?|moins cher|plus cher)\b", re.IGNORECASE)
+INVEST_PATTERN = re.compile(r"\b(invest|investing|investment|investir|investissement)\b", re.IGNORECASE)
+PORTFOLIO_PATTERN = re.compile(r"\b(portfolio|portefeuille|my (properties|assets))\b", re.IGNORECASE)
+NATIONAL_PATTERN = re.compile(r"\b(tunisia|tunisie|tunisian|national|nationwide|country|countrywide|pays)\b",
+                              re.IGNORECASE)
 CHEAP_PATTERN = re.compile(r"\b(cheapest|lowest|least expensive|affordable|moins cher)\b", re.IGNORECASE)
 
 
@@ -230,12 +234,23 @@ def chat_message(request):
             intent = intent_result['intent']
             confidence = intent_result['confidence']
             entities = intent_result['entities']
+            # explicit words win over the classifier's weakest confusion ("Should I invest in
+            # Sfax?" was classified as a portfolio question and got a generic reply)
+            if (intent == 'portfolio_question' and INVEST_PATTERN.search(enriched_message)
+                    and not PORTFOLIO_PATTERN.search(enriched_message)):
+                intent = 'investment_advice'
 
             logger.info(f'Intent: {intent} ({confidence:.2f}) for session {session_id}')
 
             # Step 4: Retrieve grounded context
             location = entities.get('location') or memory.extracted_facts.get('primary_location_interest')
             is_ranking_query = _detect_ranking_query(enriched_message)
+            # "the average price in Tunisia": answered with national figures (it used to ask
+            # for a location); an explicit country-level question overrides a remembered place
+            is_national = (not entities.get('location') and not is_ranking_query
+                           and bool(NATIONAL_PATTERN.search(enriched_message)))
+            if is_national:
+                location = None
             retriever = get_market_retriever()
 
             retrieval_data = {}
@@ -247,7 +262,11 @@ def chat_message(request):
             should_retrieve = should_retrieve or (is_ranking_query and intent in [
                 'market_inquiry', 'investment_advice', 'forecast_inquiry'])
             
-            if should_retrieve:
+            if is_national and intent in ['market_inquiry', 'investment_advice', 'forecast_inquiry']:
+                retrieval_data = retriever.get_national_overview(
+                    property_type=entities.get('property_type', 'apartment'))
+                sources_used = [retrieval_data['context']['national'].get('source_tag')]
+            elif should_retrieve:
                 if location:
                     # Location-specific retrieval
                     retrieval_data = retriever.get_market_context(
@@ -432,6 +451,29 @@ def _generate_grounded_response(intent: str, entities: dict,
             "What would you like to explore?"
         )
     
+    if intent == 'portfolio_question' and not location:
+        # the chat has no access to a user's assets; it used to ask for a location here
+        return (
+            "I can't see your portfolio from the chat. The Portfolio page (Invest > Portfolio, "
+            "/invest/portfolio) analyses each property you add: current value, yield, a forward IRR "
+            "range and risk. For a place you're considering, ask me about its prices, outlook or "
+            "climate risk."
+        )
+
+    if not location and retrieval_data.get('location') == 'TUNISIA':
+        national = context.get('national', {})
+        if not national.get('available'):
+            return f"I don't have national figures for that right now. {national.get('reason', '')}.".strip()
+        ptype = national['property_type']
+        return (
+            f"Across Tunisia, the median asking price of {ptype}s for sale is "
+            f"{national['median_price_per_sqm']:,} TND/m², from {national['listing_count']:,} real listings. "
+            f"The official INS property price index points to about {national['growth_pct_12m']:+.1f}% "
+            f"growth over the next 12 months (its long-run average, data to {national['index_last_quarter']}). "
+            f"Prices vary widely by delegation: ask about a specific place, or for the most expensive "
+            f"or cheapest delegations.\n[Source: National listings and INS index]"
+        )
+
     if not location and retrieval_data.get('location') == 'NATIONWIDE':
         ranked = _ranking_response(intent, message, context)
         if ranked:
@@ -456,11 +498,20 @@ def _generate_grounded_response(intent: str, entities: dict,
         if market.get('available'):
             freshness = market.get('freshness_prefix', '')
             source_label = _format_source_tag(market.get('source_tag', ''))
+            ptype = market.get('property_type')
+            what = {'apartment': 'apartments', 'house': 'houses', 'land': 'land plots'}.get(ptype, 'properties') + ' for sale'
+            # the outlook comes from the forecast module (current, per type); the snapshot's
+            # own trend was computed when the outlook was older
+            if forecast.get('available'):
+                g = forecast['price_change_12m_pct']
+                direction = 'rising' if g > 0.5 else 'falling' if g < -0.5 else 'stable'
+                outlook = f"The 12-month outlook is {direction} ({g:+.1f}%). "
+            else:
+                outlook = ''
             parts.append(
-                f"{freshness}The market in {location} shows a median price of "
-                f"{market['median_price_per_sqm']:.0f} TND/m² with a {market['trend_direction']} "
-                f"12-month outlook ({market.get('trend_pct', 0):.1f}%). "
-                f"There are {market['listing_count']} real listings on record. "
+                f"{freshness}In {location}, the median asking price of {what} is "
+                f"{market['median_price_per_sqm']:,.0f} TND/m², from {market['listing_count']} real listings. "
+                f"{outlook}"
                 f"{_data_basis_note(market)}"
                 f"[Source: {source_label}]"
             )
@@ -472,8 +523,7 @@ def _generate_grounded_response(intent: str, entities: dict,
         
         if market.get('available'):
             parts_list.append(
-                f"The market in {location} is currently at "
-                f"{market['median_price_per_sqm']:.0f} TND/m² with a {market['trend_direction']} trend"
+                f"The median asking price in {location} is {market['median_price_per_sqm']:,.0f} TND/m²"
             )
         
         if forecast.get('available'):

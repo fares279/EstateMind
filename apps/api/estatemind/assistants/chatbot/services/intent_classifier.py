@@ -228,7 +228,7 @@ class IntentClassifier:
         # Property type
         property_patterns = {
             'apartment': ['apartment', 'appartement', 'flat', 'studio', 'appart'],
-            'villa': ['villa', 'house', 'maison', 'dar'],
+            'house': ['villa', 'house', 'maison', 'dar'],  # stored as 'house' (was 'villa': no data matched)
             'land': ['land', 'terrain', 'plot', 'lot'],
             'commercial': ['commercial', 'bureau', 'office', 'shop', 'magasin']
         }

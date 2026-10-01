@@ -32,7 +32,8 @@ class ChatbotSession(models.Model):
         max_length=50, null=True, blank=True,
         choices=[
             ('apartment', 'Apartment'),
-            ('villa', 'Villa'),
+            ('house', 'House'),
+            ('villa', 'Villa'),  # older sessions; new ones store 'house'
             ('land', 'Land'),
             ('commercial', 'Commercial')
         ]
