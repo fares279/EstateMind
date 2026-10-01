@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict
 
 from estatemind.market.core.models import Property
@@ -13,7 +13,7 @@ def compute_geocoding_quality_report() -> Dict[str, object]:
             "centroid_pct": 0.0,
             "missing_pct": 0.0,
             "quality_ceiling": 0.0,
-            "computed_at": datetime.utcnow().isoformat(),
+            "computed_at": datetime.now(timezone.utc).isoformat(),
         }
 
     polygon_count = Property.objects.filter(geocoding_precision='polygon').count()
@@ -26,5 +26,5 @@ def compute_geocoding_quality_report() -> Dict[str, object]:
         "centroid_pct": round(centroid_count / total * 100, 1),
         "missing_pct": round(missing_count / total * 100, 1),
         "quality_ceiling": round(polygon_count / total * 100, 1),
-        "computed_at": datetime.utcnow().isoformat(),
+        "computed_at": datetime.now(timezone.utc).isoformat(),
     }

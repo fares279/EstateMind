@@ -212,7 +212,7 @@ class Command(BaseCommand):
                 artifact_path=str(out_path),
                 model_name='CatBoost_Apartment',
                 version='histgbt_v1',
-                training_date=pd.Timestamp.utcnow().date(),
+                training_date=pd.Timestamp.now(tz="UTC").date(),
                 training_data_hash=training_hash,
                 training_samples=len(X_train),
                 eval_rmse=float(test_mae),

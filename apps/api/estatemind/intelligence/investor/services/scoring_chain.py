@@ -11,7 +11,7 @@ passing outputs as inputs to downstream models.
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
 
 from estatemind.intelligence.investor.models import InvestmentScore, PortfolioAnalysis, InvestorScorerVersion
@@ -201,7 +201,7 @@ class ScannerChain:
 
             # Assemble complete result
             result = {
-                'timestamp': datetime.utcnow().isoformat(),
+                'timestamp': datetime.now(timezone.utc).isoformat(),
                 'property': property_data,
                 'market': market_data,
 
@@ -384,7 +384,7 @@ class PortfolioChain:
             )
 
             result = {
-                'timestamp': datetime.utcnow().isoformat(),
+                'timestamp': datetime.now(timezone.utc).isoformat(),
                 'portfolio': {
                     'total_value': total_value,
                     'asset_count': len(portfolio_assets),
