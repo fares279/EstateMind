@@ -1,12 +1,14 @@
 """Retrieval quality of a legal collection, measured on data/eval_questions.json.
 
-Answerable questions list the corpus articles that answer them; a chunk
-matches when its `article_index` metadata is one of those. The legal
+Answerable questions list what answers them: an article index of
+clean_dataset_v2.json (int), or "<law name>:<article>" for an official text
+(data/official), matched against the passage's article range. See gold_match. The legal
 questions the corpus does not cover, and non-legal questions, measure whether
 the retrieval gate (best similarity below RETRIEVAL_MIN_SIMILARITY) correctly
 reports "no source".
 """
 import json
+import re
 from pathlib import Path
 
 EVAL_PATH = Path(__file__).resolve().parent.parent / 'data' / 'eval_questions.json'
@@ -14,6 +16,30 @@ EVAL_PATH = Path(__file__).resolve().parent.parent / 'data' / 'eval_questions.js
 
 def load_eval_questions() -> list[dict]:
     return json.loads(EVAL_PATH.read_text(encoding='utf-8'))['questions']
+
+
+_REF_RANGE = re.compile(r'art\. (\d+)(?: (?:bis|ter|quater))?(?: à (\d+))?')
+
+
+def gold_match(meta: dict, gold: list) -> bool:
+    """Whether a retrieved passage is one of the gold sources."""
+    for g in gold:
+        if isinstance(g, int):
+            if meta.get('article_index') == g:
+                return True
+            continue
+        law, article = g.rsplit(':', 1)
+        if meta.get('law_name') != law:
+            continue
+        m = _REF_RANGE.search(meta.get('article_ref', ''))
+        if m and int(m.group(1)) <= int(article) <= int(m.group(2) or m.group(1)):
+            return True
+    return False
+
+
+def source_label(meta: dict):
+    """How a retrieved passage is reported in failures: index, or official reference."""
+    return meta.get('article_index') if meta.get('article_index', -1) >= 0 else meta.get('article_ref')
 
 
 class RetrievalQualityValidator:
@@ -38,13 +64,12 @@ class RetrievalQualityValidator:
                                     collection_name=collection_name)
             metas = res.get('metadatas', [[]])[0]
             dists = res.get('distances', [[]])[0]
-            ranked = [m.get('article_index') for m in metas]
+            ranked = [source_label(m) for m in metas]
             top_sim = 1.0 - float(dists[0]) if dists else 0.0
             passes_gate = top_sim >= self.min_similarity
 
             if q['category'] == 'answerable':
-                gold = set(q['gold'])
-                rank = next((i + 1 for i, a in enumerate(ranked) if a in gold), None)
+                rank = next((i + 1 for i, m in enumerate(metas) if gold_match(m, q['gold'])), None)
                 for k in hits:
                     hits[k] += bool(rank and rank <= k)
                 stats = by_lang.setdefault(q['lang'], [0, 0])

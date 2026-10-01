@@ -13,19 +13,18 @@ project. Fixed issues are in the git history.
 
 ## Legal assistant
 
-- **The corpus is small: 51 passages** (registration duties, mortgage law, collective investment,
-  debt recovery, and the Ministry of Justice's land-registration guide). Questions on sales,
-  leases, co-ownership, inheritance or zoning have little to retrieve. The Code des droits réels
-  and the COC are listed on justice.gov.tn, which has not answered from this machine since
-  2026-09-30; `python -m ml.legal.fetch_official_texts` retries the fixed list. Copies exist on
-  FAOLEX (fao.org), Droit-Afrique and bna.tn; they are outside sites, so not fetched without
-  approval (legal-corpus-sources.md).
-- The registry judge's guide (justice.gov.tn id 326) extracts as glyph names and needs OCR; it is
-  skipped.
-- Without a reachable LLM, answers quote the most relevant sentences of the retrieved texts
-  (grounded by construction). Answer quality with an LLM is unmeasured: the default endpoint only
-  resolves on the ESPRIT network. `evaluate_legal_assistant` measures it once one is reachable.
-
+- **The served corpus has 51 passages** (collection v3: registration duties, mortgage law,
+  collective investment, debt recovery, the land-registration guide). Questions on sales,
+  leases, co-ownership, inheritance or zoning have little to retrieve.
+- The Code des droits réels was fetched from an outside copy, verified against official JORT
+  texts and stored with its provenance, but the collection that includes it failed the
+  activation gate (recall@3 0.789 < 0.85; uncovered questions blocked 0.56, was 0.94). It is not
+  served. The COC and the urban-planning code were dropped: their copies could not be verified.
+  Details: legal-corpus-sources.md.
+- The ministry's own code PDFs are unreachable (its links point to a host that no longer exists).
+- The registry judge's guide (justice.gov.tn id 326) extracts as glyph names and needs OCR.
+- Without a reachable LLM, answers quote the retrieved texts (grounded by construction). Answer
+  quality with an LLM is unmeasured: the default endpoint only resolves on the ESPRIT network.
 ## Valuation data
 
 See [ml/valuation-training-data.md](ml/valuation-training-data.md):

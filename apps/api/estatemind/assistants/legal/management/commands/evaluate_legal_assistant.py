@@ -16,6 +16,8 @@ import uuid
 from collections import Counter
 
 from django.core.management.base import BaseCommand
+
+from estatemind.assistants.legal.services.retrieval_quality import gold_match
 from django.db.models import Avg
 
 from estatemind.assistants.legal.models import LegalResponseLog as Log
@@ -62,7 +64,7 @@ class Command(BaseCommand):
             if q['category'] == 'answerable' and result['citations']:
                 col = chromadb_service._get_collection_by_name(log.collection_used)
                 metas = col.get(ids=[c['source_id'] for c in result['citations']], include=['metadatas'])['metadatas']
-                gold_hit = any(m.get('article_index') in q['gold'] for m in metas)
+                gold_hit = any(gold_match(m, q['gold']) for m in metas)
             rows.append({
                 'id': q['id'], 'category': q['category'], 'lang': q['lang'], 'outcome': log.outcome,
                 'routed_ok': log.outcome in EXPECTED[q['category']], 'gold_in_sources': gold_hit,

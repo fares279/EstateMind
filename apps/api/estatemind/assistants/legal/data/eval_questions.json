@@ -1,5 +1,5 @@
 {
- "description": "Evaluation set for the legal assistant. 'gold' lists article indexes in clean_dataset_v2.json whose text answers the question. 'answerable' questions have a gold article; 'unanswerable' are legal questions the corpus does not cover (correct behaviour: say so); 'out_of_scope' are not legal questions (correct behaviour: redirect).",
+ "description": "Evaluation set for the legal assistant. 'gold' lists article indexes in clean_dataset_v2.json, or \"<law>:<article>\" for an official text in data/official, whose text answers the question. 'answerable' questions have a gold article; 'unanswerable' are legal questions the corpus does not cover (correct behaviour: say so); 'out_of_scope' are not legal questions (correct behaviour: redirect).",
  "corpus": "clean_dataset_v2.json",
  "questions": [
   {
@@ -357,6 +357,105 @@
    "lang": "fr",
    "gold": [],
    "question": "Merci beaucoup pour votre aide !"
+  },
+  {
+   "id": "C01-en",
+   "category": "answerable",
+   "lang": "en",
+   "gold": [
+    "Code des droits réels:45"
+   ],
+   "question": "How long must someone possess a property to become its owner by prescription?"
+  },
+  {
+   "id": "C01-fr",
+   "category": "answerable",
+   "lang": "fr",
+   "gold": [
+    "Code des droits réels:45"
+   ],
+   "question": "Pendant combien de temps faut-il posséder un immeuble pour en devenir propriétaire par prescription ?"
+  },
+  {
+   "id": "C02-en",
+   "category": "answerable",
+   "lang": "en",
+   "gold": [
+    "Code des droits réels:68"
+   ],
+   "question": "What majority of co-owners is needed for their decisions on managing a jointly owned property to bind the minority?"
+  },
+  {
+   "id": "C02-fr",
+   "category": "answerable",
+   "lang": "fr",
+   "gold": [
+    "Code des droits réels:68"
+   ],
+   "question": "Quelle majorité des coindivisaires est nécessaire pour que leurs décisions d'administration obligent la minorité ?"
+  },
+  {
+   "id": "C03-en",
+   "category": "answerable",
+   "lang": "en",
+   "gold": [
+    "Code des droits réels:305"
+   ],
+   "question": "From when does a real right on registered land exist?"
+  },
+  {
+   "id": "C03-fr",
+   "category": "answerable",
+   "lang": "fr",
+   "gold": [
+    "Code des droits réels:305"
+   ],
+   "question": "À partir de quand un droit réel sur un immeuble immatriculé est-il constitué ?"
+  },
+  {
+   "id": "C04-en",
+   "category": "answerable",
+   "lang": "en",
+   "gold": [
+    "Code des droits réels:23"
+   ],
+   "question": "Who owns vacant immovable property that has no owner?"
+  },
+  {
+   "id": "C04-fr",
+   "category": "answerable",
+   "lang": "fr",
+   "gold": [
+    "Code des droits réels:23"
+   ],
+   "question": "À qui appartiennent les immeubles vacants et sans maître ?"
+  },
+  {
+   "id": "C05-en",
+   "category": "answerable",
+   "lang": "en",
+   "gold": [
+    "Code des droits réels:142"
+   ],
+   "question": "What is a usufruct?"
+  },
+  {
+   "id": "C05-fr",
+   "category": "answerable",
+   "lang": "fr",
+   "gold": [
+    "Code des droits réels:142"
+   ],
+   "question": "Qu'est-ce que l'usufruit ?"
+  },
+  {
+   "id": "C06-en",
+   "category": "answerable",
+   "lang": "en",
+   "gold": [
+    "Code des droits réels:22"
+   ],
+   "question": "In what ways can ownership of property be acquired under Tunisian law?"
   }
  ]
 }

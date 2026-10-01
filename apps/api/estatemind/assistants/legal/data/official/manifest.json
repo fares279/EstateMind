@@ -14,5 +14,20 @@
   "downloaded": "2026-09-30",
   "bytes": 70798,
   "sha256": "cc185a4211ceaa0892e804f68a9b76f4f0017f75e0d06fe06012f6f3596e711c"
+ },
+ "code_droits_reels": {
+  "title": "Code des droits réels",
+  "source_url": "http://www.bna.tn/documents/Tunisie_Code_2011_droits_reels.pdf",
+  "publisher": "Imprimerie Officielle de la République Tunisienne, édition 2011 (copie compilée par Droit-Afrique, hébergée par bna.tn)",
+  "downloaded": "2026-10-01",
+  "bytes": 670610,
+  "sha256": "b28c84dbe71629b1caf882dd238fa48106de37ddbad6d54373482da4dd40169a",
+  "edition_note": "Text as of the 2011 edition; later amendments are not included.",
+  "verification": "Official copy unreachable (justice.gov.tn id 294 redirects to formation.e-justice.tn, which does not resolve). Cross-checked word by word against the JORT texts of the amending laws on FAOLEX: law 2001-35 (faolex tun25583: art. 316, 354, 358, 374, 375) and law 2010-34 (faolex tun97218: art. 381, 384, 377 ter point 5, 394 al. 1, 380 al. 4). No substantive difference; only scan errors in the 2001 JORT scan and page numbers. Annexes (other laws appended to the edition) were not verified and are not indexed.",
+  "span": {
+   "start": "Loi n° 65-5 du 12 février 1965",
+   "end": "ANNEXES • L’immatriculation foncière obligatoire"
+  },
+  "cite_articles": true
  }
 }

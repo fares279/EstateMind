@@ -88,21 +88,28 @@ def _clean(text: str) -> str:
     return ' '.join(repair_mojibake(str(text)).strip().split())
 
 
+def _chunk_bounds(n_words: int, max_words: int, overlap: int) -> List[tuple]:
+    """(start, end) word indices of each chunk."""
+    if n_words <= max_words:
+        return [(0, n_words)]
+    bounds = []
+    start = 0
+    while start < n_words:
+        end = min(start + max_words, n_words)
+        bounds.append((start, end))
+        if end == n_words:
+            break
+        start = max(end - overlap, start + 1)
+    return bounds
+
+
 def _chunk(text: str, max_words: int = 80, overlap: int = 20) -> List[str]:
     # Sized for the embedding model's input window (128 tokens for the
     # multilingual MiniLM); longer chunks are silently truncated when embedded.
     words = text.split()
     if len(words) <= max_words:
         return [text]
-    chunks = []
-    start = 0
-    while start < len(words):
-        end = min(start + max_words, len(words))
-        chunks.append(' '.join(words[start:end]))
-        if end == len(words):
-            break
-        start = max(end - overlap, start + 1)
-    return chunks
+    return [' '.join(words[a:b]) for a, b in _chunk_bounds(len(words), max_words, overlap)]
 
 
 def _chunk_settings() -> tuple[int, int]:
@@ -186,9 +193,22 @@ def _official_text(pdf_path: Path) -> str | None:
     return text if len(text.split()) >= 50 else None
 
 
+def _span(text: str, span: dict | None) -> str | None:
+    """The part of `text` between the manifest's span markers (start included, end
+    excluded), so only the verified part of a document is indexed. None if a marker
+    is missing: better to skip the text than to index the wrong part."""
+    if not span:
+        return text
+    start = text.find(span['start']) if span.get('start') else 0
+    end = text.find(span['end'], max(start, 0)) if span.get('end') else len(text)
+    if start < 0 or end < 0:
+        return None
+    return text[start:end]
+
+
 def load_official_texts(max_words: int, overlap: int) -> List[Dict[str, Any]]:
-    """Chunks from official texts downloaded by ml.legal.fetch_official_texts
-    (data/official/*.pdf, described in manifest.json)."""
+    """Chunks from official texts (data/official/*.pdf, described in manifest.json:
+    title, source URL, publisher, hash, and for codes a `span` and `cite_articles`)."""
     manifest_path = OFFICIAL_DIR / 'manifest.json'
     if not manifest_path.exists():
         return []
@@ -197,13 +217,29 @@ def load_official_texts(max_words: int, overlap: int) -> List[Dict[str, Any]]:
     for stem, info in manifest.items():
         pdf = OFFICIAL_DIR / f'{stem}.pdf'
         text = _official_text(pdf) if pdf.exists() else None
+        text = _span(text, info.get('span')) if text else None
         if not text:
-            logger.info('Official text %s not readable; skipped', stem)
+            logger.info('Official text %s not readable or span not found; skipped', stem)
             continue
-        for chunk_idx, chunk_text in enumerate(_chunk(text, max_words, overlap)):
+        words = text.split()
+        # word index of each "Article N" heading, for codes
+        headings = [(i, words[i + 1] + (f' {words[i + 2]}' if i + 2 < len(words) and words[i + 2] in ('bis', 'ter', 'quater') else ''))
+                    for i in range(len(words) - 1)
+                    if words[i] == 'Article' and words[i + 1].isdigit()] if info.get('cite_articles') else []
+        for chunk_idx, (a, b) in enumerate(_chunk_bounds(len(words), max_words, overlap)):
+            chunk_text = ' '.join(words[a:b])
+            ref = info['title']
+            if headings:
+                # the article the passage starts in, through the last one that begins in it
+                before = [n for i, n in headings if i <= a]
+                inside = [n for i, n in headings if a < i < b]
+                covered = before[-1:] + inside
+                if covered:
+                    ref = (f"{info['title']}, art. {covered[0]}" if covered[0] == covered[-1]
+                           else f"{info['title']}, art. {covered[0]} à {covered[-1]}")
             chunk_id = hashlib.md5(f"official_{stem}_{chunk_idx}".encode()).hexdigest()[:16]
             chunks.append({'id': chunk_id, 'text': chunk_text, 'metadata': {
-                'chunk_id': chunk_id, 'article_index': -1, 'article_ref': info['title'],
+                'chunk_id': chunk_id, 'article_index': -1, 'article_ref': ref,
                 'law_name': info['title'], 'source': info.get('publisher', 'Official text'),
                 'source_url': info['source_url'], 'keywords': '', 'chunk_index': chunk_idx,
             }})

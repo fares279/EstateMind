@@ -1,3 +1,5 @@
+import re
+
 from django.test import SimpleTestCase
 
 from estatemind.assistants.legal.services import dataset_service as ds
@@ -12,4 +14,4 @@ class OfficialTextTests(SimpleTestCase):
 
     def test_unreadable_official_texts_are_not_indexed(self):
         for chunk in ds.load_official_texts(80, 20):
-            self.assertIsNone(ds._GLYPH_NAMES.search(chunk['text']), chunk['metadata']['law_name'])
+            self.assertIsNone(re.search(r'[a-z]+(?:isolated|initial|medial|final)/', chunk['text']), chunk['metadata']['law_name'])
