@@ -1,5 +1,6 @@
-"""Monthly rent per m2 from market data (real rental listings in the delegation
-snapshots), so yields are rent / price rather than an assumed percentage."""
+"""Monthly rent per m2 from market data, so yields are rent / price rather than an
+assumed percentage: the rent model trained on real rental listings (rent_model.py)
+when its artifact is present, else the median of the delegation snapshots."""
 from __future__ import annotations
 
 from statistics import median
@@ -24,12 +25,18 @@ def _latest_rent_segments(delegations, ptype: str):
     return values
 
 
-def market_rent_per_m2(delegation: str, governorate: str, property_type: str) -> tuple[float | None, str]:
-    """(monthly rent per m2, basis). basis: 'delegation', 'governorate' or 'none'."""
+def market_rent_per_m2(delegation: str, governorate: str, property_type: str, surface_m2: float | None = None,
+                       rooms=None, bedrooms=None, bathrooms=None) -> tuple[float | None, str]:
+    """(monthly rent per m2, basis). basis: 'model', 'delegation', 'governorate' or 'none'."""
     from estatemind.market.core.models import Delegation
+
+    from .rent_model import predict
     ptype = _TYPES.get(str(property_type or '').lower(), 'apartment')
     if ptype == 'land':
         return None, 'none'  # land is not rented out
+    modelled = predict(ptype, delegation, governorate, surface_m2, rooms, bedrooms, bathrooms)
+    if modelled:
+        return modelled, 'model'
     gov_key, del_key = plain(governorate), plain(delegation)
     in_gov = [d for d in Delegation.objects.select_related('region') if plain(d.region.governorate) == gov_key]
     own = [d for d in in_gov if plain(d.name) == del_key]

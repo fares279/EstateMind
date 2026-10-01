@@ -141,7 +141,7 @@ function Result({ result }) {
           {
             label: 'Annual Yield',
             value: `${y.gross_yield_pct}%`,
-            sub: `≈ ${Math.round(y.monthly_rent_est || 0).toLocaleString()} TND/mo ${String(y.basis || '').startsWith('market_rent') ? '(local market rent)' : '(typical yield; no rent data for this area)'}`,
+            sub: `≈ ${Math.round(y.monthly_rent_est || 0).toLocaleString()} TND/mo ${y.basis === 'market_rent_model' ? '(rent model trained on local rental listings)' : String(y.basis || '').startsWith('market_rent') ? '(local market rent)' : '(typical yield; no rent data for this area)'}`,
             color: ORANGE,
           },
           {

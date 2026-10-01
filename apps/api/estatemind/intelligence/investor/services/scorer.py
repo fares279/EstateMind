@@ -164,13 +164,14 @@ def score_listing(inp: dict) -> dict:
     # ── Model 2: Rental yield ────────────────────────────────────────────────
     f2 = build_scanner_features_m2(inp, zone, fcst)
     yield_pred = _predict('rental_yield', f2)
-    rent_pm2, rent_basis = market_rent_per_m2(deleg, gov, ptype)
+    rent_pm2, rent_basis = market_rent_per_m2(deleg, gov, ptype, surface, inp.get('rooms'),
+                                              inp.get('bedrooms'), inp.get('bathrooms'))
     if yield_pred is not None:
         gross_yield = float(np.clip(float(np.array(yield_pred).flatten()[0]), 1.0, 25.0))
         yield_basis = 'model'
         monthly_rent = price * gross_yield / 100 / 12
     elif rent_pm2:
-        # market rent (median of real rental listings) x surface, then yield = rent / price.
+        # market rent (rent model or median of real rental listings) x surface, then yield = rent / price.
         # The rent used to be derived from the price and an assumed yield (circular).
         monthly_rent = rent_pm2 * surface
         gross_yield = monthly_rent * 12 / max(price, 1) * 100
@@ -275,7 +276,8 @@ def score_asset(asset: dict) -> dict:
     elif rent_mo > 0:
         rent_mo_est, rent_basis = rent_mo, 'your_rent'
     else:
-        rent_pm2, basis = market_rent_per_m2(deleg, gov, ptype)
+        rent_pm2, basis = market_rent_per_m2(deleg, gov, ptype, surface or None, asset.get('rooms'),
+                                             asset.get('bedrooms'), asset.get('bathrooms'))
         rent_mo_est = rent_pm2 * surface if rent_pm2 and surface else None
         rent_basis = f'market_rent_{basis}' if rent_mo_est else None
     gross_yield = rent_mo_est * 12 / cur_val * 100 if rent_mo_est else None

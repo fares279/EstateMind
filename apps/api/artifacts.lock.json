@@ -2,7 +2,7 @@
  "files": {
   "chroma/legal/0a4e7382-b09c-4c61-a383-e5dfb2281bda/data_level0.bin": {
    "size": 167600,
-   "sha256": "2a34dd1ea4bb93533a98151a020e581aee6907e3e3f870e017f7ec1dedb7cc0e"
+   "sha256": "69fdd07d87aaccea0a5d2cfd1eafeaa1b1f57e50307905b04d7561aa65080bb4"
   },
   "chroma/legal/0a4e7382-b09c-4c61-a383-e5dfb2281bda/header.bin": {
    "size": 100,
@@ -10,7 +10,7 @@
   },
   "chroma/legal/0a4e7382-b09c-4c61-a383-e5dfb2281bda/length.bin": {
    "size": 400,
-   "sha256": "ef69edfdf5b8134036df855372f1f2485b695260ee50135cf87e11c4e3722c1a"
+   "sha256": "f1611996869c9519c0cd0053804910792da9447899d53c89a5c326be292f81d6"
   },
   "chroma/legal/0a4e7382-b09c-4c61-a383-e5dfb2281bda/link_lists.bin": {
    "size": 0,
@@ -32,13 +32,29 @@
    "size": 0,
    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
   },
+  "chroma/legal/8a05110c-e548-49c6-abc4-538581015f85/data_level0.bin": {
+   "size": 167600,
+   "sha256": "8147dda7c02c84955c1eb6106795634e2711b90185dcd7b1c7dcbce4e692fd8b"
+  },
+  "chroma/legal/8a05110c-e548-49c6-abc4-538581015f85/header.bin": {
+   "size": 100,
+   "sha256": "a0e81c3b22454233bc12d0762f06dcca48261a75231cf87c79b75e69a6c00150"
+  },
+  "chroma/legal/8a05110c-e548-49c6-abc4-538581015f85/length.bin": {
+   "size": 400,
+   "sha256": "397f8ce163edd2eaacf2af32589245358a1c3ffa09c877461c78c86988c3ae6e"
+  },
+  "chroma/legal/8a05110c-e548-49c6-abc4-538581015f85/link_lists.bin": {
+   "size": 0,
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
   "chroma/legal/chroma.sqlite3": {
-   "size": 708608,
-   "sha256": "468608f5a2373bea9bab0385cf43000c90d03f114092fe44725e6ab6d02fca64"
+   "size": 1572864,
+   "sha256": "7b48a143a6c534e2621814ca84cc6a22bc83725606aa7452bb9e9770cf7b726c"
   },
   "chroma/legal/ee6b1f93-d3ed-40d9-91e0-1eb2df92efe2/data_level0.bin": {
    "size": 167600,
-   "sha256": "8efe528019b5d537ef6ac86efae922d25b08b4d4536daa99c8f6f666dc6b8be9"
+   "sha256": "8d705a720279221337e93e758525e0191ba413e2d497648ad6b433724e1ece17"
   },
   "chroma/legal/ee6b1f93-d3ed-40d9-91e0-1eb2df92efe2/header.bin": {
    "size": 100,
@@ -46,7 +62,7 @@
   },
   "chroma/legal/ee6b1f93-d3ed-40d9-91e0-1eb2df92efe2/length.bin": {
    "size": 400,
-   "sha256": "3e9437018191bf0940a2658d87708ffbea97f7ceafc91a323f184e35e69e8dea"
+   "sha256": "51be58cf0c04efa66cd56801b40152c494c931ba860bd139752c32fa20d88a35"
   },
   "chroma/legal/ee6b1f93-d3ed-40d9-91e0-1eb2df92efe2/link_lists.bin": {
    "size": 0,
@@ -55,6 +71,10 @@
   "forecast/forecast_model.joblib": {
    "size": 15935611,
    "sha256": "aa780aeffb1423f94ba3555e5592c9c4865f66c9a648f843841bc333e8ea712a"
+  },
+  "investor/rent_ppm_report.json": {
+   "size": 1060,
+   "sha256": "0d2e379e6c2a0e0cfed296611de929b6f3521952edb6834672546003953fb981"
   },
   "valuation/models/estate_e2_20261001/bytype__appartement__catboost.joblib": {
    "size": 564842,

@@ -39,7 +39,7 @@ def days_on_market(delegation: str) -> float | None:
 def market_inputs(delegation: str, governorate: str, property_type: str, surface_m2: float) -> dict:
     assumed = []
     stats = real_zone_stats(delegation, property_type)
-    rent_pm2, rent_basis = market_rent_per_m2(delegation, governorate, property_type)
+    rent_pm2, rent_basis = market_rent_per_m2(delegation, governorate, property_type, surface_m2)
     outlook = forecast_outlook(delegation, property_type)
     climate = climate_score(delegation)
     dom = days_on_market(delegation)
