@@ -217,60 +217,49 @@ class MarketDataRetriever:
             }
     
     def _get_climate_risk(self, location: str) -> Dict:
-        """
-        Retrieves climate risk score for delegation.
-        """
+        """Climate score of a delegation, or the average over a governorate's delegations.
+        (A substring match on delegation names answered 'Sousse' with Hammam Sousse.)"""
         try:
-            from estatemind.market.core.models import Delegation, DelegationClimateScore
-            
-            d = Delegation.objects.filter(name__icontains=location).first()
-            if not d:
-                return {
-                    'available': False,
-                    'reason': f'No delegation found for "{location}"'
-                }
-            
-            score = DelegationClimateScore.objects.filter(
-                delegation=d
-            ).first()
-            
-            if not score:
-                return {
-                    'available': False,
-                    'reason': f'No climate score available for {d.name}'
-                }
-            
-            age_days = (timezone.now() - score.computed_at).days
-            freshness = (
-                'FRESH' if age_days < 30 else
-                'ACCEPTABLE' if age_days < 90 else
-                'STALE'
-            )
-            
+            from statistics import mean
+
+            from estatemind.market.core.models import DelegationClimateScore
+
+            delegation, region = self._resolve_location(location)
+            if delegation is not None:
+                scores = list(DelegationClimateScore.objects.filter(delegation=delegation))
+                name = delegation.name
+            elif region is not None:
+                scores = list(DelegationClimateScore.objects.filter(delegation__region=region))
+                name = region.governorate
+            else:
+                return {'available': False, 'reason': f'I could not find a place called "{location}".'}
+            if not scores:
+                return {'available': False, 'reason': f'No climate score available for {name}'}
+
+            avg = lambda field: round(mean(getattr(x, field) for x in scores), 2)  # noqa: E731
+            composite = avg('composite_score')
+            from estatemind.intelligence.climate.services.composite_scorer import ClimateCompositeScorer
+            label = ClimateCompositeScorer()._score_to_label(composite)
+            latest = max(x.computed_at for x in scores)
             return {
                 'available': True,
-                'delegation': d.name,
-                'composite_score': score.composite_score,
-                'risk_label': score.risk_label,
-                'flood_risk': score.flood_risk_score,
-                'heat_stress': score.heat_stress_score,
-                'coastal_erosion': score.coastal_erosion_score,
-                'infrastructure_resilience': score.infrastructure_resilience_score,
-                'wildfire_risk': score.wildfire_risk_score,
-                'freshness': freshness,
-                'computed_at': score.computed_at.isoformat(),
-                'source_tag': f'climate_score_{score.computed_at.date()}',
-                'ci_lower': score.ci_lower_95,
-                'ci_upper': score.ci_upper_95
+                'delegation': name,
+                'delegation_count': len(scores),
+                'composite_score': composite,
+                'risk_label': label,
+                'flood_risk': avg('flood_risk_score'),
+                'heat_stress': avg('heat_stress_score'),
+                'water_stress': avg('water_stress_score'),
+                'coastal_erosion': avg('coastal_erosion_score'),
+                'infrastructure_resilience': avg('infrastructure_resilience_score'),
+                'wildfire_risk': avg('wildfire_risk_score'),
+                'computed_at': latest.isoformat(),
+                'source_tag': f'climate_score_{latest.date()}',
             }
-            
         except Exception as e:
             logger.warning(f'Climate risk retrieval failed for {location}: {e}', exc_info=True)
-            return {
-                'available': False,
-                'reason': 'Climate data is temporarily unavailable.'
-            }
-    
+            return {'available': False, 'reason': 'Climate data is temporarily unavailable.'}
+
     def _get_investment_context(self, location: str) -> Dict:
         """Rule-based opportunity score (the same scoring as the investor opportunities
         list) at the place's current median price per m2. (This used to read a

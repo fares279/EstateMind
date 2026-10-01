@@ -1,311 +1,157 @@
+"""Composite climate risk per delegation.
+
+Inputs come from data/climate_governorate_normals.csv: approximate climatological normals
+per governorate (annual rainfall, days above 35 °C), a flood-exposure index from river
+basins and documented major floods, and forest cover. They are curated approximations for
+comparing places, not measured hazard maps. Coastal exposure uses each delegation's
+distance to the coastline (market.core.coastline).
+
+Previously: flood took two fixed values by coastal flag; the heat table used names that
+did not match the database (Manouba, Kebili, Kassarine, Kef) and missed eight
+governorates; there was no drought / water-stress factor; and "resilience" was invented
+from population alone. The composite rose toward the north and Tozeur came out VERY_LOW.
+"""
+import csv
 import logging
 import math
-from typing import Dict, Any, List
-from django.utils import timezone
+from functools import lru_cache
+from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 
+NORMALS_SOURCE = ('Approximate climatological normals and documented floods per governorate '
+                  '(data/climate_governorate_normals.csv); not a measured hazard map.')
+
+# Known coastal erosion hotspots (sandy tourist coasts), otherwise a coastal default.
+EROSION_HOTSPOTS = {'hammamet': 0.70, 'nabeul': 0.60, 'sousse medina': 0.60, 'hammam sousse': 0.60,
+                    'monastir': 0.55, 'mahdia': 0.55, 'djerba midoun': 0.60, 'djerba houmt souk': 0.55,
+                    'bizerte nord': 0.60, 'kelibia': 0.55, 'la marsa': 0.50, 'raoued': 0.60}
+
+
+@lru_cache(maxsize=1)
+def _normals() -> dict[str, dict]:
+    from config.paths import DATA_DIR
+    from estatemind.intelligence.valuation.inference.location import plain
+
+    with open(DATA_DIR / 'climate_governorate_normals.csv', encoding='utf-8') as fh:
+        return {plain(r['governorate']): {k: (float(v) if k not in ('governorate', 'note') else v) for k, v in r.items()}
+                for r in csv.DictReader(fh)}
+
 
 class ClimateCompositeScorer:
-    """
-    Computes multi-factor composite climate risk scores for delegations.
-    Implements five-factor model with uncertainty quantification.
-    """
-    
-    # Factor weights
+    """Six factors, weighted; infrastructure (urban services) mitigates slightly."""
+
     WEIGHTS = {
-        'flood_risk': 0.30,
+        'flood_risk': 0.25,
         'heat_stress': 0.25,
-        'coastal_erosion': 0.20,
-        'infrastructure_resilience': 0.15,  # Note: mitigating, subtracted
+        'water_stress': 0.20,
+        'coastal_erosion': 0.15,
         'wildfire_risk': 0.10,
+        'infrastructure_resilience': 0.05,  # mitigating, subtracted
     }
-    
+
+    def _norms(self, delegation) -> dict:
+        from estatemind.intelligence.valuation.inference.location import plain
+        found = _normals().get(plain(delegation.region.governorate))
+        if found is None:
+            logger.warning('No climate normals for %s', delegation.region.governorate)
+            return {'annual_rainfall_mm': 350.0, 'days_above_35c': 45.0, 'flood_exposure': 0.4,
+                    'forest_cover': 0.1, 'note': 'national typical values (governorate not in the table)'}
+        return found
+
     def compute(self, delegation) -> Dict[str, Any]:
-        """
-        Compute full composite climate score for a delegation.
-        
-        Returns dict with:
-        - composite_score: float [0, 1]
-        - composite_uncertainty: float
-        - ci_lower_95 / ci_upper_95: confidence interval bounds
-        - risk_label: categorical risk level
-        - factors: dict with each factor's score, uncertainty, and drivers
-        """
-        
-        # Compute each factor
-        flood = self._compute_flood_risk(delegation)
-        heat = self._compute_heat_stress(delegation)
-        erosion = self._compute_coastal_erosion(delegation)
-        resilience = self._compute_infrastructure_resilience(delegation)
-        wildfire = self._compute_wildfire_risk(delegation)
-        
+        n = self._norms(delegation)
         factors = {
-            'flood_risk': flood,
-            'heat_stress': heat,
-            'coastal_erosion': erosion,
-            'infrastructure_resilience': resilience,
-            'wildfire_risk': wildfire,
+            'flood_risk': self._flood(delegation, n),
+            'heat_stress': self._heat(delegation, n),
+            'water_stress': self._water(n),
+            'coastal_erosion': self._erosion(delegation),
+            'wildfire_risk': self._wildfire(n),
+            'infrastructure_resilience': self._resilience(delegation),
         }
-        
-        # Compute composite score
-        composite_score = (
-            flood['score'] * self.WEIGHTS['flood_risk'] +
-            heat['score'] * self.WEIGHTS['heat_stress'] +
-            erosion['score'] * self.WEIGHTS['coastal_erosion'] -
-            resilience['score'] * self.WEIGHTS['infrastructure_resilience'] +
-            wildfire['score'] * self.WEIGHTS['wildfire_risk']
-        )
-        
-        # Clamp to [0, 1]
-        composite_score = max(0.0, min(1.0, composite_score))
-        
-        # Propagate uncertainty via quadrature
-        composite_uncertainty = math.sqrt(
-            (self.WEIGHTS['flood_risk'] * flood['uncertainty']) ** 2 +
-            (self.WEIGHTS['heat_stress'] * heat['uncertainty']) ** 2 +
-            (self.WEIGHTS['coastal_erosion'] * erosion['uncertainty']) ** 2 +
-            (self.WEIGHTS['infrastructure_resilience'] * resilience['uncertainty']) ** 2 +
-            (self.WEIGHTS['wildfire_risk'] * wildfire['uncertainty']) ** 2
-        )
-        
-        # 95% confidence interval
-        ci_lower = max(0.0, composite_score - 1.96 * composite_uncertainty)
-        ci_upper = min(1.0, composite_score + 1.96 * composite_uncertainty)
-        
+        w = self.WEIGHTS
+        score = sum(factors[k]['score'] * w[k] for k in w if k != 'infrastructure_resilience')
+        score -= factors['infrastructure_resilience']['score'] * w['infrastructure_resilience']
+        # rescale so a place at the maximum of every hazard reaches 1.0
+        score = max(0.0, min(1.0, score / (1 - w['infrastructure_resilience'])))
+        uncertainty = math.sqrt(sum((w[k] * factors[k]['uncertainty']) ** 2 for k in w))
         return {
-            'composite_score': round(composite_score, 4),
-            'composite_uncertainty': round(composite_uncertainty, 4),
-            'ci_lower_95': round(ci_lower, 4),
-            'ci_upper_95': round(ci_upper, 4),
-            'risk_label': self._score_to_label(composite_score),
+            'composite_score': round(score, 4),
+            'composite_uncertainty': round(uncertainty, 4),
+            'ci_lower_95': round(max(0.0, score - 1.96 * uncertainty), 4),
+            'ci_upper_95': round(min(1.0, score + 1.96 * uncertainty), 4),
+            'risk_label': self._score_to_label(score),
             'factors': factors,
+            'source': NORMALS_SOURCE,
         }
-    
-    def _compute_flood_risk(self, delegation) -> Dict[str, Any]:
-        """
-        Flood risk from historical frequency and geographic extent.
-        
-        Data sources (mocked here; in production, would query DelegationFloodData):
-        - historical_events: recorded events in past 20 years
-        - flood_extent_pct: % of delegation area flood-vulnerable
-        """
-        
-        # Mock data — in production, query DelegationFloodData or similar
-        # For now, derive from delegation properties where possible
-        
-        # Default estimates based on coastal status and region
-        if delegation.is_coastal:
-            historical_events = 2.5  # Assume coastal has higher frequency
-            flood_extent_pct = 15.0
-        else:
-            historical_events = 0.8
-            flood_extent_pct = 4.0
-        
-        # Normalized frequency (max nationwide assumed 0.30 per year)
-        normalized_frequency = min(1.0, historical_events / 20 / 0.30)
-        
-        # Normalized extent (max observed ~40%)
-        normalized_extent = min(1.0, flood_extent_pct / 40.0)
-        
-        score = 0.5 * normalized_frequency + 0.5 * normalized_extent
-        uncertainty = 0.09 if delegation.is_coastal else 0.05
-        
-        return {
-            'score': round(score, 4),
-            'uncertainty': uncertainty,
-            'components': {
-                'historical_frequency': round(normalized_frequency, 4),
-                'flood_extent_pct': flood_extent_pct,
-            },
-            'driver': 'Flood and wadi overflow risk',
-        }
-    
-    def _compute_heat_stress(self, delegation) -> Dict[str, Any]:
-        """
-        Heat stress from days above 35°C and population vulnerability.
-        
-        Data sources (mocked):
-        - days_above_35c: annual temperature exceedances
-        - population_vulnerability: AC penetration, healthcare access
-        """
-        
-        # Regional defaults — in production, query DelegationClimateData
-        region_name = delegation.region.governorate
-        
-        # Regional heat stress baseline (empirical data for Tunisia)
-        regional_heat = {
-            'Tunis': 28, 'Ariana': 28, 'Ben Arous': 30, 'Manouba': 32,
-            'Bizerte': 25, 'Nabeul': 32, 'Sousse': 38, 'Sfax': 68,
-            'Gafsa': 72, 'Tozeur': 78, 'Kebili': 80, 'Tataouine': 75,
-            'Sidi Bouzid': 65, 'Kairouan': 70, 'Kassarine': 68,
-            'Jendouba': 35, 'Béja': 30, 'Monastir': 40,
-        }
-        
-        days_above_35c = regional_heat.get(region_name, 45)
-        
-        # Population vulnerability (urban > rural, AC penetration)
-        if delegation.population > 100000:
-            population_vulnerability = 0.35  # Urban, better coping
-        elif delegation.population > 50000:
-            population_vulnerability = 0.50  # Semi-urban
-        else:
-            population_vulnerability = 0.65  # Rural, limited AC
-        
-        normalized_hot_days = min(1.0, days_above_35c / 90)  # Max ~90 days
-        
-        score = 0.6 * normalized_hot_days + 0.4 * population_vulnerability
-        uncertainty = 0.07
-        
-        return {
-            'score': round(score, 4),
-            'uncertainty': uncertainty,
-            'components': {
-                'days_above_35c': days_above_35c,
-                'normalized_hot_days': round(normalized_hot_days, 4),
-                'population_vulnerability': round(population_vulnerability, 4),
-            },
-            'driver': 'Heat stress and habitability cost',
-        }
-    
-    def _compute_coastal_erosion(self, delegation) -> Dict[str, Any]:
-        """
-        Coastal erosion only applies to coastal delegations.
-        Inland delegations have zero coastal risk.
-        """
-        
+
+    def _flood(self, delegation, n) -> Dict[str, Any]:
+        exposure = n['flood_exposure']
+        # low-lying coasts add storm-surge and sebkha flooding
+        score = min(1.0, exposure + (0.10 if delegation.is_coastal else 0.0))
+        return {'score': round(score, 4), 'uncertainty': 0.12,
+                'components': {'governorate_flood_exposure': exposure, 'coastal': bool(delegation.is_coastal)},
+                'driver': 'Wadi and river flooding, from basins and documented major floods'}
+
+    def _heat(self, delegation, n) -> Dict[str, Any]:
+        days = n['days_above_35c']
+        hot = min(1.0, days / 100.0)
+        # places above 100k people cope better (air conditioning, services)
+        vulnerability = 0.35 if delegation.population > 100_000 else 0.5 if delegation.population > 50_000 else 0.65
+        score = 0.75 * hot + 0.25 * vulnerability
+        return {'score': round(score, 4), 'uncertainty': 0.08,
+                'components': {'days_above_35c': days, 'population_vulnerability': vulnerability},
+                'driver': 'Extreme heat days and habitability cost'}
+
+    def _water(self, n) -> Dict[str, Any]:
+        rain = n['annual_rainfall_mm']
+        score = max(0.0, min(1.0, 1 - (rain - 80) / (700 - 80)))
+        return {'score': round(score, 4), 'uncertainty': 0.08,
+                'components': {'annual_rainfall_mm': rain},
+                'driver': 'Drought and water scarcity (from annual rainfall)'}
+
+    def _erosion(self, delegation) -> Dict[str, Any]:
+        from estatemind.intelligence.valuation.inference.location import plain
         if not delegation.is_coastal:
-            return {
-                'score': 0.0,
-                'uncertainty': 0.02,
-                'components': {'delegation': 'inland'},
-                'driver': 'No coastal risk',
-            }
-        
-        # For coastal delegations, estimate risk based on known erosion areas
-        # These are empirical estimates for Tunisian coasts
-        coastal_risk_map = {
-            'Bizerte': 0.65,
-            'Hammamet': 0.70,
-            'Sousse': 0.60,
-            'Sfax': 0.45,
-            'Djerba': 0.55,
-            'Monastir': 0.50,
-            'Testour': 0.35,  # Less exposed
-        }
-        
-        score = coastal_risk_map.get(delegation.name, 0.50)
-        uncertainty = 0.15
-        
-        return {
-            'score': round(score, 4),
-            'uncertainty': uncertainty,
-            'components': {
-                'coastal': True,
-                'erosion_rate_m_per_year': 1.2,
-                'proximity_factor': 0.35,
-            },
-            'driver': 'Coastal erosion and sea-level exposure',
-        }
-    
-    def _compute_infrastructure_resilience(self, delegation) -> Dict[str, Any]:
-        """
-        Infrastructure resilience is a MITIGATING factor.
-        Higher resilience → lower composite risk.
-        
-        Factors:
-        - Hospital beds per 10k population
-        - Road connectivity
-        - Water system redundancy
-        - Emergency service coverage
-        """
-        
-        # Urban areas have higher resilience
-        if delegation.population > 100000:
-            hospital_score = 0.80
-            road_connectivity = 0.85
-            water_redundancy = 0.75
-            emergency_coverage = 0.80
-        elif delegation.population > 50000:
-            hospital_score = 0.55
-            road_connectivity = 0.60
-            water_redundancy = 0.50
-            emergency_coverage = 0.55
-        else:
-            hospital_score = 0.30
-            road_connectivity = 0.35
-            water_redundancy = 0.25
-            emergency_coverage = 0.30
-        
-        resilience_score = (
-            0.35 * hospital_score +
-            0.30 * road_connectivity +
-            0.20 * water_redundancy +
-            0.15 * emergency_coverage
-        )
-        
-        uncertainty = 0.08
-        
-        return {
-            'score': round(resilience_score, 4),
-            'uncertainty': uncertainty,
-            'components': {
-                'hospital_beds_score': round(hospital_score, 4),
-                'road_connectivity': round(road_connectivity, 4),
-                'water_redundancy': round(water_redundancy, 4),
-                'emergency_coverage': round(emergency_coverage, 4),
-            },
-            'driver': 'Infrastructure resilience (mitigating)',
-        }
-    
-    def _compute_wildfire_risk(self, delegation) -> Dict[str, Any]:
-        """
-        Wildfire risk is geographically concentrated in forested regions.
-        Lower weight (0.10) because most urban properties have low exposure.
-        """
-        
-        # Regional wildfire risk based on vegetation and history
-        high_risk_regions = ['Béja', 'Jendouba', 'Siliana', 'Kasserine', 'Kef']
-        
-        if any(region in delegation.region.governorate for region in high_risk_regions):
-            vegetation_score = 0.65
-            historical_fires = 0.35
-            proximity_to_forest = 0.45
-        else:
-            vegetation_score = 0.10
-            historical_fires = 0.05
-            proximity_to_forest = 0.05
-        
-        wildfire_score = (
-            0.5 * vegetation_score +
-            0.3 * historical_fires +
-            0.2 * proximity_to_forest
-        )
-        
-        uncertainty = 0.06
-        
-        return {
-            'score': round(wildfire_score, 4),
-            'uncertainty': uncertainty,
-            'components': {
-                'vegetation_score': round(vegetation_score, 4),
-                'historical_fires': round(historical_fires, 4),
-                'proximity_to_forest': proximity_to_forest,
-            },
-            'driver': 'Wildfire risk (low weight, geographically concentrated)',
-        }
-    
+            return {'score': 0.0, 'uncertainty': 0.02, 'components': {'coastal': False},
+                    'driver': 'No coastal exposure'}
+        score = EROSION_HOTSPOTS.get(plain(delegation.name), 0.45)
+        return {'score': score, 'uncertainty': 0.15, 'components': {'coastal': True},
+                'driver': 'Coastal erosion and sea-level exposure'}
+
+    def _wildfire(self, n) -> Dict[str, Any]:
+        forest = n['forest_cover']
+        # forests burn most where summers are also hot and dry
+        score = min(1.0, forest * (0.7 + 0.3 * min(1.0, n['days_above_35c'] / 60)) * 1.4)
+        return {'score': round(score, 4), 'uncertainty': 0.08,
+                'components': {'forest_cover': forest},
+                'driver': 'Wildfire (forest cover and summer heat)'}
+
+    def _resilience(self, delegation) -> Dict[str, Any]:
+        score = 0.8 if delegation.population > 100_000 else 0.55 if delegation.population > 50_000 else 0.3
+        return {'score': score, 'uncertainty': 0.10,
+                'components': {'population': delegation.population},
+                'driver': 'Urban services (proxy: population size), mitigating'}
+
     def _score_to_label(self, score: float) -> str:
-        """Convert numeric score [0, 1] to categorical risk label"""
-        thresholds = [
-            (0.15, 'VERY_LOW'),
-            (0.30, 'LOW'),
-            (0.45, 'MODERATE'),
-            (0.60, 'MODERATE_HIGH'),
-            (0.75, 'HIGH'),
-            (1.01, 'VERY_HIGH'),
-        ]
-        for threshold, label in thresholds:
+        for threshold, label in ((0.15, 'VERY_LOW'), (0.30, 'LOW'), (0.45, 'MODERATE'),
+                                 (0.60, 'MODERATE_HIGH'), (0.75, 'HIGH')):
             if score < threshold:
                 return label
         return 'VERY_HIGH'
+
+
+def score_fields(score: Dict[str, Any]) -> Dict[str, Any]:
+    """DelegationClimateScore field values for a compute() result."""
+    from django.utils import timezone
+
+    f = score['factors']
+    fields = {k: score[k] for k in ('composite_score', 'composite_uncertainty', 'ci_lower_95', 'ci_upper_95',
+                                    'risk_label')}
+    for factor in ('flood_risk', 'heat_stress', 'water_stress', 'coastal_erosion', 'infrastructure_resilience',
+                   'wildfire_risk'):
+        fields[f'{factor}_score'] = f[factor]['score']
+        fields[f'{factor}_uncertainty'] = f[factor]['uncertainty']
+    fields.update(computed_at=timezone.now(), data_vintage=timezone.now().date(),
+                  computation_method='composite_normals_v2')
+    return fields

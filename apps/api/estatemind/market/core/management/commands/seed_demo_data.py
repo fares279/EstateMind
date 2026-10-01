@@ -85,6 +85,7 @@ class Command(BaseCommand):
     def _geography(self):
         from estatemind.intelligence.valuation.inference.location import normalize_governorate, plain
         from estatemind.market.core.management.commands.import_delegations import _flt, _int, _pct
+        from estatemind.market.core import coastline
         from estatemind.market.core.models import Delegation, Region
 
         gov_geo = {r['governorate_key']: r for r in csv.DictReader(open(DATA_DIR / 'governorate_geography.csv',
@@ -116,8 +117,11 @@ class Command(BaseCommand):
                 'population': _int(r['Population_2024']),
                 'centroid_lat': float(geo['latitude']) if geo.get('latitude') else None,
                 'centroid_lon': float(geo['longitude']) if geo.get('longitude') else None,
-                'is_coastal': geo.get('is_coastal') == '1',
             }
+            # from the distance to the coastline (market.core.coastline), not the governorate:
+            # the old flag marked every delegation of a coastal governorate coastal
+            fields['is_coastal'] = bool(coastline.is_coastal(fields['centroid_lat'], fields['centroid_lon'],
+                                                             r['Delegation']))
             for prefix, col in (('apt', 'Apartment'), ('house', 'House'), ('comm', 'Commercial'), ('land', 'Land')):
                 fields[f'{prefix}_min_tnd'] = _flt(r[f'{col}_Min_TND'])
                 fields[f'{prefix}_avg_tnd'] = _flt(r[f'{col}_Avg_TND'])

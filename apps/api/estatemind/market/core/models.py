@@ -485,6 +485,13 @@ class DelegationClimateScore(models.Model):
         validators=[MinValueValidator(0.0), MaxValueValidator(1.0)]
     )
     heat_stress_uncertainty = models.FloatField(default=0.10)
+
+    # drought / water scarcity, from annual rainfall (added with the normals-based scorer)
+    water_stress_score = models.FloatField(
+        default=0.0,
+        validators=[MinValueValidator(0.0), MaxValueValidator(1.0)]
+    )
+    water_stress_uncertainty = models.FloatField(default=0.08)
     
     coastal_erosion_score = models.FloatField(
         default=0.0,

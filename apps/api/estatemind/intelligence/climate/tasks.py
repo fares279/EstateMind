@@ -1,3 +1,4 @@
+from estatemind.intelligence.climate.services.composite_scorer import score_fields
 import logging
 from celery import shared_task
 from django.utils import timezone
@@ -56,26 +57,7 @@ def recompute_all_climate_scores():
                 # Save to database (update or create)
                 DelegationClimateScore.objects.update_or_create(
                     delegation=delegation,
-                    defaults={
-                        'composite_score': new_score['composite_score'],
-                        'composite_uncertainty': new_score['composite_uncertainty'],
-                        'ci_lower_95': new_score['ci_lower_95'],
-                        'ci_upper_95': new_score['ci_upper_95'],
-                        'risk_label': new_score['risk_label'],
-                        'flood_risk_score': new_score['factors']['flood_risk']['score'],
-                        'flood_risk_uncertainty': new_score['factors']['flood_risk']['uncertainty'],
-                        'heat_stress_score': new_score['factors']['heat_stress']['score'],
-                        'heat_stress_uncertainty': new_score['factors']['heat_stress']['uncertainty'],
-                        'coastal_erosion_score': new_score['factors']['coastal_erosion']['score'],
-                        'coastal_erosion_uncertainty': new_score['factors']['coastal_erosion']['uncertainty'],
-                        'infrastructure_resilience_score': new_score['factors']['infrastructure_resilience']['score'],
-                        'infrastructure_resilience_uncertainty': new_score['factors']['infrastructure_resilience']['uncertainty'],
-                        'wildfire_risk_score': new_score['factors']['wildfire_risk']['score'],
-                        'wildfire_risk_uncertainty': new_score['factors']['wildfire_risk']['uncertainty'],
-                        'computed_at': timezone.now(),
-                        'data_vintage': timezone.now().date(),
-                        'computation_method': 'composite_weighted',
-                    }
+                    defaults=score_fields(new_score)
                 )
                 
                 results['processed'] += 1

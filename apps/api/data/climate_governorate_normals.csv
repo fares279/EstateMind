@@ -1,0 +1,25 @@
+governorate,annual_rainfall_mm,days_above_35c,flood_exposure,forest_cover,note
+Tunis,450,25,0.60,0.05,Urban flash floods (2003 and later autumn storms); low-lying Lake of Tunis shores
+Ariana,450,25,0.55,0.05,Sebkha Ariana lowlands; urban flooding
+Ben Arous,450,28,0.60,0.10,Oued Miliane lower basin; urban flooding (2003)
+La Manouba,460,32,0.70,0.05,Medjerda plain (major floods 2003 and 2012)
+Bizerte,620,18,0.55,0.35,Lower Medjerda / Ghar El Melh; Sejnane forests
+Nabeul,480,20,0.75,0.25,Cap Bon wadis (severe flash floods September 2018)
+Zaghouan,500,35,0.45,0.25,Oued Miliane headwaters; mountain forests
+Béja,600,35,0.65,0.35,Medjerda valley (floods 2003 and 2012); northern forests
+Jendouba,900,45,0.80,0.60,Medjerda at Bou Salem (repeated floods 2003 2012 2015); Kroumirie forests
+Le Kef,480,40,0.35,0.30,Upper Mellègue basin; Dorsale forests
+Siliana,450,40,0.35,0.30,Upper Siliana wadi; Dorsale forests
+Kairouan,300,60,0.50,0.05,Zeroud and Merguellil wadis (historic 1969 floods)
+Kasserine,330,45,0.30,0.30,Chaambi forests; flash floods in wadis
+Sidi Bouzid,250,60,0.35,0.05,Semi-arid; flash floods in wadis
+Sousse,330,30,0.40,0.05,Coastal sebkhas; urban flooding
+Monastir,350,25,0.40,0.03,Coastal lowlands and sebkhas
+Mahdia,320,30,0.35,0.03,Coastal lowlands
+Sfax,210,35,0.45,0.02,Urban flash floods; semi-arid
+Gafsa,160,70,0.30,0.05,Arid; wadi flash floods
+Tozeur,90,100,0.20,0.00,Saharan; very hot summers
+Kébili,80,100,0.15,0.00,Saharan; very hot summers
+Gabès,180,45,0.40,0.02,Coastal oasis; wadi flash floods
+Médenine,170,55,0.30,0.00,Arid coast and Djerba
+Tataouine,110,80,0.25,0.00,Arid; wadi flash floods

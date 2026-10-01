@@ -1,3 +1,4 @@
+from estatemind.intelligence.climate.services.composite_scorer import score_fields
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from estatemind.market.core.models import Delegation, DelegationClimateScore
@@ -62,26 +63,7 @@ class Command(BaseCommand):
                 # Save or update
                 obj, created_flag = DelegationClimateScore.objects.update_or_create(
                     delegation=delegation,
-                    defaults={
-                        'composite_score': score_data['composite_score'],
-                        'composite_uncertainty': score_data['composite_uncertainty'],
-                        'ci_lower_95': score_data['ci_lower_95'],
-                        'ci_upper_95': score_data['ci_upper_95'],
-                        'risk_label': score_data['risk_label'],
-                        'flood_risk_score': score_data['factors']['flood_risk']['score'],
-                        'flood_risk_uncertainty': score_data['factors']['flood_risk']['uncertainty'],
-                        'heat_stress_score': score_data['factors']['heat_stress']['score'],
-                        'heat_stress_uncertainty': score_data['factors']['heat_stress']['uncertainty'],
-                        'coastal_erosion_score': score_data['factors']['coastal_erosion']['score'],
-                        'coastal_erosion_uncertainty': score_data['factors']['coastal_erosion']['uncertainty'],
-                        'infrastructure_resilience_score': score_data['factors']['infrastructure_resilience']['score'],
-                        'infrastructure_resilience_uncertainty': score_data['factors']['infrastructure_resilience']['uncertainty'],
-                        'wildfire_risk_score': score_data['factors']['wildfire_risk']['score'],
-                        'wildfire_risk_uncertainty': score_data['factors']['wildfire_risk']['uncertainty'],
-                        'computed_at': timezone.now(),
-                        'data_vintage': timezone.now().date(),
-                        'computation_method': 'composite_weighted',
-                    }
+                    defaults=score_fields(score_data)
                 )
                 
                 action = 'CREATED' if created_flag else 'UPDATED'

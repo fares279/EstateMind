@@ -59,6 +59,8 @@ class ConformalCalibratorOrchestrator:
         """
         cache_key = self._cache_key(delegation_name, property_type)
         cached = cache.get(cache_key)
+        if cached is False:  # known to have no residuals (a forecast asks once per month)
+            return None
         if cached:
             return cached
 
@@ -77,11 +79,9 @@ class ConformalCalibratorOrchestrator:
         )
 
         if not model_version or not model_version.conformal_residuals:
-            logger.warning(
-                "No conformal residuals for %s / %s — backtest may not be complete",
-                delegation_name,
-                property_type,
-            )
+            # remembered, so one forecast doesn't repeat the query and log it ~24 times
+            cache.set(cache_key, False, CACHE_TIMEOUT)
+            logger.debug("No conformal residuals for %s / %s", delegation_name, property_type)
             return None
 
         # Calibrate predictor on residuals

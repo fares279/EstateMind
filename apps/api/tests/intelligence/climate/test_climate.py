@@ -13,8 +13,7 @@ def _delegation(name='Test', governorate='Tunis', coastal=False, population=50_0
 
 
 class CompositeScorerTests(SimpleTestCase):
-    """Pins the current formula. Known domain issues (weights, coastal flags, mocked
-    flood data) are documented for review, not asserted as correct here."""
+    """The normals-based scorer (data/climate_governorate_normals.csv)."""
 
     def test_score_is_bounded_with_consistent_interval(self):
         result = ClimateCompositeScorer().compute(_delegation())
@@ -24,13 +23,26 @@ class CompositeScorerTests(SimpleTestCase):
         self.assertGreaterEqual(result['ci_upper_95'], result['composite_score'])
         self.assertEqual(set(result['factors']), set(ClimateCompositeScorer.WEIGHTS))
 
-    def test_flood_factor_depends_only_on_the_coastal_flag(self):
+    def test_flood_depends_on_the_place(self):
+        # it used to take two fixed values, set only by the coastal flag
         scorer = ClimateCompositeScorer()
-        inland = scorer.compute(_delegation(coastal=False))['factors']['flood_risk']['score']
-        coastal = scorer.compute(_delegation(coastal=True))['factors']['flood_risk']['score']
-        self.assertGreater(coastal, inland)
-        # mocked: two fixed values, whatever the location
-        self.assertEqual(inland, scorer.compute(_delegation('Other', 'Tozeur'))['factors']['flood_risk']['score'])
+        flood = lambda gov, coastal=False: scorer.compute(_delegation(governorate=gov, coastal=coastal))['factors']['flood_risk']['score']  # noqa: E731
+        self.assertGreater(flood('Jendouba'), flood('Tozeur'))          # Medjerda floods vs Saharan
+        self.assertGreater(flood('Nabeul', coastal=True), flood('Nabeul'))
+
+    def test_arid_south_is_not_the_lowest_risk(self):
+        # Tozeur (heat 0.72 before) came out VERY_LOW; the south now carries heat and water stress
+        scorer = ClimateCompositeScorer()
+        tozeur = scorer.compute(_delegation('Tozeur', 'Tozeur'))
+        bizerte = scorer.compute(_delegation('Bizerte Sud', 'Bizerte'))
+        self.assertGreater(tozeur['factors']['water_stress']['score'], 0.9)
+        self.assertGreater(tozeur['composite_score'], bizerte['composite_score'])
+        self.assertNotEqual(tozeur['risk_label'], 'VERY_LOW')
+
+    def test_every_governorate_has_normals(self):
+        from estatemind.intelligence.climate.services.composite_scorer import _normals
+        from estatemind.intelligence.valuation.inference.location import _reference
+        self.assertEqual(set(_reference()[0].values()) - set(_normals()), set())
 
     def test_labels_follow_thresholds(self):
         label = ClimateCompositeScorer()._score_to_label

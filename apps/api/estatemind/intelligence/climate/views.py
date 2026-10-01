@@ -1,3 +1,4 @@
+from estatemind.intelligence.climate.services.composite_scorer import ClimateCompositeScorer, NORMALS_SOURCE
 import logging
 from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, action
@@ -50,34 +51,17 @@ def delegation_climate_detail(request, delegation_name):
             },
             'risk_label': score.risk_label,
             'freshness': score.freshness_display(),
+            # weights from the scorer itself (they were hard-coded here and out of date)
             'factors': {
-                'flood_risk': {
-                    'score': score.flood_risk_score,
-                    'uncertainty': score.flood_risk_uncertainty,
-                    'weight': 0.30,
-                },
-                'heat_stress': {
-                    'score': score.heat_stress_score,
-                    'uncertainty': score.heat_stress_uncertainty,
-                    'weight': 0.25,
-                },
-                'coastal_erosion': {
-                    'score': score.coastal_erosion_score,
-                    'uncertainty': score.coastal_erosion_uncertainty,
-                    'weight': 0.20,
-                },
-                'infrastructure_resilience': {
-                    'score': score.infrastructure_resilience_score,
-                    'uncertainty': score.infrastructure_resilience_uncertainty,
-                    'weight': 0.15,
-                    'note': 'Mitigating factor (reduces risk)',
-                },
-                'wildfire_risk': {
-                    'score': score.wildfire_risk_score,
-                    'uncertainty': score.wildfire_risk_uncertainty,
-                    'weight': 0.10,
-                },
+                name: {
+                    'score': getattr(score, f'{name}_score'),
+                    'uncertainty': getattr(score, f'{name}_uncertainty'),
+                    'weight': weight,
+                    **({'note': 'Mitigating factor (reduces risk)'} if name == 'infrastructure_resilience' else {}),
+                }
+                for name, weight in ClimateCompositeScorer.WEIGHTS.items()
             },
+            'source': NORMALS_SOURCE,
             'computed_at': score.computed_at.isoformat(),
             'data_vintage': score.data_vintage.isoformat() if score.data_vintage else None,
             'computation_method': score.computation_method,

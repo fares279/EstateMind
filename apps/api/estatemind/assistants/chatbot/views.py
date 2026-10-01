@@ -519,12 +519,17 @@ def _generate_grounded_response(intent: str, entities: dict,
     elif intent == 'climate_question':
         if climate.get('available'):
             source_label = _format_source_tag(climate.get('source_tag', ''))
+            label = climate['risk_label'].replace('_', '-').lower().replace('moderate-high', 'moderate to high')
+            factors = sorted(((climate[k], name) for k, name in (
+                ('flood_risk', 'flooding'), ('heat_stress', 'heat'), ('water_stress', 'drought and water scarcity'),
+                ('coastal_erosion', 'coastal erosion'), ('wildfire_risk', 'wildfire'))), reverse=True)
+            top = ', '.join(f"{name} ({score:.2f})" for score, name in factors[:3] if score > 0)
+            place = (f"{location} ({climate['delegation_count']} delegations on average)"
+                     if climate.get('delegation_count', 1) > 1 else location)
             parts.append(
-                f"The climate risk in {location} is rated {climate['risk_label']} "
-                f"with a composite score of {climate['composite_score']:.2f}. "
-                f"Primary factors: flood ({climate['flood_risk']:.2f}), "
-                f"heat ({climate['heat_stress']:.2f}), "
-                f"coastal erosion ({climate['coastal_erosion']:.2f}). "
+                f"Climate risk in {place} is {label}, with a composite score of "
+                f"{climate['composite_score']:.2f} on a 0-1 scale. The main factors are {top}. "
+                f"Scores come from approximate climate normals and documented floods, not a hazard map. "
                 f"[Source: {source_label}]"
             )
         else:

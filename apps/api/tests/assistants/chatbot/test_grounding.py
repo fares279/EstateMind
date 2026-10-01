@@ -71,4 +71,4 @@ class ChatbotGroundingTests(TestCase):
         reply = self.client.post('/api/chatbot/message/', {'message': 'What is the climate risk in La Marsa?'},
                                  content_type='application/json').json()
         if reply['intent'] == 'climate_question':
-            self.assertIn('rated LOW', reply['message'])
+            self.assertIn('is low', reply['message'])
