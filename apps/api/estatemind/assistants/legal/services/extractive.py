@@ -11,7 +11,7 @@ import math
 import re
 
 MAX_SENTENCES = 4
-MIN_SIMILARITY = 0.30          # below this a sentence is not about the question
+MIN_SIMILARITY = 0.35          # below this a sentence is not about the question
 RELATIVE_TO_BEST = 0.75        # and it must be close to the best sentence
 MIN_WORDS = 6
 

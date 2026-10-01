@@ -150,7 +150,63 @@ def load_and_prepare() -> List[Dict[str, Any]]:
                 },
             })
 
-    logger.info("Prepared %d chunks from %d articles", len(chunks), len(raw_articles))
+    official = load_official_texts(max_words, overlap)
+    chunks.extend(official)
+    logger.info("Prepared %d chunks from %d articles and %d from official texts",
+                len(chunks) - len(official), len(raw_articles), len(official))
+    return chunks
+
+
+OFFICIAL_DIR = Path(__file__).parent.parent / 'data' / 'official'
+_ARABIC_LETTER = re.compile(r'[؀-ۿ]')
+_GLYPH_NAMES = re.compile(r'(isolated|initial|medial|final)')
+
+
+def _official_text(pdf_path: Path) -> str | None:
+    """Text of an official PDF, or None when it does not extract as readable text.
+    Arabic PDFs extract in display form (presentation glyphs, words right to left):
+    NFKC turns the glyphs into letters and each line's word order is reversed."""
+    import unicodedata
+    try:
+        from pypdf import PdfReader
+    except ImportError:
+        logger.warning('pypdf is not installed; official texts skipped')
+        return None
+    raw = '\n'.join((page.extract_text() or '') for page in PdfReader(str(pdf_path)).pages)
+    if len(_GLYPH_NAMES.findall(raw)) > 20:  # glyph names instead of text: unusable without OCR
+        return None
+    lines = []
+    # NFKC maps presentation glyphs to letters; tatweel (U+0640) only stretches words
+    for line in unicodedata.normalize('NFKC', raw).replace('ـ', '').splitlines():
+        words = line.split()
+        if not words:
+            continue
+        lines.append(' '.join(reversed(words)) if _ARABIC_LETTER.search(line) else ' '.join(words))
+    text = ' '.join(lines)
+    return text if len(text.split()) >= 50 else None
+
+
+def load_official_texts(max_words: int, overlap: int) -> List[Dict[str, Any]]:
+    """Chunks from official texts downloaded by ml.legal.fetch_official_texts
+    (data/official/*.pdf, described in manifest.json)."""
+    manifest_path = OFFICIAL_DIR / 'manifest.json'
+    if not manifest_path.exists():
+        return []
+    manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+    chunks: List[Dict[str, Any]] = []
+    for stem, info in manifest.items():
+        pdf = OFFICIAL_DIR / f'{stem}.pdf'
+        text = _official_text(pdf) if pdf.exists() else None
+        if not text:
+            logger.info('Official text %s not readable; skipped', stem)
+            continue
+        for chunk_idx, chunk_text in enumerate(_chunk(text, max_words, overlap)):
+            chunk_id = hashlib.md5(f"official_{stem}_{chunk_idx}".encode()).hexdigest()[:16]
+            chunks.append({'id': chunk_id, 'text': chunk_text, 'metadata': {
+                'chunk_id': chunk_id, 'article_index': -1, 'article_ref': info['title'],
+                'law_name': info['title'], 'source': info.get('publisher', 'Official text'),
+                'source_url': info['source_url'], 'keywords': '', 'chunk_index': chunk_idx,
+            }})
     return chunks
 
 
