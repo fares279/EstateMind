@@ -1,6 +1,6 @@
 # EstateMind migration: final report
 
-Date: 2026-09-28. Scope: the original `backend/` and `frontend/`, moved into this monorepo
+Date: 2026-09-28, updated 2026-10-01 (sections 1, 5, 6, 8, 9, 10). Scope: the original `backend/` and `frontend/`, moved into this monorepo
 (`apps/api`, `apps/web`) and modernized over six phases. The originals are untouched, and remain
 the rollback reference until sign-off.
 
@@ -8,13 +8,13 @@ the rollback reference until sign-off.
 
 | Check | Result |
 | --- | --- |
-| API tests | 241 passing on SQLite and on Postgres (in docker-compose). 7 skip cleanly when model artifacts are absent |
-| Web tests and build | 12 tests passing; production build compiles |
+| API tests | 364 passing (SQLite, 2026-10-01). The Postgres run in docker-compose was last done at 241 tests |
+| Web tests and build | 35 tests passing; production build compiles with no warnings |
 | Migrations | Complete (`makemigrations --check`: no changes) |
 | Full stack | docker-compose (Postgres, Redis, API, Celery worker, Celery beat, web) healthy; a Celery task ran end to end |
 | Secret scan | gitleaks over the git history: no leaks |
 | Originals | No file in `backend/` or `frontend/` changed since before the migration started |
-| Git | 52 local commits, one per phase step or fix. No remote |
+| Git | Over 100 local commits, one per phase step or fix. No remote |
 
 ## 2. Route walk (Phase 6)
 
@@ -120,15 +120,15 @@ Each fix was measured before and after; the commit messages carry the numbers.
 
 | Component | Status |
 | --- | --- |
-| Valuation | Serving. Variant E serves apartments since 2026-09-29; houses and land keep the old champion (blocked by the stability gate); see below |
+| Valuation | Serving. Variant E serves apartments and land, E2 serves houses (served median error 22.5% / 35.5% / 31.2%); see below |
 | Description sentiment | Shown to users, not applied to price: it added +4–10% with no accuracy gain |
 | Image classifier | **Not retrained: no training data available.** It loads, but predicts "appartement" for any image, including a map. Price effect off |
-| Forecast | Intervals cover less than their nominal level (about 81% overall for a 90% target, 70% at month 12). There is no price history, so forecast *levels* can't be backtested |
-| Investor scoring | Fixed rules, labelled as such. The 7 ML models it was designed for don't exist |
-| Climate | A formula only. The flood factor is mocked. See §8 |
-| Simulator | Runs. RL backtesting and calibration are `not_implemented` |
+| Forecast | Growth from the official INS property price index (2000-2025), backtested from 2005: 12-month error 5.6 points (apartments), 5.7 (houses), 3.7 (land), against 7-9 for the flat trend used before. 90% intervals from that backtest. National only: no local series exists |
+| Investor scoring | Fixed rules, labelled as such. The 7 ML models it was designed for don't exist (no outcome labels). A rent model was trained and not adopted (lost 1 of 5 splits to the medians) |
+| Climate | Curated governorate climate normals and documented floods, coastline-based coastal flags. See §8 |
+| Simulator | Runs. Starting prices calibrated to real listings; strategy backtest (buy now vs wait) inside the model. Agent behaviour not calibrated (no transaction data) |
 | Chatbot | Works offline. Known issues in §7 |
-| Legal assistant | Retrieval and grounding measured. Answer quality unmeasured. See §6 |
+| Legal assistant | Retrieval and grounding measured. Without an LLM it quotes the texts. LLM answer quality unmeasured. See §6 |
 
 **Valuation: variant E serves apartments (2026-09-29).** The training data had the town and
 governorate columns swapped in most rows, but not all, so the rows were fixed one by one. Variant E
@@ -147,27 +147,32 @@ swapped columns: given a correct governorate and town, they are further off.) E 
 accuracy rule for all three types. The promotion gate's explanation-stability check was broken
 (it never tested the model); once fixed, it passes E for apartments (0.87) and blocks E for houses
 (0.72) and land (0.67), against a 0.75 threshold. So only apartments were promoted. Whether to
-relax that check is a decision for later. Full details are in
+relax that check was then decided: one principled revision (compare the top features as a set).
+Under it, E still failed for houses; E2 (E without the redundant surface x local price feature)
+passed the accuracy rule (31.2% vs 49.6%) and the gate (0.91), and serves houses since
+2026-10-01. Land passed and serves E. Full details are in
 [ml/valuation-training-data.md](ml/valuation-training-data.md).
 
-## 6. Legal assistant: the corpus is a hard ceiling
+## 6. Legal assistant: the corpus is still the ceiling
 
-**The legal assistant can only answer from 23 passages of Tunisian law, covering registration
-duties and mortgage law. It has nothing on sales contracts, leases, co-ownership, inheritance,
-zoning or building permits. Questions on those topics cannot be answered well, however good the
-model or retrieval is.** Widening the corpus is the only way past this. It must be sourced with
-your approval: no scraping of outside sites.
+**The corpus has 51 passages**: registration duties, mortgage law, collective investment, debt
+recovery and the Ministry of Justice's land-registration guide (Arabic, downloaded from
+justice.gov.tn on 2026-09-30 with its source and hash). Sales contracts, leases, co-ownership,
+inheritance and zoning are still missing. The Code des droits réels and the COC are on
+justice.gov.tn, which stopped answering from this machine; copies on outside sites are listed in
+[legal-corpus-sources.md](legal-corpus-sources.md) for your approval.
 
-Measured on the 43-question evaluation set:
+Measured on the 43-question evaluation set (collection `legal_tunisia_all_v3`):
 
-- Retrieval recall@3: 0.48 → 0.96.
-- Routing: 42/43. The scope thresholds were tuned on this set, but a leave-one-out check scores
-  the scope decision 43/43 held out as well.
+- Retrieval recall@3: 0.96.
+- Routing: 43/43 held out (leave-one-out).
 - The grounding gate caught 10/10 unsupported claims and kept 10/12 supported ones.
 
-Answer quality with a real LLM is **unmeasured**. The default endpoint (tokenfactory) only
-resolves on the ESPRIT network. To measure it, set `LEGAL_LLM_FALLBACK_*` to a reachable endpoint
-and run `python manage.py evaluate_legal_assistant`.
+Greetings and thanks get a short reply with example questions (they were refused as "not a legal
+question"). Without a reachable LLM, answers quote the most relevant sentences of the retrieved
+texts with their citations, grounded by construction, and the page says so. Answer quality
+*with* an LLM is **unmeasured**: the default endpoint only resolves on the ESPRIT network. Set
+`LEGAL_LLM_FALLBACK_*` to a reachable endpoint and run `evaluate_legal_assistant`.
 
 ## 7. Chatbot known issues
 
@@ -187,43 +192,41 @@ These are open, not fixed:
 9. The chat widget in the web app never sends feedback, so the chatbot's reward model receives no
    ratings from users.
 
-## 8. Climate known issues (domain review needed; code unchanged)
+## 8. Climate (changed 2026-10-01; domain review still advised)
 
-- The composite score **rises toward the north** (correlation with latitude +0.36). **Tozeur**, with
-  a heat score of 0.72, comes out **VERY_LOW** overall.
-- The **flood factor is mocked**: it takes one of two fixed values, set only by whether a delegation
-  is coastal.
-- **Djerba is marked as not coastal.**
-- The weights (flood 0.30, heat 0.25, coastal erosion 0.20, wildfire 0.10, infrastructure
-  resilience −0.15) have not been validated.
+- The mocked flood factor and the population-only heat factor are replaced by curated
+  governorate normals (`data/climate_governorate_normals.csv`: rainfall, days above 35 °C,
+  documented flood exposure, forest cover) and a water-stress factor. The correlation with
+  latitude went from +0.36 to −0.55; Tozeur is moderate, not VERY_LOW.
+- Coastal flags come from the distance to a simplified coastline: 70 coastal delegations
+  (Djerba included, inland delegations of coastal governorates excluded).
+- Weights: flood 0.25, heat 0.25, water stress 0.20, coastal erosion 0.15, wildfire 0.10,
+  infrastructure resilience −0.05. These are approximations, not a hazard map; a climate expert
+  should review them.
 
-Everything else that is open is in [known-issues.md](known-issues.md).
 
 ## 9. Your to-dos
 
-1. **Rotate the provider keys:** the LLM key, the Gmail app password and the Stripe test keys.
-   They need your provider accounts; steps and a check command are in
-   [deployment.md](deployment.md#rotating-keys). Then check Stripe's webhook delivery log: webhooks
-   never took effect before this fix. (`SECRET_KEY` and the JWT key are already rotated in the
-   local `.env`.)
-2. **Variant E for houses and land:** decide whether the stability check should compare the top
-   features as a set rather than in exact order (see ml/valuation-training-data.md).
+1. **Rotate the provider keys** (you said you will): the LLM key, the Gmail app password and the
+   Stripe test keys; steps in [deployment.md](deployment.md#rotating-keys).
+2. **Approve, or not, outside legal sources** for the Code des droits réels
+   ([legal-corpus-sources.md](legal-corpus-sources.md)), or run
+   `python -m ml.legal.fetch_official_texts` from a network where justice.gov.tn answers.
 3. **Measure the legal assistant** with a reachable LLM (§6).
-4. **Add a git remote** when ready. That lets the CI run, and lets the artifact bundle be published
-   as a GitHub Release ([artifacts.md](artifacts.md)).
-5. **Production settings:** `CACHE_URL` (Redis), `NUM_PROXIES` behind a proxy, and the rest of the
-   checklist in [deployment.md](deployment.md).
-6. **Sign-off:** once you're satisfied, the original `backend/` and `frontend/` can be retired.
-   That is your call; nothing has been deleted.
+4. **Live Stripe Prices** for a production deployment (the sandbox ones work end to end).
+5. **Add a git remote** when ready, so CI runs and the artifact bundle can be published.
+6. **Production settings:** `CACHE_URL`, `NUM_PROXIES` and the rest of [deployment.md](deployment.md).
+7. **Sign-off:** the original `backend/` and `frontend/` are untouched (no source file changed
+   after 2026-09-26). Retiring them is your call.
 
 ## 10. Future projects
 
-- Real investor models, and real forecast growth for the IRR scenarios.
-- Simulator RL backtesting and calibration; moving simulator runs to Celery.
-- Adaptive conformal intervals for the forecast.
+- Investor models need outcome labels (sold prices, realised returns); none exist yet.
+- Local price history (dated listings or registered sales by delegation), to measure the
+  outlook locally and to calibrate simulator agents.
+- OCR for the Arabic PDFs that extract as glyph names.
 - A labelled photo set, before the image classifier can be retrained or trusted.
-- A larger legal corpus (sourced with approval).
-- Climate reweighting and real flood data, after domain review.
+- Climate review by a domain expert; real hazard maps.
 - Moving the web app from Create React App to Vite ([frontend.md](frontend.md)).
 - Marking values the scraper fills in, so training can exclude them. Scaling "MD" prices once the
   meaning is confirmed.
