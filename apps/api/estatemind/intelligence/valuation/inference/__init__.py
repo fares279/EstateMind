@@ -5,6 +5,5 @@ __all__ = [
     "model_registry",
     "inference_bundle",
     "fallback_model",
-    "feature_fusion",
     "request_mapper",
 ]

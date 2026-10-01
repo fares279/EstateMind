@@ -28,8 +28,6 @@ import RiskPage from './pages/invest/RiskPage';
 import SimulatePage from './pages/SimulatePage';
 import AccountDashboardPage from './pages/AccountDashboardPage';
 import AccountSettingsPage from './pages/AccountSettingsPage';
-// pages/AccountApiKeysPage.jsx is parked: it is a mock-up with no backend, so it is not routed
-// until a real API-key feature is decided (see docs/known-issues.md).
 import AccountAlertsPage from './pages/AccountAlertsPage';
 import NotFoundPage from './pages/NotFoundPage';
 import AdminRoute from './components/auth/AdminRoute';
