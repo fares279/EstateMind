@@ -13,11 +13,18 @@ project. Fixed issues are in the git history.
 
 ## Legal assistant
 
-- **Hard ceiling: the corpus has 23 passages, covering registration duties and mortgage law
-  only.** Questions about other property law (sales, leases, co-ownership, inheritance, zoning)
-  have nothing to retrieve, however good the model is.
-- Answer quality with a real LLM is unmeasured. The default endpoint only resolves on the ESPRIT
-  network. `evaluate_legal_assistant` measures it once an endpoint is reachable.
+- **The corpus is small: 51 passages** (registration duties, mortgage law, collective investment,
+  debt recovery, and the Ministry of Justice's land-registration guide). Questions on sales,
+  leases, co-ownership, inheritance or zoning have little to retrieve. The Code des droits réels
+  and the COC are listed on justice.gov.tn, which has not answered from this machine since
+  2026-09-30; `python -m ml.legal.fetch_official_texts` retries the fixed list. Copies exist on
+  FAOLEX (fao.org), Droit-Afrique and bna.tn; they are outside sites, so not fetched without
+  approval (legal-corpus-sources.md).
+- The registry judge's guide (justice.gov.tn id 326) extracts as glyph names and needs OCR; it is
+  skipped.
+- Without a reachable LLM, answers quote the most relevant sentences of the retrieved texts
+  (grounded by construction). Answer quality with an LLM is unmeasured: the default endpoint only
+  resolves on the ESPRIT network. `evaluate_legal_assistant` measures it once one is reachable.
 
 ## Valuation data
 
@@ -25,8 +32,9 @@ See [ml/valuation-training-data.md](ml/valuation-training-data.md):
 
 - `listings.csv` (source data, kept as is) has the governorate and town columns swapped in most
   rows, and generated-looking rows. The training pipeline fixes the location per row and drops
-  those rows (variant E). The house champion still predates that fix (see Valuation serving).
-- The previous v2 models remain registered at 0% traffic; variant E supersedes them.
+  those rows (variants E and E2, which all three types now use).
+- `listings.csv` has no listing dates, so no price history can be built from it.
+- The previous v2 models remain registered at 0% traffic.
 
 ## Scraper
 
@@ -36,26 +44,31 @@ See [ml/valuation-training-data.md](ml/valuation-training-data.md):
 
 ## Climate (domain review or data needed)
 
-- The composite rises toward the north (correlation with latitude +0.36). Tozeur, with heat 0.72,
-  comes out VERY_LOW. Weights: flood 0.30, heat 0.25, coastal erosion 0.20, wildfire 0.10,
-  infrastructure resilience −0.15. Changing them is a domain decision.
-- The flood factor is mocked: it takes two fixed values, set only by the coastal flag. Real flood
-  data is needed.
-- Coastal flags come from a governorate-level rule, so inland delegations of coastal governorates
-  are marked coastal. Correcting them needs coastline geodata. (Djerba's three delegations were
-  marked inland; fixed.)
+- Scores come from curated governorate climate normals (`data/climate_governorate_normals.csv`:
+  rainfall, days above 35 °C, documented flood exposure, forest cover), not a hazard map.
+  Delegations of one governorate differ only through the coastal flag, a short list of named
+  erosion hotspots, and population.
+  Weights: flood 0.25, heat 0.25, water stress 0.20, coastal erosion 0.15, wildfire 0.10,
+  infrastructure resilience −0.05. Changing them is a domain decision.
+- Coastal flags come from the distance to a simplified coastline (5 km, plus a list of known
+  coastal delegations): accurate to a few kilometres.
 - Climate does not change served valuations: the models have no climate input. The valuation page
   shows climate as context only.
 - The governorate-level `ClimateRisk` table is empty (the ClimaTN CSVs are not in the repo). The
-  Explore map's climate layer now shows the delegation scores instead.
+  Explore map's climate layer shows the delegation scores instead.
 
 ## Investor
 
 - Scores come from fixed rules (labelled); the 7 designed models don't exist, and there is no
-  transaction or return history to train them on.
-- The forward IRR assumes the 12-month forecast growth continues for the 10-year holding period
-  (stated on the page). The forecast band it uses for the low and high cases is illustrative, not
-  measured.
+  transaction or return history to label them with (undervaluation outcomes, IRRs, buy/wait
+  results).
+- Rent: a CatBoost rent-per-m² model trained on the 572 real rental listings beat the medians on
+  average (median error 26.7% vs 32.3%) but lost one of five splits, so under the rule set before
+  training (`ml/investor/train_rent_model.py`) it is not adopted; yields use the delegation or
+  governorate median rent. The serving path is in place if a retrain with more listings passes.
+- The forward IRR assumes the 12-month outlook growth continues for the 10-year holding period
+  (stated on the page). Its low and high cases use the outlook's 90% interval, measured on the
+  national INS index only.
 - `investor/data/zone_market_stats.csv` still feeds the (absent) models' features; its demand,
   vacancy and days-on-market columns are one constant for every delegation and are no longer shown.
 
@@ -68,24 +81,32 @@ See [ml/valuation-training-data.md](ml/valuation-training-data.md):
 
 ## Forecast
 
-- There is no price history, so forecast levels can't be backtested. Current forecasts sit at
-  0.63× listing prices; the archived set is at 0.32×.
+- The outlook's growth rate is national: the INS index (`data/ins_property_price_index.csv`, 2000
+  Q1 - 2025 Q4) has no delegation or governorate series. Its backtest error (12-month growth,
+  2005-2025: apartments 5.6 points, houses 5.7, land 3.7) is national; local accuracy is not
+  measured. Delegations differ only by their benchmark trend's deviation from the type's median.
+- Price levels are the benchmark averages of `delegations.csv` (asking prices, undated); they sit
+  well above listing medians for houses (see the simulator calibration report).
+- The INS series ends at the last release (2025 Q4, published 2026-08-11); update the CSV when a
+  new release appears.
 - The scraper assigns catch-all "X Ville" delegations.
-- Forecast intervals still under-cover: about 73-80% at a 90% target on synthetic series, after
-  the switch to adaptive conformal. The trend model's errors grow over time on random-walk
-  prices; a better base model is the fix, not the band. Served forecasts use an illustrative
-  ±2.5% band until a model is backtested on real price history.
+- The adaptive-conformal path still under-covers on synthetic series (73-80% at a 90% target) and
+  is not calibrated for served outlooks; they use the INS backtest interval.
 
 ## Simulator
 
-- RL backtesting and agent calibration are `not_implemented`: both need observed transaction
-  history to compare simulated markets with, and none exists.
+- Starting price levels are calibrated to real sale listings (`calibrate_simulator`): median
+  error against listings drops from 34% to 16% for apartments and 68% to 19% for houses
+  (leave-one-out). Land keeps its benchmark: the correction did not help there (59% vs 79%).
+- Agent behaviour (reward weights) is not calibrated: that needs observed transactions, and only
+  asking prices exist. The strategy backtest (buy now vs wait) reports simulated outcomes under
+  each scenario's assumptions, not forecasts.
 
 ## Platform
 
-- Automatic renewal needs a monthly Price per plan in the Stripe account (`STRIPE_PRICE_PRO`,
-  `STRIPE_PRICE_INVESTOR`); until they exist, a payment gives 30 days of the plan.
-- The valuation form and the simulator page have no frontend tests (see frontend.md).
+- Automatic renewal works in the Stripe sandbox (Pro $50, Investor $100 a month). A live
+  deployment needs live-mode Prices in `STRIPE_PRICE_PRO` / `STRIPE_PRICE_INVESTOR`; without them,
+  a payment gives 30 days of the plan.
 - 54% of the real listings (2,875 of 5,306) match a delegation. Of the sale listings, 1,554 name
   no town, and about 700 name neighbourhoods missing from the scraper's town table; those stay at
   governorate level. Listing coordinates are delegation centroids.

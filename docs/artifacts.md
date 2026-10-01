@@ -63,7 +63,10 @@ Move to object storage if bundles become frequent or large.
 - `valuation/models/image_property_type_fallback.pt`: the image classifier (not useful; see ml.md).
 - `valuation/models/tfidf_char_sentiment.joblib`: description sentiment (display only).
 - `valuation/valuation_model.joblib`, `forecast/forecast_model.joblib`: legacy models.
-- `chroma/legal/`: the legal vector store. The active collection is `legal_tunisia_all_v1`; older
+- `valuation/models/estate_e_20260929/`, `estate_e2_20261001/`: the variant E / E2 champions.
+- `investor/rent_ppm_report.json`: the last rent-model evaluation. The model itself is written
+  only when it beats the medians in every split; it did not (see known-issues.md).
+- `chroma/legal/`: the legal vector store. The active collection is `legal_tunisia_all_v3`; older
   collections are kept for rollback.
 
 Hugging Face models (the sentence encoder, the NLI model, the chatbot intent encoder) are *not*

@@ -54,8 +54,10 @@ Web: `API_BASE_URL` (runtime). `REACT_APP_API_URL` (build time) is an optional d
 - [ ] Configure the Stripe webhook endpoint `/api/billing/webhook/stripe/` with its signing secret, for
       `payment_intent.succeeded`, `invoice.payment_succeeded`, `invoice.payment_failed`,
       `customer.subscription.updated` and `customer.subscription.deleted`.
-- [ ] For automatic renewals, create a monthly Price per plan in Stripe and set
-      `STRIPE_PRICE_PRO` / `STRIPE_PRICE_INVESTOR`.
+- [ ] For automatic renewals, set `STRIPE_PRICE_PRO` / `STRIPE_PRICE_INVESTOR` to the monthly
+      Prices of the deployment's Stripe account (the sandbox has Pro $50 and Investor $100; a
+      sandbox subscription renewed and paid its first invoice on 2026-10-01). Live mode needs its
+      own Prices.
 - [ ] Publish the artifact bundle as a GitHub Release and set `ESTATEMIND_ARTIFACTS_URL`
       (artifacts.md).
 - [ ] Postgres backups.
@@ -65,11 +67,18 @@ Web: `API_BASE_URL` (runtime). `REACT_APP_API_URL` (build time) is an optional d
       not per proxy.
 - [ ] After deploying, run `sync_registry_from_artifacts` once (beat also schedules it), so the
       valuation registry has its rows.
-- [ ] Serve variant E for apartments (promoted 2026-09-29; see ml/valuation-training-data.md):
-      `python -m ml.valuation.train_catboost_bundle --version estate_e_20260929 --register-existing`,
-      then `python manage.py promote_model --version-id <id>` with the id of the
-      `valuation:appartement` / `estate_e_20260929` row. Rollback: `promote_model` with the id of
-      the previous `catboost-artifact` apartment row.
+- [ ] Serve the current champions (see ml/valuation-training-data.md): register the versions with
+      `python -m ml.valuation.train_catboost_bundle --version <v> --register-existing` for
+      `estate_e_20260929` and `estate_e2_20261001`, then `python manage.py promote_model
+      --version-id <id>` for `valuation:appartement` and `valuation:terrain` from `estate_e_20260929`
+      and `valuation:maison` from `estate_e2_20261001`. Rollback: `promote_model` with the id of the
+      previous row of that type.
+- [ ] Run `python manage.py index_legal_data` after the artifact fetch only if `chroma/legal/` is
+      missing; the bundle carries the active collection (`legal_tunisia_all_v3`).
+- [ ] Seed data (`seed_demo_data`) runs `generate_forecasts`; rerun it monthly (or after updating
+      `data/ins_property_price_index.csv` with a new INS release) so the outlook starts at the
+      current month. `calibrate_simulator` rewrites `data/simulator_calibration.json` after new
+      listings are imported.
 
 ## Rotating keys
 

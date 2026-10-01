@@ -29,8 +29,9 @@ Every call must go through `API_BASE` or the `api` instance in `services/api.js`
 `npm test -- --watchAll=false` (Jest + Testing Library). This covers the API client, the auth
 header, API URL resolution, error messages and number formatting, the legal answer card, the
 property list, the chat widget (focus, feedback), the account menu and alerts page, the Analyze
-page's error states, the scanner result, the risk page and the valuation result panels. The
-valuation form itself and the simulator page still have no tests.
+page's error states and figures, the scanner result, the risk page, the valuation result panels
+and the simulator page (scenario overrides, sign-in prompt). The valuation form itself still has
+no tests.
 
 ## Recommendation: move from CRA to Vite (not done)
 

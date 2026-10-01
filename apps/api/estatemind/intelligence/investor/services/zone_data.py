@@ -110,8 +110,8 @@ def forecast_outlook(delegation: str, property_type: str) -> dict:
     forecast the forecast pages, the chatbot and valuations use).
 
     growth_*_pct are within the forecast series (first month to month 6 / 12);
-    low/high_12m_pct come from the forecast's 12th-month interval, which is an
-    unmeasured illustrative band (no price history exists to calibrate it).
+    low/high_12m_pct come from the forecast's 12th-month 90% interval, whose width is
+    the outlook method's error on the national INS price index (local error unmeasured).
     Without a forecast, available is False and the figures are None: no growth is
     invented. (The investor pages used to read a static CSV and fall back to
     +3.5% / +6.0% 'UP'.)"""
