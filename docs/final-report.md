@@ -1,6 +1,6 @@
 # EstateMind migration: final report
 
-Date: 2026-09-28, updated 2026-10-01 (sections 1, 5, 6, 8, 9, 10). Scope: the original `backend/` and `frontend/`, moved into this monorepo
+Date: 2026-09-28, updated 2026-10-01 (sections 1, 5, 6, 8, 9, 10; closing state). Scope: the original `backend/` and `frontend/`, moved into this monorepo
 (`apps/api`, `apps/web`) and modernized over six phases. The originals are untouched, and remain
 the rollback reference until sign-off.
 
@@ -8,7 +8,7 @@ the rollback reference until sign-off.
 
 | Check | Result |
 | --- | --- |
-| API tests | 364 passing (SQLite, 2026-10-01). The Postgres run in docker-compose was last done at 241 tests |
+| API tests | 368 passing (SQLite, 2026-10-01). The Postgres run in docker-compose was last done at 241 tests |
 | Web tests and build | 35 tests passing; production build compiles with no warnings |
 | Migrations | Complete (`makemigrations --check`: no changes) |
 | Full stack | docker-compose (Postgres, Redis, API, Celery worker, Celery beat, web) healthy; a Celery task ran end to end |
@@ -155,24 +155,25 @@ passed the accuracy rule (31.2% vs 49.6%) and the gate (0.91), and serves houses
 
 ## 6. Legal assistant: the corpus is still the ceiling
 
-**The corpus has 51 passages**: registration duties, mortgage law, collective investment, debt
-recovery and the Ministry of Justice's land-registration guide (Arabic, downloaded from
-justice.gov.tn on 2026-09-30 with its source and hash). Sales contracts, leases, co-ownership,
-inheritance and zoning are still missing. The Code des droits réels and the COC are on
-justice.gov.tn, which stopped answering from this machine; copies on outside sites are listed in
-[legal-corpus-sources.md](legal-corpus-sources.md) for your approval.
+**The served corpus has 51 passages** (collection `legal_tunisia_all_v3`): registration duties,
+mortgage law, collective investment, debt recovery and the Ministry of Justice's
+land-registration guide. Sales contracts, leases, co-ownership, inheritance and zoning are
+still missing from what is served.
 
-Measured on the 43-question evaluation set (collection `legal_tunisia_all_v3`):
+Outside copies were fetched with your approval (2026-10-01) and verified before use
+([legal-corpus-sources.md](legal-corpus-sources.md)):
 
-- Retrieval recall@3: 0.96.
-- Routing: 43/43 held out (leave-one-out).
-- The grounding gate caught 10/10 unsupported claims and kept 10/12 supported ones.
+- **Code des droits réels: verified** against the JORT texts of two amending laws (11 articles,
+  no substantive difference), stored with its provenance. A collection including it **failed
+  the activation gate** (recall@3 0.789 against a 0.85 target; uncovered questions blocked 0.56,
+  down from 0.94), so it is not served. The gate and the questions were not adjusted.
+- **COC: dropped**: two official-origin editions disagree on unannotated, meaning-changing words.
+- **Urban-planning code: dropped**: the official reference scan is unreadable for most articles.
 
-Greetings and thanks get a short reply with example questions (they were refused as "not a legal
-question"). Without a reachable LLM, answers quote the most relevant sentences of the retrieved
-texts with their citations, grounded by construction, and the page says so. Answer quality
-*with* an LLM is **unmeasured**: the default endpoint only resolves on the ESPRIT network. Set
-`LEGAL_LLM_FALLBACK_*` to a reachable endpoint and run `evaluate_legal_assistant`.
+Measured on the evaluation set (v3): retrieval recall@3 0.96 on its 27 questions; routing 43/43
+held out; the grounding gate caught 10/10 unsupported claims and kept 10/12 supported ones.
+Without a reachable LLM, answers quote the retrieved texts with citations. Answer quality *with*
+an LLM is **unmeasured** (the default endpoint only resolves on the ESPRIT network).
 
 ## 7. Chatbot known issues
 
@@ -207,20 +208,21 @@ These are open, not fixed:
 
 ## 9. Your to-dos
 
-1. **Rotate the provider keys** (you said you will): the LLM key, the Gmail app password and the
-   Stripe test keys; steps in [deployment.md](deployment.md#rotating-keys).
-2. **Approve, or not, outside legal sources** for the Code des droits réels
-   ([legal-corpus-sources.md](legal-corpus-sources.md)), or run
-   `python -m ml.legal.fetch_official_texts` from a network where justice.gov.tn answers.
+1. **Rotate the provider keys** (yours, as agreed): the LLM key, the Gmail app password and the
+   Stripe test keys; runbook in [deployment.md](deployment.md#rotating-keys), check with
+   `manage.py check_integrations`.
+2. **Live Stripe Prices** at deployment (`STRIPE_PRICE_PRO`, `STRIPE_PRICE_INVESTOR`); only the
+   sandbox was used.
 3. **Measure the legal assistant** with a reachable LLM (§6).
-4. **Live Stripe Prices** for a production deployment (the sandbox ones work end to end).
-5. **Add a git remote** when ready, so CI runs and the artifact bundle can be published.
-6. **Production settings:** `CACHE_URL`, `NUM_PROXIES` and the rest of [deployment.md](deployment.md).
-7. **Sign-off:** the original `backend/` and `frontend/` are untouched (no source file changed
+4. **Add a git remote** when ready, so CI runs and the artifact bundle can be published.
+5. **Production settings:** `CACHE_URL`, `NUM_PROXIES` and the rest of [deployment.md](deployment.md).
+6. **Sign-off:** the original `backend/` and `frontend/` are untouched (no source file changed
    after 2026-09-26). Retiring them is your call.
 
 ## 10. Future projects
 
+- Serving the verified Code des droits réels: route questions by legal domain before
+  retrieval, validated on fresh questions with the same gate (legal-corpus-sources.md).
 - Investor models need outcome labels (sold prices, realised returns); none exist yet.
 - Local price history (dated listings or registered sales by delegation), to measure the
   outlook locally and to calibrate simulator agents.
