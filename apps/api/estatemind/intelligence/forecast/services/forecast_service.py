@@ -14,7 +14,15 @@ from estatemind.intelligence.forecast.services.conformal_calibration import Conf
 
 logger = logging.getLogger(__name__)
 
-MAPE = 2.50 / 100   # model mean absolute percentage error
+INTERVAL_COVERAGE = 0.90
+
+
+def _interval(price: float, property_type: str, horizon: int) -> tuple[float, float, float]:
+    """(lower, upper, half-width) of the 90% interval `horizon` months into the outlook
+    (horizon 1 = the current month), from the INS index backtest's error quantiles."""
+    from estatemind.intelligence.forecast.services.national_index import interval_halfwidth
+    hw = interval_halfwidth(property_type, horizon - 1, INTERVAL_COVERAGE)
+    return round(price * (1 - hw), 2), round(price * (1 + hw), 2), hw
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -69,7 +77,7 @@ def get_delegation_forecast(delegation_name: str, property_type: str = 'apartmen
             'price_per_m2': price,
         }
         
-        # Attach both legacy MAPE bands and conformal intervals
+        # Conformal interval when calibrated, else the INS backtest interval
         if conformal_interval:
             # Use conformal prediction interval (90% coverage guarantee)
             month_dict['lower'] = conformal_interval.get('low')
@@ -82,19 +90,18 @@ def get_delegation_forecast(delegation_name: str, property_type: str = 'apartmen
                 'coverage': conformal_interval.get('coverage'),
             }
         else:
-            # Fallback to legacy MAPE bands if conformal not available
-            month_dict['lower'] = round(price * (1 - MAPE), 2)
-            month_dict['upper'] = round(price * (1 + MAPE), 2)
-            month_dict['confidence_level'] = 0.95
-            month_dict['interval_type'] = 'fixed_mape'
+            # Interval from the national backtest on the INS price index (it replaced a
+            # fixed, unmeasured +/-2.5% band)
+            lower, upper, hw = _interval(price, property_type, r.horizon_idx)
+            month_dict['lower'] = lower
+            month_dict['upper'] = upper
+            month_dict['confidence_level'] = INTERVAL_COVERAGE
+            month_dict['interval_type'] = 'ins_backtest'
             month_dict['interval_metadata'] = {
-                'mape_pct': MAPE * 100,
-                'reason': 'fallback',
-                # No price history exists to measure this forecast's error, so
-                # this band is a fixed assumption, not a calibrated interval.
-                'measured': False,
-                'note': 'Illustrative +/-2.5% band. The forecast extrapolates delegation price '
-                        'trends; its accuracy has not been measured (no historical price series).',
+                'width_pct': round(hw * 100, 1),
+                'measured': True,
+                'note': 'Error range of the same method on the national INS price index '
+                        '(2005-2025); local accuracy is not measured.',
             }
         
         # Phase 5: Add quantile fan data for frontend visualization
@@ -178,7 +185,7 @@ def get_delegation_forecast(delegation_name: str, property_type: str = 'apartmen
             result['conformal_calibration'] = conformal_meta
             result['uncertainty_method'] = 'conformal_prediction'
         else:
-            result['uncertainty_method'] = 'fixed_mape'
+            result['uncertainty_method'] = 'ins_backtest'
 
     return result
 
@@ -278,6 +285,7 @@ def get_market_data(property_type: str = 'apartment'):
         # the outlook's first and last months (it used to be a fixed Jan-Dec 2026)
         'horizon':           _horizon(property_type),
         'price_basis':       'reference benchmarks (delegations.csv): asking-price min, average and max per m2',
+        'outlook_basis':     _outlook_basis(property_type),
         'top_price':  {'delegation': by_price[0]['delegation'],  'governorate': by_price[0]['governorate'],  'value': by_price[0]['price_avg']}  if by_price  else None,
         'top_growth': {'delegation': by_growth[0]['delegation'], 'governorate': by_growth[0]['governorate'], 'pct':   by_growth[0]['annual_trend_pct']} if by_growth else None,
         'top_decline':{'delegation': by_growth[-1]['delegation'],'governorate': by_growth[-1]['governorate'],'pct':   by_growth[-1]['annual_trend_pct']} if by_growth else None,
@@ -320,8 +328,8 @@ def get_governorate_forecast_summary(governorate: str, property_type: str = 'apa
             'month':        str(row['forecast_month']),
             'month_label':  _month_label(row['forecast_month']),
             'price_per_m2': price,
-            'lower':        round(price * (1 - MAPE), 2),
-            'upper':        round(price * (1 + MAPE), 2),
+            'lower':        _interval(price, property_type, row['horizon_idx'])[0],
+            'upper':        _interval(price, property_type, row['horizon_idx'])[1],
         })
     if not months:
         return None
@@ -391,6 +399,22 @@ def _get_top_delegations(governorate: str, property_type: str, limit: int = 5):
 
 # ── National top-movers ───────────────────────────────────────────────────────
 
+def _outlook_basis(property_type: str) -> dict:
+    """What the outlook's growth rests on: the INS national rate and its backtest error."""
+    from estatemind.intelligence.forecast.services import national_index as ni
+    bt = ni.backtest(property_type)
+    return {
+        'source': 'INS property price index (Statistiques Tunisie), base 2015, registered sales',
+        'series': bt['series'],
+        'last_quarter': bt['last_quarter'],
+        'national_growth_pct': round(ni.expected_annual_growth_pct(property_type), 1),
+        'method': "average annual growth since 2000, plus the delegation's benchmark deviation",
+        'backtest_mae_12m_pp': bt['mae_12m_pp'][ni.CHOSEN],
+        'flat_trend_mae_12m_pp': bt['mae_12m_pp']['flat'],
+        'backtest_origins': bt['origins'],
+    }
+
+
 def _horizon(property_type: str):
     """First and last month of the latest outlook, as labels."""
     from django.db.models import Max, Min
@@ -457,6 +481,7 @@ def get_national_summary(property_type: str = 'apartment'):
         'total_governorates': len(govs),
         'total_delegations':  len(dels),
         'horizon':            _horizon(property_type),
+        'outlook_basis':      _outlook_basis(property_type),
     }
 
 

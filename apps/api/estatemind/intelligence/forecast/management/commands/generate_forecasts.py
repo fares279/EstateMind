@@ -1,11 +1,18 @@
 """
-Generate 12-month price outlooks from delegations.csv (benchmark trend extrapolation).
+Generate 12-month price outlooks: the reference price of delegations.csv, grown at the
+national rate of the INS property price index plus the delegation's local deviation.
 
-For each delegation × property type, the reference price (benchmark average) is
-extended by the CSV's annual trend, compounded monthly, over the 12 months starting
-with the current month. This is an extrapolation, not a trained model: no forecast
-error has been measured (there is no price history), so model_mape_pct is left empty.
-The series used to start at a fixed January 2026.
+For each delegation × property type, the annual growth is
+    national expected growth of the type (forecast/services/national_index.py: the
+    INS index's average growth since 2000, the best of five methods in a backtest
+    from 2005)
+  + the delegation's benchmark trend minus the median benchmark trend of the type
+    (most benchmark trends are 0%, so most delegations get the national rate),
+compounded monthly over the 12 months starting with the current month.
+model_mape_pct records the national backtest's mean absolute error of 12-month growth
+(percentage points); local accuracy is not measured (no delegation price history).
+The outlook used to apply the benchmark trend alone (mostly 0%), which had the largest
+error in that backtest.
 
 Result: 278 delegations × 4 types × 12 months = 13,344 DelegationForecast rows
         278 delegations × 4 types              =  1,112 DelegationPriceData rows
@@ -79,54 +86,64 @@ class Command(BaseCommand):
             self.stderr.write(self.style.ERROR(f'CSV not found: {CSV_PATH}'))
             return
 
+        from statistics import median
+
+        from estatemind.intelligence.forecast.services import national_index
+
         price_rows    = []
         forecast_rows = []
         skipped       = 0
 
         with open(CSV_PATH, newline='', encoding='utf-8-sig') as f:
-            for row in csv.DictReader(f):
-                delegation  = row.get('Delegation',  '').strip()
-                governorate = row.get('Governorate', '').strip()
-                if not delegation or not governorate:
+            csv_rows = list(csv.DictReader(f))
+        national = {t: national_index.expected_annual_growth_pct(t) for t in PROPERTY_CONFIG}
+        national_mae = {t: national_index.backtest(t)['mae_12m_pp'][national_index.CHOSEN] for t in PROPERTY_CONFIG}
+        typical_trend = {t: median(_parse_trend(r.get(c['trend'], '')) for r in csv_rows)
+                         for t, c in PROPERTY_CONFIG.items()}
+        for row in csv_rows:
+            delegation  = row.get('Delegation',  '').strip()
+            governorate = row.get('Governorate', '').strip()
+            if not delegation or not governorate:
+                continue
+
+            for prop_type, cols in PROPERTY_CONFIG.items():
+                try:
+                    price_avg        = float(row[cols['avg']])
+                    price_min        = float(row[cols['min']])
+                    price_max        = float(row[cols['max']])
+                    annual_trend_pct = _parse_trend(row[cols['trend']])
+                    notes            = row.get(cols['notes'], '')
+                except (ValueError, KeyError):
+                    skipped += 1
                     continue
 
-                for prop_type, cols in PROPERTY_CONFIG.items():
-                    try:
-                        price_avg        = float(row[cols['avg']])
-                        price_min        = float(row[cols['min']])
-                        price_max        = float(row[cols['max']])
-                        annual_trend_pct = _parse_trend(row[cols['trend']])
-                        notes            = row.get(cols['notes'], '')
-                    except (ValueError, KeyError):
-                        skipped += 1
-                        continue
+                price_rows.append(DelegationPriceData(
+                    delegation_name=delegation,
+                    governorate=governorate,
+                    property_type=prop_type,
+                    price_min=price_min,
+                    price_avg=price_avg,
+                    price_max=price_max,
+                    annual_trend_pct=annual_trend_pct,
+                    notes=notes,
+                ))
 
-                    price_rows.append(DelegationPriceData(
+                # h=1 → current month (benchmark price); h=12 → 11 months of compound growth later
+                growth_pct = national[prop_type] + annual_trend_pct - typical_trend[prop_type]
+                monthly_factor = (1 + growth_pct / 100) ** (1 / 12)
+                for h in range(1, 13):
+                    price_tnd = price_avg * (monthly_factor ** (h - 1))
+                    forecast_rows.append(DelegationForecast(
                         delegation_name=delegation,
                         governorate=governorate,
                         property_type=prop_type,
-                        price_min=price_min,
-                        price_avg=price_avg,
-                        price_max=price_max,
-                        annual_trend_pct=annual_trend_pct,
-                        notes=notes,
+                        forecast_origin=FORECAST_ORIGIN,
+                        forecast_month=_add_months(FORECAST_ORIGIN, h - 1),
+                        horizon_idx=h,
+                        predicted_price_per_m2=price_tnd * 1000,  # store in millimes
+                        model_mape_pct=national_mae[prop_type],
+                        model_version='ins_national_trend',
                     ))
-
-                    # h=1 → current month (benchmark price); h=12 → 11 months of compound growth later
-                    monthly_factor = (1 + annual_trend_pct / 100) ** (1 / 12)
-                    for h in range(1, 13):
-                        price_tnd = price_avg * (monthly_factor ** (h - 1))
-                        forecast_rows.append(DelegationForecast(
-                            delegation_name=delegation,
-                            governorate=governorate,
-                            property_type=prop_type,
-                            forecast_origin=FORECAST_ORIGIN,
-                            forecast_month=_add_months(FORECAST_ORIGIN, h - 1),
-                            horizon_idx=h,
-                            predicted_price_per_m2=price_tnd * 1000,  # store in millimes
-                            model_mape_pct=None,
-                            model_version='benchmark_trend',
-                        ))
 
         self.stdout.write(
             f'Parsed {len(price_rows)} price rows, {len(forecast_rows)} forecast rows'

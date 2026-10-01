@@ -274,13 +274,24 @@ class Command(BaseCommand):
 
     # ── Compound-growth fallback ───────────────────────────────────────────────
     def _compound_growth(self, price_map, gov_map):
-        from estatemind.intelligence.forecast.models import DelegationForecast
+        """Same rule as generate_forecasts: the INS national rate of the type plus the
+        delegation's benchmark trend minus the type's median benchmark trend."""
+        from statistics import median
 
+        from estatemind.intelligence.forecast.models import DelegationForecast
+        from estatemind.intelligence.forecast.services import national_index
+
+        trends: dict = {}
+        for props in price_map.values():
+            for pt, vals in props.items():
+                trends.setdefault(pt, []).append(vals['trend'])
+        typical = {pt: median(v) for pt, v in trends.items()}
         rows = []
         for deleg, props in price_map.items():
             gov = gov_map.get(deleg, '')
             for pt, vals in props.items():
-                mf = (1 + vals['trend'] / 100) ** (1 / 12)
+                growth = national_index.expected_annual_growth_pct(pt) + vals['trend'] - typical[pt]
+                mf = (1 + growth / 100) ** (1 / 12)
                 for h in range(1, 13):
                     price_tnd = vals['avg'] * (mf ** (h - 1))
                     rows.append(DelegationForecast(
@@ -291,8 +302,8 @@ class Command(BaseCommand):
                         forecast_month=_add_months(FORECAST_ORIGIN, h - 1),
                         horizon_idx=h,
                         predicted_price_per_m2=price_tnd * 1000,
-                        model_mape_pct=None,  # extrapolation: no error measured
-                        model_version='csv_v2',
+                        model_mape_pct=national_index.backtest(pt)['mae_12m_pp'][national_index.CHOSEN],
+                        model_version='ins_national_trend',
                     ))
         self.stdout.write(f'  Built {len(rows)} compound-growth rows.')
-        return rows, 'csv_v2'
+        return rows, 'ins_national_trend'

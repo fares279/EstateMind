@@ -1,7 +1,7 @@
 /**
  * AnalyzePage — Market Intelligence Hub
  * Tab 1: Market Dashboard — all 278 delegations, real prices from CSV
- * Tab 2: Price Outlook — 12-month benchmark trend extrapolation per delegation, from the current month
+ * Tab 2: Price Outlook — 12 months per delegation: national growth of the INS price index plus the local benchmark deviation
  */
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
@@ -266,9 +266,11 @@ function PriceForecastSection() {
         </div>
         <h2 className="text-3xl font-black text-white">12-Month Price Outlook</h2>
         <p className="mt-1.5 text-gray-400 max-w-2xl">
-          Each delegation's reference price per m², extended by its annual benchmark trend over the next
-          12 months. This is an extrapolation, not a trained model: its accuracy has not been measured,
-          because no price history exists yet.
+          Each delegation's reference price per m², grown over the next 12 months at the national rate of the
+          official INS property price index{nationalData?.outlook_basis ? ` (${fmtP(nationalData.outlook_basis.national_growth_pct)} a year, data to ${nationalData.outlook_basis.last_quarter})` : ''},
+          adjusted by the delegation's own benchmark trend. On the national index since 2005, this method missed
+          12-month growth by {nationalData?.outlook_basis ? `${nationalData.outlook_basis.backtest_mae_12m_pp} points` : 'about 4–6 points'} on average;
+          local accuracy is not measured, as no delegation price history exists.
         </p>
       </div>
 
@@ -356,7 +358,7 @@ function PriceForecastSection() {
           {/* Trend + band note */}
           <div className="flex items-center gap-3 flex-wrap">
             <TrendBadge growth={summary?.growth_pct_12m ?? 0} />
-            <span className="text-xs text-gray-500">Shaded area: an illustrative ±2.5% band, not a measured confidence interval</span>
+            <span className="text-xs text-gray-500">Shaded area: 90% range, from this method's errors on the national INS price index (2005–2025)</span>
           </div>
 
           {/* 12-month chart */}
@@ -442,7 +444,8 @@ function PriceForecastSection() {
             <MetricCard label="Horizon"     value="12 months"
               sub={nationalData.horizon ? `${nationalData.horizon.start} – ${nationalData.horizon.end}` : 'From this month'} />
             {/* this card used to say "Accuracy ~97.5%, MAPE 2.5%": a constant, never measured */}
-            <MetricCard label="Method"      value="Trend extrapolation" sub="Accuracy not measured" highlight />
+            <MetricCard label="Method" value="INS national trend"
+              sub={nationalData.outlook_basis ? `Backtest error ±${nationalData.outlook_basis.backtest_mae_12m_pp} pts / year (national)` : 'Backtested on the INS index'} highlight />
           </div>
 
           <div className={CARD}>
@@ -1487,7 +1490,7 @@ function DashboardSection() {
           <p className="text-xs text-gray-600 mt-3">Showing first 50 of {sorted.length} results — use filters to narrow down.</p>
         )}
         <p className="text-xs text-gray-600 mt-2 flex items-center gap-1.5">
-          <Info size={11}/>Reference benchmark prices, TND/m². 12M = extrapolated to {marketData?.horizon?.end || 'twelve months from now'}. Trend = annual benchmark growth rate.
+          <Info size={11}/>Reference benchmark prices, TND/m². 12M = outlook for {marketData?.horizon?.end || 'twelve months from now'} (INS national growth plus the local benchmark deviation). Trend = the benchmark's own stated annual trend.
         </p>
       </div>
 
