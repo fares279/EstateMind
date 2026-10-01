@@ -49,8 +49,24 @@
    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
   },
   "chroma/legal/chroma.sqlite3": {
-   "size": 1572864,
-   "sha256": "7b48a143a6c534e2621814ca84cc6a22bc83725606aa7452bb9e9770cf7b726c"
+   "size": 2064384,
+   "sha256": "61cd080435cb2dd6cf7cbb78bdb692b71948d79c2339cbbb5d6b9a7c8c15f147"
+  },
+  "chroma/legal/eb4e7ea9-14bd-4c48-a424-506a780e1c16/data_level0.bin": {
+   "size": 167600,
+   "sha256": "4d66a63d9038ddf8a8b5f3861f59517d6db454f7d1e415c0d3e045da0432f0b8"
+  },
+  "chroma/legal/eb4e7ea9-14bd-4c48-a424-506a780e1c16/header.bin": {
+   "size": 100,
+   "sha256": "a0e81c3b22454233bc12d0762f06dcca48261a75231cf87c79b75e69a6c00150"
+  },
+  "chroma/legal/eb4e7ea9-14bd-4c48-a424-506a780e1c16/length.bin": {
+   "size": 400,
+   "sha256": "74fc396e2472e01daf2c14ce28a4a55f69efea89966f6de989e4fe68d6624af6"
+  },
+  "chroma/legal/eb4e7ea9-14bd-4c48-a424-506a780e1c16/link_lists.bin": {
+   "size": 0,
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
   },
   "chroma/legal/ee6b1f93-d3ed-40d9-91e0-1eb2df92efe2/data_level0.bin": {
    "size": 167600,

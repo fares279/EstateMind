@@ -159,7 +159,7 @@ def load_and_prepare() -> List[Dict[str, Any]]:
 
 OFFICIAL_DIR = Path(__file__).parent.parent / 'data' / 'official'
 _ARABIC_LETTER = re.compile(r'[؀-ۿ]')
-_GLYPH_NAMES = re.compile(r'(isolated|initial|medial|final)')
+_GLYPH_NAMES = re.compile(r'(?:isolated|initial|medial|final)')
 
 
 def _official_text(pdf_path: Path) -> str | None:
