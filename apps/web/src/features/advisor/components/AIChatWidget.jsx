@@ -16,7 +16,6 @@ import { submitChatFeedback } from '../../../services/api-modules';
 import { userErrorMessage } from '../../../utils/errors';
 
 /* ── Constants ──────────────────────────────────────────────────────────────── */
-const ORANGE      = '#FF6B35';
 const SESSION_KEY = 'estatemind_chat_session';
 
 const WELCOME = {

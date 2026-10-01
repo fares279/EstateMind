@@ -292,8 +292,8 @@ export default function SimulatePage() {
       developer_activity:   1 + buildPct / 100,
     };
     // only what differs from the scenario (more than rounding), so the scenario keeps its settings
-    return Object.fromEntries(Object.entries(values).filter(([k, v]) => p[k] == null || Math.abs(v - p[k]) > 1e-6
-      && Math.abs(v - p[k]) > Math.abs(p[k]) * 0.005));
+    return Object.fromEntries(Object.entries(values).filter(([k, v]) => p[k] == null || (Math.abs(v - p[k]) > 1e-6
+      && Math.abs(v - p[k]) > Math.abs(p[k]) * 0.005)));
   }, [scenario, scenarioParams, bctRate, creditRate, investorPct, demandMult, buildPct]);
 
   const stopPolling = useCallback(() => {

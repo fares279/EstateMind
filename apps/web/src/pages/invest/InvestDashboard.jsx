@@ -8,7 +8,6 @@ import {
   DollarSign, TrendingUp, TrendingDown, ShieldCheck,
   ScanSearch, Plus, ChevronRight, MapPin, ArrowUpRight, Building2,
 } from 'lucide-react';
-import { InvestmentGradeCard, PortfolioRiskPanel } from '../../features/invest/components/InvestmentGradeCard';
 import { getInvestorDashboard, getKpiFreshness } from '../../services/api';
 
 const CARD   = 'rounded-2xl border border-white/10 bg-white/5 p-6';

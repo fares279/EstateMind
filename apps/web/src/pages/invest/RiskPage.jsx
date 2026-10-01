@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  ResponsiveContainer, PieChart, Pie, Cell, Tooltip,
+  PieChart, Pie, Cell, Tooltip,
 } from 'recharts';
 import { ShieldCheck, ShieldAlert, ShieldOff, TrendingUp, AlertTriangle, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';

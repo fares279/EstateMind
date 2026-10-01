@@ -1,14 +1,11 @@
 import React, { useState } from 'react';
-import { Settings, Eye, EyeOff, Lock, Globe, Bell, Shield } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { Settings, Lock, Globe, Bell, Shield } from 'lucide-react';
 
 const CARD = 'rounded-2xl border border-white/10 bg-white/5 p-6';
 const INP = 'w-full rounded-xl border border-white/15 bg-black/30 px-3 py-2.5 text-sm text-white ' +
   'placeholder:text-gray-600 focus:outline-none focus:border-[#FF6B35]/60 focus:ring-1 focus:ring-[#FF6B35]/30';
 
 export default function AccountSettingsPage() {
-  const { user } = useAuth();
-  const [showPassword, setShowPassword] = useState(false);
   const [settings, setSettings] = useState({
     twoFactorEnabled: false,
     emailNotifications: true,

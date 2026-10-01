@@ -3,8 +3,6 @@ import api, {
 	getForecastDelegation,
 	getForecastGovernorate,
 	getForecastNational,
-	getInvestorDashboard,
-	getKpiFreshness,
 	simStart,
 } from './api';
 

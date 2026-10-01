@@ -7,9 +7,9 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sparkles, Home, MapPin, TrendingUp, CheckCircle2, AlertCircle,
-  BarChart2, FileText, Eye, Info, X, Loader2, Brain, ArrowRight,
-  Building2, Layers, Activity, Image as ImageIcon, ChevronDown,
-  AlertTriangle, Download, Zap,
+  BarChart2, FileText, Info, X, Loader2, Brain, ArrowRight,
+  Building2, Layers, Activity, Image as ImageIcon,
+  AlertTriangle, Zap,
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LabelList,
@@ -48,32 +48,6 @@ const STATIC_REGIONS = [
   { id: 23, governorate: 'Tunis' },
   { id: 24, governorate: 'Zaghouan' },
 ];
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Signal code translations (matching backend SIGNAL_CODE_TRANSLATION)
-// ─────────────────────────────────────────────────────────────────────────────
-const SIGNAL_LABELS = {
-  'ood:processor_unavailable': 'Image analysis service temporarily unavailable',
-  'ood:text_quality_poor': 'Property description too brief for analysis',
-  'ood:invalid_input': 'Input data failed validation',
-  'reference_dataset_missing': 'No comparable properties in this market',
-  'catboost_signal_adjustment_': 'Model signal adjustment applied',
-  'cv_images_analyzed_': 'Computer vision analysis performed',
-};
-
-function translateSignalCode(code) {
-  if (!code || typeof code !== 'string') return code;
-  // Check for exact matches
-  if (SIGNAL_LABELS[code]) return SIGNAL_LABELS[code];
-  // Check for prefix matches
-  for (const [prefix, label] of Object.entries(SIGNAL_LABELS)) {
-    if (prefix.endsWith('_') && code.startsWith(prefix)) {
-      return label;
-    }
-  }
-  // Fallback: basic formatting (replace underscores, capitalize)
-  return code.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-}
 
 const STATIC_DELEGATIONS = [
   // Ariana (1)
@@ -557,30 +531,6 @@ function TextAnalysis({ ta }) {
         </div>
       )}
       <p className="text-xs text-gray-500">Shown for information only; the description does not change the estimate.</p>
-    </div>
-  );
-}
-
-const IMAGE_STATUS = { success: 'Analysed', no_images: 'No photos uploaded', model_load_failed: 'Photo analysis unavailable',
-  analysis_error: 'Photo analysis unavailable', analysis_failed: 'Photo analysis unavailable' };
-
-// ── Image analysis panel ──────────────────────────────────────────────────────
-function ImageAnalysis({ ia }) {
-  if (!ia) return null;
-  return (
-    <div className="space-y-2 text-sm">
-      {[
-        { k:'Images Submitted', v: ia.image_count ?? 0 },
-        { k:'Coverage Score',  v: `${Math.round((ia.coverage_score||0)*100)}%` },
-        { k:'Quality Score',   v: `${Math.round((ia.quality_score||0)*100)}%` },
-        { k:'Status',          v: IMAGE_STATUS[ia.status] || 'Not analysed' },
-      ].map(({ k, v }) => (
-        <div key={k} className="flex justify-between border-b border-white/5 pb-1.5">
-          <span className="text-gray-500">{k}</span>
-          <span className="font-mono text-gray-200">{v}</span>
-        </div>
-      ))}
-      {ia.image_analysis && <p className="text-xs text-gray-500 italic mt-1">{ia.image_analysis}</p>}
     </div>
   );
 }

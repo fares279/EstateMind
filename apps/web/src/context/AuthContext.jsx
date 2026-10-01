@@ -45,7 +45,7 @@ export const AuthProvider = ({ children }) => {
     }
     setToken(access);
     return access;
-  }, [API_BASE]);
+  }, []);
 
   // Verify token and fetch current user
   const verifyToken = useCallback(async (token) => {
@@ -71,7 +71,7 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [API_BASE, clearStoredAuth, refreshStoredToken]);
+  }, [clearStoredAuth, refreshStoredToken]);
 
   // Initialize auth on mount
   useEffect(() => {

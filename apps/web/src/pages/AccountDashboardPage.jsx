@@ -44,7 +44,6 @@ export default function AccountDashboardPage() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [clientSecret, setClientSecret] = useState(null);
-  const [loadingPaymentForm, setLoadingPaymentForm] = useState(false);
 
   const currentPlan = (user?.plan || 'free').toLowerCase();
 
@@ -72,7 +71,6 @@ export default function AccountDashboardPage() {
     setErr('');
     setMsg('');
     setUpgrading(plan);
-    setLoadingPaymentForm(true);
 
     try {
       const token = localStorage.getItem('access_token');
@@ -97,7 +95,6 @@ export default function AccountDashboardPage() {
       console.error('Upgrade error:', e2);
     } finally {
       setUpgrading('');
-      setLoadingPaymentForm(false);
     }
   };
 

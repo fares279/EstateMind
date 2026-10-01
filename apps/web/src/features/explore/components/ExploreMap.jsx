@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { DelegationTooltip } from './DelegationTooltip';
 import { getClimateRiskMap, getMapDemandHeat, getMapOpportunities, getMapPriceHeat } from '../../../services/api';
 
 const DEFAULT_CENTER = [34.0, 9.2];

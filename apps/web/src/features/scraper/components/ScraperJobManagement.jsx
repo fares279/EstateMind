@@ -4,12 +4,9 @@
  * View job history, trigger new scrape jobs, monitor progress in real-time
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Play,
-  Pause,
-  RotateCw,
-  Download,
   Calendar,
   Clock,
   CheckCircle,
@@ -28,15 +25,7 @@ const ScraperJobManagement = () => {
   const [triggering, setTriggering] = useState(false);
   const [selectedSource, setSelectedSource] = useState('all');
 
-  useEffect(() => {
-    fetchJobs();
-    fetchSources();
-    // Refresh every 10 seconds if there are running jobs
-    const interval = setInterval(fetchJobs, 10000);
-    return () => clearInterval(interval);
-  }, [selectedSource]);
-
-  const fetchJobs = async () => {
+  const fetchJobs = useCallback(async () => {
     try {
       const params = selectedSource !== 'all' ? { source: selectedSource } : {};
       const res = await api.get('/scraper/jobs/', { params });
@@ -46,7 +35,15 @@ const ScraperJobManagement = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedSource]);
+
+  useEffect(() => {
+    fetchJobs();
+    fetchSources();
+    // Refresh every 10 seconds if there are running jobs
+    const interval = setInterval(fetchJobs, 10000);
+    return () => clearInterval(interval);
+  }, [fetchJobs]);
 
   const fetchSources = async () => {
     try {
@@ -309,8 +306,6 @@ const JobCard = ({ job, isSelected, onSelect, onTrigger, triggering }) => {
 };
 
 const JobDetailPanel = ({ job }) => {
-  const [logsExpanded, setLogsExpanded] = useState(false);
-
   return (
     <div className="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500 h-fit sticky top-6">
       <h3 className="text-lg font-semibold mb-4 text-gray-900">Job Details</h3>

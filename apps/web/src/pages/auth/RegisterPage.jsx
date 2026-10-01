@@ -59,7 +59,7 @@ export default function RegisterPage() {
     const hasUppercase = /[A-Z]/.test(formData.password);
     const hasLowercase = /[a-z]/.test(formData.password);
     const hasNumbers = /\d/.test(formData.password);
-    const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(formData.password);
+    const hasSpecialChar = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(formData.password);
 
     if (!hasUppercase) {
       setError('Password must contain at least one uppercase letter (A-Z)');

@@ -4,12 +4,12 @@
  * PortfolioRiskPanel - Portfolio metrics and risk alerts
  */
 
-import React, { useEffect, useState } from 'react';
-import { getInvestmentGrade, getPortfolioRisk } from '../../../services/api-modules';
+import React, { useCallback, useEffect, useState } from 'react';
+import { getPortfolioRisk } from '../../../services/api-modules';
 import { SHAPDriver, AnomalyAlert, SkeletonLoader, ErrorFallback } from '../../../components/common/CommonComponents';
 
 export const InvestmentGradeCard = ({ grade }) => {
-  const { grade: gradeLabel, score, location, yield_gross, yield_net, irr, irr_ci, recommendation, confidence, drivers } = grade;
+  const { grade: gradeLabel, location, yield_gross, yield_net, irr, irr_ci, recommendation, confidence, drivers } = grade;
 
   const gradeBg =
     gradeLabel === 'A' || gradeLabel === 'A+'
@@ -70,7 +70,7 @@ export const PortfolioRiskPanel = ({ portfolioId }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const loadPortfolioRisk = async () => {
+  const loadPortfolioRisk = useCallback(async () => {
     try {
       setLoading(true);
       const data = await getPortfolioRisk(portfolioId);
@@ -81,11 +81,11 @@ export const PortfolioRiskPanel = ({ portfolioId }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [portfolioId]);
 
   useEffect(() => {
     loadPortfolioRisk();
-  }, [portfolioId]);
+  }, [loadPortfolioRisk]);
 
   if (error) return <ErrorFallback error={error} retry={loadPortfolioRisk} />;
   if (loading) return <SkeletonLoader variant="card" />;

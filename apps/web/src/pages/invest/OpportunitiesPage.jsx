@@ -3,7 +3,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import { MapPin, TrendingUp, ChevronUp, ChevronDown } from 'lucide-react';
+import { MapPin, ChevronUp, ChevronDown } from 'lucide-react';
 import { getInvestorOpportunities } from '../../services/api';
 import { changeColor, signedPct } from '../../utils/format';
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Plus, Trash2, RefreshCw, TrendingUp, TrendingDown,
+  Plus, Trash2, RefreshCw,
   Building2, Home, Store, Trees, X, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import {

@@ -1,9 +1,20 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
-  Scale, Send, ExternalLink, ChevronRight,
-  AlertCircle, CheckCircle2, Loader2, Sparkles,
-  Receipt, Building2, BookOpen, Landmark, ArrowRight, RotateCcw,
-  ThumbsUp, ThumbsDown, Info,
+  Scale,
+  Send,
+  ExternalLink,
+  ChevronRight,
+  AlertCircle,
+  Loader2,
+  Sparkles,
+  Receipt,
+  Building2,
+  BookOpen,
+  Landmark,
+  ArrowRight,
+  ThumbsUp,
+  ThumbsDown,
+  Info,
 } from 'lucide-react';
 import {
   askLegalQuestion, getLegalStatus, getLegalSampleQuestions, sendLegalFeedback,
@@ -287,7 +298,9 @@ const QUICK_TOPICS = [
 
 // ─── Empty state ──────────────────────────────────────────────────────────────
 function EmptyState({ questions, onAsk, status }) {
-  const extraQuestions = questions.slice(4);
+  // the quick topics cover the first sample questions; the rest are offered as examples
+  const topicQs = new Set(QUICK_TOPICS.map(t => t.q));
+  const extraQuestions = questions.filter(q => !topicQs.has(q));
 
   return (
     <div className="flex flex-col items-center justify-center h-full gap-10 py-8 px-2">
@@ -305,6 +318,7 @@ function EmptyState({ questions, onAsk, status }) {
           Instant answers on Tunisian real estate, corporate, and tax law.<br />
           Grounded in official legal texts.
         </p>
+        <div className="flex justify-center"><StatusChip s={status} /></div>
       </div>
 
       {/* Quick topic cards */}
@@ -333,6 +347,16 @@ function EmptyState({ questions, onAsk, status }) {
             </button>
           ))}
         </div>
+        {extraQuestions.length > 0 && (
+          <div className="flex flex-wrap justify-center gap-2 pt-2">
+            {extraQuestions.map(q => (
+              <button key={q} onClick={() => onAsk(q)}
+                className="rounded-full border border-white/10 px-3 py-1.5 text-[11px] text-gray-400 hover:text-white hover:border-[#FF6B35]/30 transition-colors">
+                {q}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -506,6 +530,7 @@ export default function LegalAIPage() {
           <p className="text-center mt-2" style={{ fontSize: '10px', color: '#374151' }}>
             Enter to send · Shift+Enter for new line · Grounded in official Tunisian legal texts
           </p>
+          {hasChat && <div className="flex justify-center mt-1"><StatusChip s={status} /></div>}
         </div>
       </div>
     </div>

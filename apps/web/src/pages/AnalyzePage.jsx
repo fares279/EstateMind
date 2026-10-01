@@ -648,7 +648,7 @@ function DashboardSection() {
     getMarketDashboard().then((r) => setMaterialized(r.data || null)).catch(() => setMaterialized(null));
   }, []);
 
-  const allDelegations = marketData?.delegations || [];
+  const allDelegations = useMemo(() => marketData?.delegations || [], [marketData]);
 
   // Unique governorates for filter
   const govOptions = useMemo(() =>

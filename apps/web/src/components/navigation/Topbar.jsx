@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { Menu, X, Search, Bell, User, ChevronDown } from 'lucide-react';
-import TopbarDropdown from './TopbarDropdown';
+import { Menu, X, Bell, User, ChevronDown } from 'lucide-react';
 import UserProfileDropdown from './UserProfileDropdown';
 import { useAuth } from '../../context/AuthContext';
 
@@ -37,7 +36,6 @@ export default function Topbar() {
   const { user, loading } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeMenu, setActiveMenu] = useState(null);
-  const [activeSubmenu, setActiveSubmenu] = useState(null);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
 
   const isMenuActive = (menuLabel) => {

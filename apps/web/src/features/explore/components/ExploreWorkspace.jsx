@@ -81,7 +81,7 @@ function resolveCoords(raw) {
   return { lat: null, lng: null };
 }
 
-function normalizeProperty(raw, delegationKpis) {
+function normalizeProperty(raw) {
   const location = [raw.governorate, raw.delegation_name].filter(Boolean).join(', ');
   const bedrooms  = raw.bedrooms == null ? null : Number(raw.bedrooms);
   const bathrooms = raw.bathrooms == null || Number(raw.bathrooms) === 0 ? null : Number(raw.bathrooms);
@@ -198,7 +198,7 @@ export default function ExploreWorkspace() {
         if (filters.price_max !== '') params.price_max = filters.price_max;
 
         const { data } = await getMapListings(params);
-        const normalized = (data?.results || []).map((prop) => normalizeProperty(prop, delegationKpis));
+        const normalized = (data?.results || []).map((prop) => normalizeProperty(prop));
 
         if (!ignore) {
           setProperties(normalized);

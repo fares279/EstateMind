@@ -3,8 +3,8 @@
  * Shows estimated price with confidence bands and explainability
  */
 
-import React, { useState, useEffect } from 'react';
-import { ConfidenceBand, ProvenanceBlock, SHAPDriver, SkeletonLoader } from '../../../components/common/CommonComponents';
+import React, { useState } from 'react';
+import { ProvenanceBlock } from '../../../components/common/CommonComponents';
 
 export const ValuationResultPanel = ({ result }) => {
   const [activeTab, setActiveTab] = useState('drivers');
@@ -25,13 +25,6 @@ export const ValuationResultPanel = ({ result }) => {
                   || result?.top_drivers                 // Alternative from backend
                   || result?.shap?.contributions         // SHAP object structure
                   || [];
-
-  // Debug logging
-  useEffect(() => {
-    console.log('PropertyValuationPanel result:', result);
-    console.log('Drivers array:', drivers);
-    console.log('Result keys:', result ? Object.keys(result) : 'no result');
-  }, [result, drivers]);
 
   return (
     <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">

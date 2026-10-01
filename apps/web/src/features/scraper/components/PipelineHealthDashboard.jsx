@@ -17,7 +17,6 @@ import {
   TrendingUp,
   Database,
   Zap,
-  Clock,
   BarChart3,
 } from 'lucide-react';
 import api from '../../../services/api';

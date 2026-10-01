@@ -5,11 +5,10 @@
  * Allows reviewing and fixing bad records at the Silver/Gold boundary
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   AlertTriangle,
   CheckCircle,
-  RotateCw,
   Filter,
   Download,
   Eye,
@@ -29,11 +28,7 @@ const DataQualityManagement = () => {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
 
-  useEffect(() => {
-    fetchViolations();
-  }, [filters]);
-
-  const fetchViolations = async () => {
+  const fetchViolations = useCallback(async () => {
     try {
       setLoading(true);
       const params = {
@@ -49,7 +44,11 @@ const DataQualityManagement = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters]);
+
+  useEffect(() => {
+    fetchViolations();
+  }, [fetchViolations]);
 
   const handleApprove = async (violationId, correctedData) => {
     try {
