@@ -1,7 +1,7 @@
 """
-Loads all 7 investor ML models from investor/outputs/models/.
-Models directory lives outside the Django project at:
-  <repo_root>/investor/outputs/models/
+Loads the 7 designed investor ML models from EXTERNAL_DATA_DIR/investor/outputs/models/
+when they exist. They are not part of the repository (there are no outcome labels to train
+them on), so scoring uses the labelled fixed rules instead.
 """
 from pathlib import Path
 from functools import lru_cache
@@ -23,7 +23,7 @@ except ImportError:
     xgb = None
     _XGB = False
 
-# registry.py → services/ → investor/ → backend/ → EstateMind/ → EstateMind (root)
+# Models directory: EXTERNAL_DATA_DIR/investor/outputs/models (see config/paths.py)
 from config.paths import EXTERNAL_DATA_DIR
 
 MODELS_DIR = EXTERNAL_DATA_DIR / 'investor' / 'outputs' / 'models'

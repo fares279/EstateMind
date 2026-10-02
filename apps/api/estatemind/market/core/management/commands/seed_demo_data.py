@@ -6,10 +6,10 @@ Populate a working database from the reference data in the repository.
 Idempotent: re-running updates the same rows (fixed ids, fixed random seed).
 
 What is loaded, and from where:
-  1. Regions (24) and delegations (278) from data/delegations.csv, with coordinates and
-     coastal flags from data/delegation_geography.csv / governorate_geography.csv.
-     Those geography files were exported from the original EstateMind database; coastal
-     flags are kept as they were there (a known issue awaiting domain review).
+  1. Regions (24) and delegations (278) from data/delegations.csv, with coordinates from
+     data/delegation_geography.csv / governorate_geography.csv (exported from the
+     original EstateMind database). Coastal flags come from the distance of each
+     delegation centre to the coastline (market.core.coastline).
   2. Real listings from the valuation listings.csv, cleaned with the same rules as the
      model training data (ml/shared/listings_dataset.py, location 'v2', generated-looking
      rows removed). Property.source = 'listings_csv', external_id 'listings-<record_id>'.

@@ -1,7 +1,7 @@
 """
 management command: import_delegations
 
-Reads backend/data/delegations.csv and upserts Region + Delegation records
+Reads apps/api/data/delegations.csv and upserts Region + Delegation records
 including all market-benchmark price fields (TND/m²).
 
 Usage:
@@ -56,14 +56,14 @@ def _int(raw: str) -> int:
 
 
 class Command(BaseCommand):
-    help = "Import delegation price benchmarks from backend/data/delegations.csv into the database."
+    help = "Import delegation price benchmarks from apps/api/data/delegations.csv into the database."
 
     def add_arguments(self, parser):
         parser.add_argument(
             "--csv",
             dest="csv_path",
             default=None,
-            help="Path to delegations CSV (default: backend/data/delegations.csv)",
+            help="Path to delegations CSV (default: apps/api/data/delegations.csv)",
         )
         parser.add_argument(
             "--dry-run",

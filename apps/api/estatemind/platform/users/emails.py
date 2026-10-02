@@ -44,7 +44,7 @@ def send_verification_email(user, otp_or_token):
 
     verification_url = None
     if len(str(otp_or_token)) > 6:
-        # Frontend expects /verify-otp route (see frontend/src/App.js)
+        # The web app serves /verify-otp (apps/web/src/App.js)
         verification_url = f"{_PLATFORM_URL}/verify-otp?token={otp_or_token}"
 
     context = {

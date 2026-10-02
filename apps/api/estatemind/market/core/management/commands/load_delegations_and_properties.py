@@ -26,7 +26,7 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        # Default paths — both CSVs are now bundled inside the project under backend/data/
+        # Default paths: both CSVs are bundled in apps/api/data/
         from config.paths import DATA_DIR
         backend_data_dir = DATA_DIR
 

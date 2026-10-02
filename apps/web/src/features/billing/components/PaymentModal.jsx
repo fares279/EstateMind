@@ -15,7 +15,7 @@ if (typeof PUBLISHABLE_KEY === 'string' && PUBLISHABLE_KEY.trim().length > 0) {
   // Avoid calling loadStripe with undefined which throws in runtime.
   // This helps local development when env vars are not yet provided.
   // eslint-disable-next-line no-console
-  console.warn('Stripe publishable key is not configured. Set REACT_APP_STRIPE_PUBLISHABLE_KEY in frontend/.env');
+  console.warn('Stripe publishable key is not configured. Set REACT_APP_STRIPE_PUBLISHABLE_KEY in apps/web/.env');
 }
 
 // Inner payment form component
@@ -221,7 +221,7 @@ export default function PaymentModal({
             <div className="p-6">
               <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                 <p className="text-sm text-yellow-800">Stripe is not configured for this environment.</p>
-                <p className="text-xs text-gray-500 mt-2">Set <strong>REACT_APP_STRIPE_PUBLISHABLE_KEY</strong> in <strong>frontend/.env</strong> and restart the dev server.</p>
+                <p className="text-xs text-gray-500 mt-2">Set <strong>REACT_APP_STRIPE_PUBLISHABLE_KEY</strong> in <strong>apps/web/.env</strong> and restart the dev server.</p>
               </div>
             </div>
           ) : clientSecret ? (
