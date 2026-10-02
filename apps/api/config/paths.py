@@ -16,7 +16,7 @@ API_ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = Path(os.environ.get("ESTATEMIND_DATA_DIR", API_ROOT / "data"))
 
 # Trained models and vector stores. Gitignored; regenerate with the training
-# and indexing management commands (see docs/ml.md).
+# and indexing management commands (see the README, "Machine learning").
 ARTIFACTS_DIR = Path(os.environ.get("ESTATEMIND_ARTIFACTS_DIR", API_ROOT / "artifacts"))
 
 # Datasets that lived outside the original backend/ folder (e.g. the

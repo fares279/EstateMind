@@ -96,7 +96,7 @@ def main():
     parser.add_argument('--register', action='store_true')
     parser.add_argument('--version', default=f'estate_v2_{date.today():%Y%m%d}')
     parser.add_argument('--options', choices=('v2', 'e'), default='v2',
-                        help="'v2': the default cleaning. 'e': variant E from docs/ml/valuation-training-data.md "
+                        help="'v2': the default cleaning. 'e': variant E (README, \"Valuation\") "
                              "(per-row location fix, generated-looking rows dropped, no coordinates), with the "
                              "previous v2 test listings held out so evaluate_served compares on unseen rows.")
     parser.add_argument('--drop-features', nargs='*', default=[],

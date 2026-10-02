@@ -1,6 +1,6 @@
 """Score a registered valuation version against the current champions through
 the serving code path (registry handle -> InferenceBundle.predict), on the
-held-out listings used in docs/ml/valuation-training-data.md.
+held-out listings used for the variant E comparison (README, "Valuation").
 
     python -m ml.valuation.evaluate_served --version estate_e_20260929 [--out report.json]
 

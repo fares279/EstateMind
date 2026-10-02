@@ -3,7 +3,7 @@
 # API on http://localhost:8000, web on http://localhost:3000.
 # Secrets and API keys come from apps/api/.env (gitignored; see .env.example).
 # Model artifacts are mounted from apps/api/artifacts (or fetched via
-# ESTATEMIND_ARTIFACTS_URL, see docs/artifacts.md).
+# ESTATEMIND_ARTIFACTS_URL, see the README, "Model artifacts").
 
 x-api: &api
   build: ./apps/api
